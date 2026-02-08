@@ -2,21 +2,17 @@
 
 namespace App\Providers;
 
+use App\Services\WhatsApp\Contracts\WhatsAppProviderInterface;
+use App\Services\WhatsApp\Providers\DefaultWhatsAppProvider;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(WhatsAppProviderInterface::class, DefaultWhatsAppProvider::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //

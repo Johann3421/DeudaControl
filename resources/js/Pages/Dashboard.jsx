@@ -55,10 +55,18 @@ const METODO_LABELS = {
     otro: 'Otro',
 };
 
-export default function Dashboard({ metricas, pagos_recientes, deudas_por_estado }) {
+const TIPO_CONFIG = {
+    particular: { label: 'Particular', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', accent: 'bg-amber-500', icon: 'text-amber-500' },
+    entidad: { label: 'Entidad', bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', accent: 'bg-violet-500', icon: 'text-violet-500' },
+    alquiler: { label: 'Alquiler', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', accent: 'bg-emerald-500', icon: 'text-emerald-500' },
+};
+
+export default function Dashboard({ metricas, metricas_por_tipo, pagos_recientes, deudas_por_estado }) {
     const porcentajeRecuperado = metricas.monto_total_prestado > 0
         ? ((metricas.monto_recuperado / metricas.monto_total_prestado) * 100).toFixed(1)
         : 0;
+
+    const tiposDeuda = ['particular', 'entidad', 'alquiler'];
 
     return (
         <Layout title="Dashboard">
@@ -153,6 +161,46 @@ export default function Dashboard({ metricas, pagos_recientes, deudas_por_estado
                     </div>
                 )}
 
+                {/* Metrics by debt type */}
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Desglose por Tipo de Deuda</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {tiposDeuda.map((tipo) => {
+                            const config = TIPO_CONFIG[tipo];
+                            const data = metricas_por_tipo?.[tipo];
+                            const total = data?.total || 0;
+                            const activas = data?.activas || 0;
+                            const montoTotal = parseFloat(data?.monto_total || 0);
+                            const montoPendiente = parseFloat(data?.monto_pendiente || 0);
+                            const progreso = montoTotal > 0 ? (((montoTotal - montoPendiente) / montoTotal) * 100) : 0;
+
+                            return (
+                                <Link key={tipo} href={`/deudas?tipo_deuda=${tipo}`} className="block">
+                                    <div className={`bg-white rounded-2xl border ${config.border} p-5 hover:shadow-md transition-all duration-200`}>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${config.bg} ${config.text}`}>
+                                                {config.label}
+                                            </span>
+                                            <span className="text-xs text-slate-400">{activas} activa{activas !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <p className="text-lg font-bold text-slate-900">{formatMoney(montoTotal)}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{total} deuda{total !== 1 ? 's' : ''} registrada{total !== 1 ? 's' : ''}</p>
+                                        <div className="mt-3 flex items-center gap-2">
+                                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div className={`h-full ${config.accent} rounded-full transition-all`} style={{ width: `${progreso}%` }} />
+                                            </div>
+                                            <span className="text-xs text-slate-400">{progreso.toFixed(0)}%</span>
+                                        </div>
+                                        {montoPendiente > 0 && (
+                                            <p className="text-xs text-amber-600 font-medium mt-2">Pendiente: {formatMoney(montoPendiente)}</p>
+                                        )}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                     {/* Recent payments */}
                     <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -185,23 +233,31 @@ export default function Dashboard({ metricas, pagos_recientes, deudas_por_estado
                             </div>
                         ) : (
                             <div className="divide-y divide-slate-50">
-                                {pagos_recientes.map((pago) => (
-                                    <div key={pago.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
-                                        <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="20 6 9 17 4 12" />
-                                            </svg>
+                                {pagos_recientes.map((pago) => {
+                                    const tipoConf = TIPO_CONFIG[pago.tipo_deuda] || TIPO_CONFIG.particular;
+                                    return (
+                                        <div key={pago.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/50 transition-colors">
+                                            <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-medium text-slate-800 truncate">{pago.cliente}</p>
+                                                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-medium ${tipoConf.bg} ${tipoConf.text}`}>
+                                                        {tipoConf.label}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-400 truncate">{pago.deuda_descripcion}</p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-sm font-semibold text-emerald-600">{formatMoney(pago.monto)}</p>
+                                                <p className="text-xs text-slate-400">{pago.fecha_pago}</p>
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-slate-800 truncate">{pago.cliente}</p>
-                                            <p className="text-xs text-slate-400 truncate">{pago.deuda_descripcion}</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-sm font-semibold text-emerald-600">{formatMoney(pago.monto)}</p>
-                                            <p className="text-xs text-slate-400">{pago.fecha_pago}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -253,12 +309,12 @@ export default function Dashboard({ metricas, pagos_recientes, deudas_por_estado
                 </div>
 
                 {/* Quick actions */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                     <Link
                         href="/clientes/create"
-                        className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-[#0EA5E9]/30 hover:shadow-md transition-all duration-200 group"
+                        className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 hover:border-[#0EA5E9]/30 hover:shadow-md transition-all duration-200 group"
                     >
-                        <div className="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center group-hover:bg-[#0EA5E9] transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center group-hover:bg-[#0EA5E9] transition-colors shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#0EA5E9] group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
@@ -266,39 +322,75 @@ export default function Dashboard({ metricas, pagos_recientes, deudas_por_estado
                                 <line x1="22" y1="11" x2="16" y2="11" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-semibold text-slate-800">Nuevo Cliente</p>
-                            <p className="text-xs text-slate-400">Registrar cliente</p>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">Nuevo Cliente</p>
+                            <p className="text-xs text-slate-400 truncate">Registrar cliente</p>
                         </div>
                     </Link>
                     <Link
                         href="/deudas/create"
-                        className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 group"
+                        className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 group"
                     >
-                        <div className="w-11 h-11 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-500 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-500 transition-colors shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19" />
                                 <line x1="5" y1="12" x2="19" y2="12" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-semibold text-slate-800">Nueva Deuda</p>
-                            <p className="text-xs text-slate-400">Registrar prestamo</p>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">Nueva Deuda</p>
+                            <p className="text-xs text-slate-400 truncate">Registrar prestamo</p>
                         </div>
                     </Link>
                     <Link
                         href="/pagos/create"
-                        className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group"
+                        className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group"
                     >
-                        <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-500 transition-colors shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
                                 <line x1="1" y1="10" x2="23" y2="10" />
                             </svg>
                         </div>
-                        <div>
-                            <p className="text-sm font-semibold text-slate-800">Nuevo Pago</p>
-                            <p className="text-xs text-slate-400">Registrar cobro</p>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">Nuevo Pago</p>
+                            <p className="text-xs text-slate-400 truncate">Registrar cobro</p>
+                        </div>
+                    </Link>
+                    <Link
+                        href="/entidades/create"
+                        className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 hover:border-violet-300 hover:shadow-md transition-all duration-200 group"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center group-hover:bg-violet-500 transition-colors shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-violet-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+                                <path d="M9 22v-4h6v4" />
+                                <line x1="8" y1="6" x2="10" y2="6" />
+                                <line x1="14" y1="6" x2="16" y2="6" />
+                                <line x1="8" y1="10" x2="10" y2="10" />
+                                <line x1="14" y1="10" x2="16" y2="10" />
+                                <line x1="8" y1="14" x2="10" y2="14" />
+                                <line x1="14" y1="14" x2="16" y2="14" />
+                            </svg>
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">Nueva Entidad</p>
+                            <p className="text-xs text-slate-400 truncate">Registrar entidad</p>
+                        </div>
+                    </Link>
+                    <Link
+                        href="/inmuebles/create"
+                        className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-300 hover:shadow-md transition-all duration-200 group"
+                    >
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center group-hover:bg-teal-500 transition-colors shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-teal-500 group-hover:text-white transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">Nuevo Inmueble</p>
+                            <p className="text-xs text-slate-400 truncate">Registrar propiedad</p>
                         </div>
                     </Link>
                 </div>

@@ -32,95 +32,62 @@ class DeudaController extends Controller
             $query->where('estado', $request->estado);
         }
 
+        if ($request->filled('tipo_deuda')) {
+            $query->where('tipo_deuda', $request->tipo_deuda);
+        }
+
         $deudas = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
 
         return Inertia::render('Deudas/Index', [
             'deudas' => $deudas,
-            'filtros' => $request->only(['buscar', 'estado']),
+            'filtros' => $request->only(['buscar', 'estado', 'tipo_deuda']),
         ]);
     }
 
     public function create()
     {
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'apellido']);
-
-        return Inertia::render('Deudas/Create', [
-            'clientes' => $clientes,
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'cliente_id' => ['required', 'exists:clientes,id'],
-            'descripcion' => ['required', 'string', 'max:255'],
-            'monto_total' => ['required', 'numeric', 'min:0.01'],
-            'tasa_interes' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'fecha_inicio' => ['required', 'date'],
-            'fecha_vencimiento' => ['nullable', 'date', 'after:fecha_inicio'],
-            'frecuencia_pago' => ['required', 'in:semanal,quincenal,mensual,unico'],
-            'numero_cuotas' => ['nullable', 'integer', 'min:1'],
-            'notas' => ['nullable', 'string'],
-        ], [
-            'cliente_id.required' => 'Selecciona un cliente.',
-            'descripcion.required' => 'La descripción es obligatoria.',
-            'monto_total.required' => 'El monto es obligatorio.',
-            'monto_total.min' => 'El monto debe ser mayor a cero.',
-            'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
-            'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a la fecha de inicio.',
-        ]);
-
-        $cliente = Cliente::where('id', $validated['cliente_id'])
-            ->where('user_id', Auth::id())
-            ->firstOrFail();
-
-        $validated['user_id'] = Auth::id();
-        $validated['monto_pendiente'] = $validated['monto_total'];
-        $validated['tasa_interes'] = $validated['tasa_interes'] ?? 0;
-
-        $deuda = Deuda::create($validated);
-
-        Movimiento::create([
-            'user_id' => Auth::id(),
-            'tipo' => 'prestamo_otorgado',
-            'referencia_tipo' => 'deuda',
-            'referencia_id' => $deuda->id,
-            'monto' => $deuda->monto_total,
-            'descripcion' => "Préstamo otorgado a {$cliente->nombre_completo}: {$deuda->descripcion}",
-        ]);
-
-        return redirect()->route('deudas.index')->with('success', 'Deuda registrada correctamente.');
+        return Inertia::render('Deudas/CreateSelector');
     }
 
     public function show(Deuda $deuda)
     {
         $this->authorize($deuda);
 
-        $deuda->load(['cliente', 'pagos' => function ($q) {
-            $q->orderBy('fecha_pago', 'desc');
-        }]);
+        if ($deuda->esEntidad()) {
+            $deuda->load([
+                'deudaEntidad.entidad',
+                'pagos' => fn($q) => $q->orderBy('fecha_pago', 'desc'),
+                'historial' => fn($q) => $q->orderBy('created_at', 'desc')->limit(20),
+            ]);
+            return Inertia::render('Deudas/Entidad/Show', ['deuda' => $deuda]);
+        }
 
-        return Inertia::render('Deudas/Show', [
-            'deuda' => $deuda,
-        ]);
+        if ($deuda->esAlquiler()) {
+            $deuda->load([
+                'cliente',
+                'deudaAlquiler.inmueble',
+                'deudaAlquiler.recibos' => fn($q) => $q->orderBy('periodo_inicio', 'desc'),
+                'pagos' => fn($q) => $q->orderBy('fecha_pago', 'desc'),
+            ]);
+            return Inertia::render('Deudas/Alquiler/Show', ['deuda' => $deuda]);
+        }
+
+        $deuda->load(['cliente', 'pagos' => fn($q) => $q->orderBy('fecha_pago', 'desc')]);
+        return Inertia::render('Deudas/Show', ['deuda' => $deuda]);
     }
 
     public function edit(Deuda $deuda)
     {
         $this->authorize($deuda);
 
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
-            ->orderBy('nombre')
-            ->get(['id', 'nombre', 'apellido']);
+        if ($deuda->esEntidad()) {
+            return redirect()->route('deudas.entidad.edit', $deuda);
+        }
+        if ($deuda->esAlquiler()) {
+            return redirect()->route('deudas.alquiler.edit', $deuda);
+        }
 
-        return Inertia::render('Deudas/Edit', [
-            'deuda' => $deuda,
-            'clientes' => $clientes,
-        ]);
+        return redirect()->route('deudas.particular.edit', $deuda);
     }
 
     public function update(Request $request, Deuda $deuda)

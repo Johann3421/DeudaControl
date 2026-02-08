@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Deuda;
-use App\Models\Movimiento;
+use App\Models\Entidad;
+use App\Models\Inmueble;
 use App\Models\Pago;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,20 @@ class DashboardController extends Controller
             ->where('fecha_vencimiento', '<', now())
             ->count();
 
+        $metricasPorTipo = Deuda::where('user_id', $userId)
+            ->select('tipo_deuda',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN estado = "activa" THEN 1 ELSE 0 END) as activas'),
+                DB::raw('SUM(monto_total) as monto_total'),
+                DB::raw('SUM(CASE WHEN estado = "activa" THEN monto_pendiente ELSE 0 END) as monto_pendiente')
+            )
+            ->groupBy('tipo_deuda')
+            ->get()
+            ->keyBy('tipo_deuda');
+
+        $totalEntidades = Entidad::where('user_id', $userId)->count();
+        $totalInmuebles = Inmueble::where('user_id', $userId)->count();
+
         $pagosRecientes = Pago::whereHas('deuda', function ($q) use ($userId) {
             $q->where('user_id', $userId);
         })
@@ -44,8 +59,9 @@ class DashboardController extends Controller
                 'monto' => $pago->monto,
                 'fecha_pago' => $pago->fecha_pago->format('d/m/Y'),
                 'metodo_pago' => $pago->metodo_pago,
-                'cliente' => $pago->deuda->cliente->nombre_completo,
+                'cliente' => $pago->deuda->cliente?->nombre_completo ?? 'Entidad',
                 'deuda_descripcion' => $pago->deuda->descripcion,
+                'tipo_deuda' => $pago->deuda->tipo_deuda ?? 'particular',
             ];
         });
 
@@ -78,7 +94,10 @@ class DashboardController extends Controller
                 'monto_pendiente' => (float) $montoPendiente,
                 'monto_recuperado' => (float) $montoRecuperado,
                 'deudas_vencidas' => $deudasVencidas,
+                'total_entidades' => $totalEntidades,
+                'total_inmuebles' => $totalInmuebles,
             ],
+            'metricas_por_tipo' => $metricasPorTipo,
             'pagos_recientes' => $pagosRecientes,
             'pagos_por_mes' => $pagosPorMes,
             'deudas_por_estado' => $deudasPorEstado,

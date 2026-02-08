@@ -44,9 +44,24 @@ class User extends Authenticatable
         return $this->hasMany(Deuda::class);
     }
 
+    public function entidades(): HasMany
+    {
+        return $this->hasMany(Entidad::class);
+    }
+
+    public function inmuebles(): HasMany
+    {
+        return $this->hasMany(Inmueble::class);
+    }
+
     public function movimientos(): HasMany
     {
         return $this->hasMany(Movimiento::class);
+    }
+
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class);
     }
 
     public function pagos(): HasManyThrough

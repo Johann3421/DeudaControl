@@ -13,16 +13,26 @@ const ESTADO_STYLES = {
     cancelada: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
 };
 
+const TIPO_STYLES = {
+    particular: { bg: 'bg-amber-50', text: 'text-amber-700', label: 'Particular' },
+    entidad: { bg: 'bg-violet-50', text: 'text-violet-700', label: 'Entidad' },
+    alquiler: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Alquiler' },
+};
+
 export default function DeudasIndex({ deudas, filtros }) {
     const [buscar, setBuscar] = useState(filtros?.buscar || '');
 
     const handleSearch = (e) => {
         e.preventDefault();
-        router.get('/deudas', { buscar, estado: filtros?.estado }, { preserveState: true });
+        router.get('/deudas', { buscar, estado: filtros?.estado, tipo_deuda: filtros?.tipo_deuda }, { preserveState: true });
     };
 
     const handleFilterEstado = (estado) => {
-        router.get('/deudas', { buscar: filtros?.buscar, estado }, { preserveState: true });
+        router.get('/deudas', { buscar: filtros?.buscar, estado, tipo_deuda: filtros?.tipo_deuda }, { preserveState: true });
+    };
+
+    const handleFilterTipo = (tipo_deuda) => {
+        router.get('/deudas', { buscar: filtros?.buscar, estado: filtros?.estado, tipo_deuda }, { preserveState: true });
     };
 
     return (
@@ -41,17 +51,27 @@ export default function DeudasIndex({ deudas, filtros }) {
                     </Link>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-                        <input type="text" value={buscar} onChange={(e) => setBuscar(e.target.value)}
-                            placeholder="Buscar por descripcion o cliente..."
-                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all" />
-                        <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Buscar</button>
-                    </form>
-                    <div className="flex gap-2 flex-wrap">
+                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <form onSubmit={handleSearch} className="flex-1 flex gap-2">
+                            <input type="text" value={buscar} onChange={(e) => setBuscar(e.target.value)}
+                                placeholder="Buscar por descripcion o cliente..."
+                                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all" />
+                            <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Buscar</button>
+                        </form>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-slate-400 self-center mr-1">Tipo:</span>
+                        {[['', 'Todos'], ['particular', 'Particular'], ['entidad', 'Entidad'], ['alquiler', 'Alquiler']].map(([val, label]) => (
+                            <button key={`tipo-${val}`} onClick={() => handleFilterTipo(val)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                    (filtros?.tipo_deuda || '') === val ? 'bg-[#0EA5E9] text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
+                                }`}>{label}</button>
+                        ))}
+                        <span className="text-xs text-slate-400 self-center ml-3 mr-1">Estado:</span>
                         {[['', 'Todas'], ['activa', 'Activas'], ['pagada', 'Pagadas'], ['vencida', 'Vencidas']].map(([val, label]) => (
-                            <button key={val} onClick={() => handleFilterEstado(val)}
-                                className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                            <button key={`est-${val}`} onClick={() => handleFilterEstado(val)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                     (filtros?.estado || '') === val ? 'bg-[#0EA5E9] text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
                                 }`}>{label}</button>
                         ))}
@@ -70,7 +90,8 @@ export default function DeudasIndex({ deudas, filtros }) {
                                 <thead>
                                     <tr className="border-b border-slate-100">
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Descripcion</th>
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente</th>
+                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente / Entidad</th>
+                                        <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Tipo</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto Total</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Pendiente</th>
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado</th>
@@ -80,6 +101,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                 <tbody className="divide-y divide-slate-50">
                                     {deudas.data.map((deuda) => {
                                         const estilos = ESTADO_STYLES[deuda.estado] || ESTADO_STYLES.activa;
+                                        const tipoStyle = TIPO_STYLES[deuda.tipo_deuda] || TIPO_STYLES.particular;
                                         const progreso = deuda.monto_total > 0 ? (((deuda.monto_total - deuda.monto_pendiente) / deuda.monto_total) * 100) : 0;
                                         return (
                                             <tr key={deuda.id} className="hover:bg-slate-50/50 transition-colors">
@@ -100,6 +122,11 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                             {deuda.cliente.nombre} {deuda.cliente.apellido}
                                                         </Link>
                                                     ) : <span className="text-sm text-slate-400">-</span>}
+                                                </td>
+                                                <td className="px-5 py-3.5 text-center">
+                                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle.bg} ${tipoStyle.text}`}>
+                                                        {tipoStyle.label}
+                                                    </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
                                                     <span className="text-sm font-medium text-slate-800">{formatMoney(deuda.monto_total)}</span>
