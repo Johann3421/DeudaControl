@@ -14,7 +14,7 @@ class DeudaController extends Controller
     public function index(Request $request)
     {
         $query = Deuda::where('user_id', Auth::id())
-            ->with('cliente')
+            ->with(['cliente', 'deudaEntidad.entidad'])
             ->withCount('pagos');
 
         if ($request->filled('buscar')) {
@@ -24,6 +24,10 @@ class DeudaController extends Controller
                   ->orWhereHas('cliente', function ($cq) use ($buscar) {
                       $cq->where('nombre', 'like', "%{$buscar}%")
                         ->orWhere('apellido', 'like', "%{$buscar}%");
+                  })
+                  ->orWhereHas('deudaEntidad.entidad', function ($cq) use ($buscar) {
+                      $cq->where('razon_social', 'like', "%{$buscar}%")
+                        ->orWhere('ruc', 'like', "%{$buscar}%");
                   });
             });
         }

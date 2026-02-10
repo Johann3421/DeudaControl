@@ -1,5 +1,6 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Layout from '../../../Components/Layout';
+import { useState } from 'react';
 
 export default function EntidadDeudaCreate({ entidades }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -14,9 +15,140 @@ export default function EntidadDeudaCreate({ entidades }) {
         notas: '',
     });
 
+    // Obtener token CSRF de Inertia o del DOM
+    const page = usePage();
+    const getCsrfToken = () => {
+        // Intenta obtener del props de Inertia
+        if (page.props.csrf_token) {
+            console.log('✓ Token CSRF obtenido de props de Inertia');
+            return page.props.csrf_token;
+        }
+
+        // Intenta obtener del meta tag
+        const metaToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (metaToken) {
+            console.log('✓ Token CSRF obtenido del meta tag');
+            return metaToken;
+        }
+
+        // Intenta obtener de la cookie XSRF-TOKEN
+        const cookieToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        if (cookieToken) {
+            console.log('✓ Token CSRF obtenido de la cookie XSRF-TOKEN');
+            return decodeURIComponent(cookieToken);
+        }
+
+        console.warn('⚠ Token CSRF no encontrado en ninguna fuente');
+        console.log('Props disponibles:', Object.keys(page.props));
+        return '';
+    };
+    const csrfToken = getCsrfToken();
+
+    // Estado para la búsqueda de SIAF
+    const [siafSearch, setSiafSearch] = useState({
+        anoEje: new Date().getFullYear().toString(),
+        secEjec: '',
+        expediente: '',
+        j_captcha: '',
+    });
+    const [showSiafSearch, setShowSiafSearch] = useState(false);
+    const [captchaImage, setCaptchaImage] = useState('');
+    const [searchingCode, setSearchingCode] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    const [searchSuccess, setSearchSuccess] = useState(false);
+    const [siafResults, setSiafResults] = useState(null);
+
     const handleSubmit = (e) => {
         e.preventDefault();
         post('/deudas/entidad');
+    };
+
+    const loadCaptcha = async () => {
+        try {
+            // Endpoint que proporciona la imagen del CAPTCHA
+            const response = await fetch('/api/captcha', {
+                method: 'GET'
+            });
+            const data = await response.json();
+
+            if (data.success && data.captcha) {
+                setCaptchaImage(data.captcha);
+            } else {
+                setSearchError('Error al cargar el CAPTCHA');
+            }
+        } catch (error) {
+            console.error('Error al cargar CAPTCHA:', error);
+            setSearchError('Error al cargar el CAPTCHA: ' + error.message);
+        }
+    };
+
+    const handleSiafSearch = async (e) => {
+        if (e) e.preventDefault();
+        setSearchError('');
+        setSearchingCode(true);
+
+        try {
+            // Validar que todos los campos requeridos estén completos
+            if (!siafSearch.secEjec || !siafSearch.expediente || !siafSearch.j_captcha) {
+                setSearchError('Por favor completa todos los campos requeridos');
+                setSearchingCode(false);
+                return;
+            }
+
+            console.log('Iniciando búsqueda SIAF con:', {
+                anoEje: siafSearch.anoEje,
+                secEjec: siafSearch.secEjec,
+                expediente: siafSearch.expediente,
+                codigo_siaf: data.codigo_siaf
+            });
+            console.log('Token CSRF usado:', csrfToken ? `[${csrfToken.substring(0, 20)}...]` : 'no encontrado');
+
+            // Hacer la búsqueda en el servicio SIAF
+            const response = await fetch('/api/siaf/consultar', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    anoEje: siafSearch.anoEje,
+                    secEjec: siafSearch.secEjec,
+                    expediente: siafSearch.expediente,
+                    j_captcha: siafSearch.j_captcha,
+                    codigo_siaf: data.codigo_siaf
+                })
+            });
+
+            console.log('Respuesta del servidor:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Error al consultar el servicio SIAF: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Resultado:', result);
+
+            if (result.success && result.data) {
+                // Mostrar los resultados en una tabla en lugar de autocompletar
+                setSiafResults(result.data);
+                setSearchSuccess(true);
+                setSearchError('');
+            } else {
+                setSearchError(result.message || 'No se encontraron datos para el código SIAF especificado');
+                setSiafResults(null);
+            }
+        } catch (error) {
+            setSearchError('Error al conectar con el servicio SIAF: ' + error.message);
+            console.error('Error detallado:', error);
+        } finally {
+            setSearchingCode(false);
+        }
     };
 
     return (
@@ -127,17 +259,210 @@ export default function EntidadDeudaCreate({ entidades }) {
                                 {errors.monto_total && <p className="mt-1 text-sm text-red-600">{errors.monto_total}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Codigo SIAF</label>
-                                <input
-                                    type="text"
-                                    value={data.codigo_siaf}
-                                    onChange={(e) => setData('codigo_siaf', e.target.value)}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.codigo_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
-                                    placeholder="Codigo SIAF (opcional)"
-                                />
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Número Expediente</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={data.codigo_siaf}
+                                        onChange={(e) => setData('codigo_siaf', e.target.value)}
+                                        className={`flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.codigo_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        placeholder="Codigo SIAF (opcional)"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!data.codigo_siaf) {
+                                                setSearchError('Por favor ingresa un código SIAF primero');
+                                            } else {
+                                                setSearchError('');
+                                                setShowSiafSearch(!showSiafSearch);
+                                                if (!showSiafSearch) {
+                                                    loadCaptcha();
+                                                }
+                                            }
+                                        }}
+                                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/25"
+                                    >
+                                        Buscar
+                                    </button>
+                                </div>
                                 {errors.codigo_siaf && <p className="mt-1 text-sm text-red-600">{errors.codigo_siaf}</p>}
                             </div>
                         </div>
+
+                        {/* Formulario de Búsqueda SIAF */}
+                        {showSiafSearch && (
+                            <div className="mt-6 p-6 rounded-xl border border-yellow-200 bg-yellow-50">
+                                <h3 className="text-base font-semibold text-slate-900 mb-4">Búsqueda de Código SIAF</h3>
+                                <div className="space-y-4">
+                                    {searchSuccess && (
+                                        <div className="p-4 rounded-lg bg-green-100 border border-green-300 flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-green-700" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                            <p className="text-sm text-green-700 font-medium">¡Búsqueda exitosa! Resultados encontrados.</p>
+                                        </div>
+                                    )}
+
+                                    {/* Mostrar tabla de resultados */}
+                                    {searchSuccess && siafResults && siafResults.datos && (
+                                        <div className="overflow-x-auto mt-4">
+                                            <table className="w-full text-xs border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-200">
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Ciclo</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Fase</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Sec</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Corr</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Doc</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Número</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Fecha</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Moneda</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-right">Monto</th>
+                                                        <th className="border border-slate-300 px-2 py-2 text-left">Estado</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {siafResults.datos.map((row, idx) => (
+                                                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.ciclo}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.fase}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.secuencia}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.correlativo}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.codDoc}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.numDoc}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.fecha}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.moneda}</td>
+                                                            <td className="border border-slate-300 px-2 py-2 text-right font-semibold">{row.monto}</td>
+                                                            <td className="border border-slate-300 px-2 py-2">{row.estado}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                    {searchError && (
+                                        <div className="p-4 rounded-lg bg-red-100 border border-red-300">
+                                            <p className="text-sm text-red-700">{searchError}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Año de Ejecución */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1.5">Año de Ejecución *</label>
+                                        <select
+                                            value={siafSearch.anoEje}
+                                            onChange={(e) => setSiafSearch({ ...siafSearch, anoEje: e.target.value })}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                        >
+                                            {[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010, 2009].map((year) => (
+                                                <option key={year} value={year.toString()}>
+                                                    {year}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Código de Unidad Ejecutora + Expediente */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de Unidad Ejecutora *</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.secEjec}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, '');
+                                                    if (value.length <= 6) {
+                                                        setSiafSearch({ ...siafSearch, secEjec: value });
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="Ej: 001234"
+                                                maxLength="6"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Ingrese un Expediente *</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.expediente}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, '');
+                                                    if (value.length <= 10) {
+                                                        setSiafSearch({ ...siafSearch, expediente: value });
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="Ej: 2024000001"
+                                                maxLength="10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* CAPTCHA */}
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-medium text-slate-700">Verificación CAPTCHA *</label>
+                                        {captchaImage && (
+                                            <div className="space-y-2">
+                                                <div className="bg-slate-100 p-2 rounded-lg inline-block">
+                                                    <img
+                                                        src={captchaImage}
+                                                        alt="CAPTCHA"
+                                                        className="h-16 w-auto"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={loadCaptcha}
+                                                    className="block text-xs text-[#0EA5E9] hover:text-[#0284C7] font-medium"
+                                                >
+                                                    ↻ Cambiar imagen
+                                                </button>
+                                            </div>
+                                        )}
+                                        <input
+                                            type="text"
+                                            value={siafSearch.j_captcha}
+                                            onChange={(e) => setSiafSearch({ ...siafSearch, j_captcha: e.target.value.toUpperCase() })}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                            placeholder="Ingrese el código de la imagen"
+                                            maxLength="5"
+                                        />
+                                    </div>
+
+                                    {/* Botones de búsqueda */}
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleSiafSearch}
+                                            disabled={searchingCode}
+                                            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {searchingCode ? 'Consultando...' : 'Consultar SIAF'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={searchingCode}
+                                            onClick={() => {
+                                                setShowSiafSearch(false);
+                                                setSearchSuccess(false);
+                                                setSiafResults(null);
+                                                setSiafSearch({
+                                                    anoEje: new Date().getFullYear().toString(),
+                                                    secEjec: '',
+                                                    expediente: '',
+                                                    j_captcha: '',
+                                                });
+                                                setSearchError('');
+                                            }}
+                                            className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Fecha Limite de Pago */}
                         <div>

@@ -12,6 +12,7 @@ use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\InmuebleController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\SiafController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,6 +26,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
+});
+
+// SIAF API Routes (sin CSRF en rutas API)
+Route::prefix('api')->middleware('auth')->group(function () {
+    Route::get('/captcha', [SiafController::class, 'generarCaptcha']);
+    Route::post('/siaf/consultar', [SiafController::class, 'consultar']);
 });
 
 Route::middleware('auth')->group(function () {

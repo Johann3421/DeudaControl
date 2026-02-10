@@ -121,6 +121,10 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                         <Link href={`/clientes/${deuda.cliente.id}`} className="text-sm text-slate-600 hover:text-[#0EA5E9]">
                                                             {deuda.cliente.nombre} {deuda.cliente.apellido}
                                                         </Link>
+                                                    ) : deuda.deuda_entidad?.entidad ? (
+                                                        <span className="text-sm text-slate-600">
+                                                            {deuda.deuda_entidad.entidad.razon_social}
+                                                        </span>
                                                     ) : <span className="text-sm text-slate-400">-</span>}
                                                 </td>
                                                 <td className="px-5 py-3.5 text-center">
