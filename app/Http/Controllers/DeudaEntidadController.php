@@ -40,6 +40,7 @@ class DeudaEntidadController extends Controller
             'codigo_siaf' => ['nullable', 'string', 'max:50'],
             'fecha_limite_pago' => ['required', 'date', 'after_or_equal:fecha_emision'],
             'notas' => ['nullable', 'string'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
         ], [
             'entidad_id.required' => 'Selecciona una entidad.',
             'orden_compra.required' => 'La orden de compra es obligatoria.',
@@ -47,6 +48,8 @@ class DeudaEntidadController extends Controller
             'producto_servicio.required' => 'El producto o servicio es obligatorio.',
             'monto_total.required' => 'El monto es obligatorio.',
             'fecha_limite_pago.required' => 'La fecha limite de pago es obligatoria.',
+            'currency_code.required' => 'Selecciona una moneda.',
+            'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
         $this->service->crear($validated);
@@ -101,6 +104,10 @@ class DeudaEntidadController extends Controller
             'fecha_limite_pago' => ['required', 'date'],
             'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
             'notas' => ['nullable', 'string'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
+        ], [
+            'currency_code.required' => 'Selecciona una moneda.',
+            'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
         $this->service->actualizar($deuda, $validated);

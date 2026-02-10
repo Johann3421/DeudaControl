@@ -95,6 +95,7 @@ export default function PagosIndex({ pagos, filtros }) {
                                     <tr className="border-b border-slate-100">
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Fecha</th>
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente / Deuda</th>
+                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Creado Por</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto</th>
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Metodo</th>
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Referencia</th>
@@ -110,6 +111,12 @@ export default function PagosIndex({ pagos, filtros }) {
                                                     {pago.deuda?.cliente ? `${pago.deuda.cliente.nombre} ${pago.deuda.cliente.apellido}` : '-'}
                                                 </p>
                                                 <p className="text-xs text-slate-400">{pago.deuda?.descripcion || '-'}</p>
+                                            </td>
+                                            <td className="px-5 py-3.5">
+                                                <div className="text-sm">
+                                                    <p className="text-slate-700 font-medium">{pago.deuda?.user?.name}</p>
+                                                    <p className="text-xs text-slate-400">{pago.deuda?.user?.email}</p>
+                                                </div>
                                             </td>
                                             <td className="px-5 py-3.5 text-right">
                                                 <span className="text-sm font-semibold text-emerald-600">{formatMoney(pago.monto)}</span>

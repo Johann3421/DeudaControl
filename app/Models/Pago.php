@@ -19,6 +19,7 @@ class Pago extends Model
         'metodo_pago',
         'referencia',
         'notas',
+        'currency_code',
     ];
 
     protected function casts(): array

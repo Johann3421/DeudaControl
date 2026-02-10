@@ -88,6 +88,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                     <tr className="border-b border-slate-100">
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Descripcion</th>
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente / Entidad</th>
+                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Creado Por</th>
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Tipo</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto Total</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Pendiente</th>
@@ -123,6 +124,12 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                             {deuda.deuda_entidad.entidad.razon_social}
                                                         </span>
                                                     ) : <span className="text-sm text-slate-400">-</span>}
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <div className="text-sm">
+                                                        <p className="text-slate-700 font-medium">{deuda.user?.name}</p>
+                                                        <p className="text-xs text-slate-400">{deuda.user?.email}</p>
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-center">
                                                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle.bg} ${tipoStyle.text}`}>

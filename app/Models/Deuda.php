@@ -21,6 +21,7 @@ class Deuda extends Model
         'descripcion',
         'monto_total',
         'monto_pendiente',
+        'currency_code',
         'tasa_interes',
         'fecha_inicio',
         'fecha_vencimiento',

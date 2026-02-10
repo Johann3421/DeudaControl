@@ -13,9 +13,16 @@ class PagoController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pago::whereHas('deuda', function ($q) {
-            $q->where('user_id', Auth::id());
-        })->with(['deuda.cliente']);
+        $user = Auth::user();
+        
+        // Admin ve todos, usuarios ven solo los suyos
+        $query = Pago::with(['deuda.cliente', 'deuda.user:id,name,email,rol']);
+        
+        if ($user->rol !== 'superadmin') {
+            $query->whereHas('deuda', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -66,11 +73,14 @@ class PagoController extends Controller
             'metodo_pago' => ['required', 'in:efectivo,transferencia,tarjeta,cheque,otro'],
             'referencia' => ['nullable', 'string', 'max:100'],
             'notas' => ['nullable', 'string'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
         ], [
             'deuda_id.required' => 'Selecciona una deuda.',
             'monto.required' => 'El monto es obligatorio.',
             'monto.min' => 'El monto debe ser mayor a cero.',
             'fecha_pago.required' => 'La fecha de pago es obligatoria.',
+            'currency_code.required' => 'Selecciona una moneda.',
+            'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
         $deuda = Deuda::where('id', $validated['deuda_id'])

@@ -11,6 +11,12 @@ const NAVIGATION = [
     { name: 'Movimientos', href: '/movimientos', icon: 'history' },
 ];
 
+const ADMIN_NAVIGATION = [
+    { name: 'Gestionar Roles', href: '/admin/roles', icon: 'admin' },
+    { name: 'Estadísticas', href: '/admin/stats', icon: 'stats' },
+    { name: 'Configuración', href: '/admin/settings', icon: 'settings' },
+];
+
 function DashboardIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -83,6 +89,40 @@ function PropertiesIcon() {
     );
 }
 
+function AdminIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="1" />
+            <path d="M12 1v6" />
+            <path d="M12 17v6" />
+            <path d="M4.22 4.22l4.24 4.24" />
+            <path d="M15.54 15.54l4.24 4.24" />
+            <path d="M1 12h6" />
+            <path d="M17 12h6" />
+            <path d="M4.22 19.78l4.24-4.24" />
+            <path d="M15.54 8.46l4.24-4.24" />
+        </svg>
+    );
+}
+
+function StatsIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="2" x2="12" y2="22" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+    );
+}
+
+function SettingsIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24" />
+        </svg>
+    );
+}
+
 const ICONS = {
     dashboard: DashboardIcon,
     clients: ClientsIcon,
@@ -91,6 +131,9 @@ const ICONS = {
     properties: PropertiesIcon,
     payments: PaymentsIcon,
     history: HistoryIcon,
+    admin: AdminIcon,
+    stats: StatsIcon,
+    settings: SettingsIcon,
 };
 
 export default function Layout({ children, title }) {
@@ -157,6 +200,36 @@ export default function Layout({ children, title }) {
                                 </Link>
                             );
                         })}
+
+                        {/* Admin section */}
+                        {auth.user.rol === 'superadmin' && (
+                            <>
+                                <div className="px-3 py-3 mt-6 mb-2">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Administración</p>
+                                </div>
+                                {ADMIN_NAVIGATION.map((item) => {
+                                    const isActive = currentPath.startsWith(item.href);
+                                    const Icon = ICONS[item.icon];
+                                    return (
+                                        <Link
+                                            key={item.name}
+                                            href={item.href}
+                                            className={`
+                                                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                                                ${isActive
+                                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/25'
+                                                    : 'text-slate-400 hover:text-white hover:bg-[#1E293B]'
+                                                }
+                                            `}
+                                            onClick={() => setSidebarOpen(false)}
+                                        >
+                                            <Icon />
+                                            {item.name}
+                                        </Link>
+                                    );
+                                })}
+                            </>
+                        )}
                     </nav>
 
                     {/* User section at bottom */}

@@ -34,6 +34,7 @@ class DeudaParticularController extends Controller
             'cliente_id' => ['required', 'exists:clientes,id'],
             'descripcion' => ['required', 'string', 'max:255'],
             'monto_total' => ['required', 'numeric', 'min:0.01'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
             'tasa_interes' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'fecha_inicio' => ['required', 'date'],
             'fecha_vencimiento' => ['nullable', 'date', 'after:fecha_inicio'],
@@ -45,6 +46,7 @@ class DeudaParticularController extends Controller
             'descripcion.required' => 'La descripcion es obligatoria.',
             'monto_total.required' => 'El monto es obligatorio.',
             'monto_total.min' => 'El monto debe ser mayor a cero.',
+            'currency_code.required' => 'Selecciona una moneda.',
             'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
             'fecha_vencimiento.after' => 'La fecha de vencimiento debe ser posterior a la de inicio.',
         ]);

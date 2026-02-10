@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ClienteController;
@@ -12,6 +14,7 @@ use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\InmuebleController;
 use App\Http\Controllers\MovimientoController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SiafController;
 use Illuminate\Support\Facades\Route;
 
@@ -80,4 +83,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
+
+    // Admin routes
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::patch('/roles/{user}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{user}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        
+        Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
+        
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    });
 });

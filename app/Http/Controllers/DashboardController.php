@@ -15,45 +15,79 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user->id;
+        $isSuperAdmin = $user->rol === 'superadmin';
 
-        $totalClientes = Cliente::where('user_id', $userId)->count();
-        $clientesActivos = Cliente::where('user_id', $userId)->where('estado', 'activo')->count();
+        // Clientes
+        $clientesQuery = Cliente::query();
+        if (!$isSuperAdmin) $clientesQuery->where('user_id', $userId);
+        $totalClientes = $clientesQuery->count();
+        
+        $clientesActivosQuery = Cliente::where('estado', 'activo');
+        if (!$isSuperAdmin) $clientesActivosQuery->where('user_id', $userId);
+        $clientesActivos = $clientesActivosQuery->count();
 
-        $deudasActivas = Deuda::where('user_id', $userId)->where('estado', 'activa')->count();
-        $totalDeudas = Deuda::where('user_id', $userId)->count();
+        // Deudas
+        $deudasActivasQuery = Deuda::where('estado', 'activa');
+        if (!$isSuperAdmin) $deudasActivasQuery->where('user_id', $userId);
+        $deudasActivas = $deudasActivasQuery->count();
 
-        $montoTotalPrestado = Deuda::where('user_id', $userId)->sum('monto_total');
-        $montoPendiente = Deuda::where('user_id', $userId)->where('estado', 'activa')->sum('monto_pendiente');
+        $totalDeudasQuery = Deuda::query();
+        if (!$isSuperAdmin) $totalDeudasQuery->where('user_id', $userId);
+        $totalDeudas = $totalDeudasQuery->count();
+
+        $montoQuery = Deuda::query();
+        if (!$isSuperAdmin) $montoQuery->where('user_id', $userId);
+        $montoTotalPrestado = $montoQuery->sum('monto_total');
+
+        $montoPendienteQuery = Deuda::where('estado', 'activa');
+        if (!$isSuperAdmin) $montoPendienteQuery->where('user_id', $userId);
+        $montoPendiente = $montoPendienteQuery->sum('monto_pendiente');
         $montoRecuperado = $montoTotalPrestado - $montoPendiente;
 
-        $deudasVencidas = Deuda::where('user_id', $userId)
-            ->where('estado', 'activa')
-            ->where('fecha_vencimiento', '<', now())
-            ->count();
+        $vencidosQuery = Deuda::where('estado', 'activa')
+            ->where('fecha_vencimiento', '<', now());
+        if (!$isSuperAdmin) $vencidosQuery->where('user_id', $userId);
+        $deudasVencidas = $vencidosQuery->count();
 
-        $metricasPorTipo = Deuda::where('user_id', $userId)
-            ->select('tipo_deuda',
+        $metricasQuery = Deuda::select('tipo_deuda',
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(CASE WHEN estado = "activa" THEN 1 ELSE 0 END) as activas'),
                 DB::raw('SUM(monto_total) as monto_total'),
                 DB::raw('SUM(CASE WHEN estado = "activa" THEN monto_pendiente ELSE 0 END) as monto_pendiente')
-            )
-            ->groupBy('tipo_deuda')
+            );
+        if (!$isSuperAdmin) $metricasQuery->where('user_id', $userId);
+        $metricasPorTipo = $metricasQuery->groupBy('tipo_deuda')
             ->get()
             ->keyBy('tipo_deuda');
 
-        $totalEntidades = Entidad::where('user_id', $userId)->count();
-        $totalInmuebles = Inmueble::where('user_id', $userId)->count();
+        // Entidades e Inmuebles
+        $entidadesQuery = Entidad::query();
+        if (!$isSuperAdmin) $entidadesQuery->where('user_id', $userId);
+        $totalEntidades = $entidadesQuery->count();
 
-        $pagosRecientes = Pago::whereHas('deuda', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })
-        ->with(['deuda.cliente'])
-        ->orderBy('fecha_pago', 'desc')
-        ->limit(10)
-        ->get()
-        ->map(function ($pago) {
+        $inmuebleQuery = Inmueble::query();
+        if (!$isSuperAdmin) $inmuebleQuery->where('user_id', $userId);
+        $totalInmuebles = $inmuebleQuery->count();
+
+        // Pagos recientes
+        if ($isSuperAdmin) {
+            $pagosRecientes = Pago::with(['deuda.cliente'])
+                ->orderBy('fecha_pago', 'desc')
+                ->limit(10)
+                ->get();
+        } else {
+            $pagosRecientes = Pago::whereHas('deuda', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->with(['deuda.cliente'])
+            ->orderBy('fecha_pago', 'desc')
+            ->limit(10)
+            ->get();
+        }
+
+        $pagosRecientes = $pagosRecientes->map(function ($pago) {
             return [
                 'id' => $pago->id,
                 'monto' => $pago->monto,
@@ -65,24 +99,39 @@ class DashboardController extends Controller
             ];
         });
 
-        $pagosPorMes = Pago::whereHas('deuda', function ($q) use ($userId) {
-            $q->where('user_id', $userId);
-        })
-        ->where('fecha_pago', '>=', now()->subMonths(6))
-        ->select(
-            DB::raw('MONTH(fecha_pago) as mes'),
-            DB::raw('YEAR(fecha_pago) as anio'),
-            DB::raw('SUM(monto) as total')
-        )
-        ->groupBy('mes', 'anio')
-        ->orderBy('anio')
-        ->orderBy('mes')
-        ->get();
-
-        $deudasPorEstado = Deuda::where('user_id', $userId)
-            ->select('estado', DB::raw('COUNT(*) as total'), DB::raw('SUM(monto_total) as monto'))
-            ->groupBy('estado')
+        // Pagos por mes
+        if ($isSuperAdmin) {
+            $pagosPorMes = Pago::where('fecha_pago', '>=', now()->subMonths(6))
+                ->select(
+                    DB::raw('MONTH(fecha_pago) as mes'),
+                    DB::raw('YEAR(fecha_pago) as anio'),
+                    DB::raw('SUM(monto) as total')
+                )
+                ->groupBy('mes', 'anio')
+                ->orderBy('anio')
+                ->orderBy('mes')
+                ->get();
+        } else {
+            $pagosPorMes = Pago::whereHas('deuda', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->where('fecha_pago', '>=', now()->subMonths(6))
+            ->select(
+                DB::raw('MONTH(fecha_pago) as mes'),
+                DB::raw('YEAR(fecha_pago) as anio'),
+                DB::raw('SUM(monto) as total')
+            )
+            ->groupBy('mes', 'anio')
+            ->orderBy('anio')
+            ->orderBy('mes')
             ->get();
+        }
+
+        // Deudas por estado
+        $estadoQuery = Deuda::select('estado', DB::raw('COUNT(*) as total'), DB::raw('SUM(monto_total) as monto'))
+            ->groupBy('estado');
+        if (!$isSuperAdmin) $estadoQuery->where('user_id', $userId);
+        $deudasPorEstado = $estadoQuery->get();
 
         return Inertia::render('Dashboard', [
             'metricas' => [

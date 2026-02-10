@@ -47,11 +47,14 @@ class DeudaAlquilerController extends Controller
             'fecha_corte' => ['nullable', 'date', 'after:fecha_inicio_contrato'],
             'servicios_incluidos' => ['nullable', 'array'],
             'notas' => ['nullable', 'string'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
         ], [
             'cliente_id.required' => 'Selecciona un inquilino.',
             'inmueble_id.required' => 'Selecciona un inmueble.',
             'monto_mensual.required' => 'El monto mensual es obligatorio.',
             'fecha_inicio_contrato.required' => 'La fecha de inicio es obligatoria.',
+            'currency_code.required' => 'Selecciona una moneda.',
+            'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
         $this->service->crear($validated);
@@ -110,6 +113,10 @@ class DeudaAlquilerController extends Controller
             'servicios_incluidos' => ['nullable', 'array'],
             'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
             'notas' => ['nullable', 'string'],
+            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
+        ], [
+            'currency_code.required' => 'Selecciona una moneda.',
+            'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
         $this->service->actualizar($deuda, $validated);
