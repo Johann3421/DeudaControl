@@ -1,15 +1,18 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Layout from '../../Components/Layout';
-
-function formatMoney(amount) {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount || 0);
-}
+import { formatMoney } from '../../helpers/currencyHelper';
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    try {
+        // Si la fecha viene como string ISO o con hora, parsear correctamente
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '-';
+        return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+        return '-';
+    }
 }
 
 const METODO_LABELS = {

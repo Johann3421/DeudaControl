@@ -1,13 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import Layout from '../Components/Layout';
-
-function formatMoney(amount) {
-    return new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-    }).format(amount || 0);
-}
+import { formatMoney } from '../helpers/currencyHelper';
 
 function StatCard({ title, value, subtitle, icon, color, href }) {
     const colorMap = {

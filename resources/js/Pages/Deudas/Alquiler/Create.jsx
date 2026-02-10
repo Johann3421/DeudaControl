@@ -1,6 +1,7 @@
 import Layout from '../../../Components/Layout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/currencyHelper';
 
 const SERVICIOS_OPCIONES = [
     { value: 'agua', label: 'Agua' },
@@ -11,11 +12,13 @@ const SERVICIOS_OPCIONES = [
 ];
 
 export default function Create({ clientes, inmuebles }) {
+    const currencies = getAvailableCurrencies();
     const { data, setData, post, processing, errors } = useForm({
         cliente_id: '',
         inmueble_id: '',
         descripcion: '',
         monto_mensual: '',
+        currency_code: 'PEN',
         periodicidad: 'mensual',
         fecha_inicio_contrato: '',
         fecha_corte: '',
@@ -139,15 +142,15 @@ export default function Create({ clientes, inmuebles }) {
                         )}
                     </div>
 
-                    {/* Monto Mensual y Periodicidad */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Monto Mensual y Moneda */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label htmlFor="monto_mensual" className="block text-sm font-medium text-gray-700 mb-1">
                                 Monto Mensual <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-500">
-                                    $
+                                    {getCurrencySymbol(data.currency_code)}
                                 </span>
                                 <input
                                     id="monto_mensual"
@@ -165,6 +168,22 @@ export default function Create({ clientes, inmuebles }) {
                             {errors.monto_mensual && (
                                 <p className="mt-1 text-xs text-red-600">{errors.monto_mensual}</p>
                             )}
+                        </div>
+
+                        <div>
+                            <label htmlFor="currency_code" className="block text-sm font-medium text-gray-700 mb-1">
+                                Tipo de Moneda <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                id="currency_code"
+                                value={data.currency_code}
+                                onChange={(e) => setData('currency_code', e.target.value)}
+                                className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent transition-shadow border-gray-300`}
+                            >
+                                {currencies.map((curr) => (
+                                    <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div>

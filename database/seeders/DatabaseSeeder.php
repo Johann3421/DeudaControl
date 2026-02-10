@@ -81,5 +81,8 @@ class DatabaseSeeder extends Seeder
                 'descripcion' => "Pago recibido - {$deuda->descripcion}",
             ]);
         }
+
+        // Ejecutar seeder de configuraciones
+        $this->call(ConfiguracionSeeder::class);
     }
 }

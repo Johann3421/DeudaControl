@@ -1,11 +1,14 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import Layout from '../../../Components/Layout';
+import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/currencyHelper';
 
 export default function ParticularCreate({ clientes }) {
+    const currencies = getAvailableCurrencies();
     const { data, setData, post, processing, errors } = useForm({
         cliente_id: '',
         descripcion: '',
         monto_total: '',
+        currency_code: 'PEN',
         tasa_interes: '0',
         fecha_inicio: new Date().toISOString().split('T')[0],
         fecha_vencimiento: '',
@@ -63,7 +66,7 @@ export default function ParticularCreate({ clientes }) {
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Monto Total *</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">{getCurrencySymbol(data.currency_code)}</span>
                                     <input type="number" step="0.01" min="0.01" value={data.monto_total} onChange={(e) => setData('monto_total', e.target.value)}
                                         className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.monto_total ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                         placeholder="0.00" />
@@ -71,11 +74,24 @@ export default function ParticularCreate({ clientes }) {
                                 {errors.monto_total && <p className="mt-1 text-sm text-red-600">{errors.monto_total}</p>}
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Moneda</label>
+                                <select value={data.currency_code} onChange={(e) => setData('currency_code', e.target.value)}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 bg-white">
+                                    {currencies.map((curr) => (
+                                        <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Tasa de Interes (%)</label>
                                 <input type="number" step="0.01" min="0" max="100" value={data.tasa_interes} onChange={(e) => setData('tasa_interes', e.target.value)}
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
                                     placeholder="0" />
                             </div>
+                            <div></div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

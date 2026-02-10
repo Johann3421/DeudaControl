@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Entidad;
@@ -17,7 +16,7 @@ class EntidadController extends Controller
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
                 $q->where('razon_social', 'like', "%{$buscar}%")
-                  ->orWhere('ruc', 'like', "%{$buscar}%");
+                    ->orWhere('ruc', 'like', "%{$buscar}%");
             });
         }
 
@@ -29,7 +28,7 @@ class EntidadController extends Controller
 
         return Inertia::render('Entidades/Index', [
             'entidades' => $entidades,
-            'filtros' => $request->only(['buscar', 'tipo']),
+            'filtros'   => $request->only(['buscar', 'tipo']),
         ]);
     }
 
@@ -41,14 +40,14 @@ class EntidadController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'razon_social' => ['required', 'string', 'max:200'],
-            'ruc' => ['nullable', 'string', 'max:20'],
-            'tipo' => ['required', 'in:publica,privada'],
-            'contacto_nombre' => ['nullable', 'string', 'max:150'],
+            'razon_social'      => ['required', 'string', 'max:200'],
+            'ruc'               => ['nullable', 'string', 'max:20'],
+            'tipo'              => ['required', 'in:publica,privada'],
+            'contacto_nombre'   => ['nullable', 'string', 'max:150'],
             'contacto_telefono' => ['nullable', 'string', 'max:20'],
-            'contacto_email' => ['nullable', 'email', 'max:150'],
-            'direccion' => ['nullable', 'string'],
-            'notas' => ['nullable', 'string'],
+            'contacto_email'    => ['nullable', 'email', 'max:150'],
+            'direccion'         => ['nullable', 'string'],
+            'notas'             => ['nullable', 'string'],
         ], [
             'razon_social.required' => 'La razon social es obligatoria.',
         ]);
@@ -85,15 +84,15 @@ class EntidadController extends Controller
         $this->authorize($entidad);
 
         $validated = $request->validate([
-            'razon_social' => ['required', 'string', 'max:200'],
-            'ruc' => ['nullable', 'string', 'max:20'],
-            'tipo' => ['required', 'in:publica,privada'],
-            'contacto_nombre' => ['nullable', 'string', 'max:150'],
+            'razon_social'      => ['required', 'string', 'max:200'],
+            'ruc'               => ['nullable', 'string', 'max:20'],
+            'tipo'              => ['required', 'in:publica,privada'],
+            'contacto_nombre'   => ['nullable', 'string', 'max:150'],
             'contacto_telefono' => ['nullable', 'string', 'max:20'],
-            'contacto_email' => ['nullable', 'email', 'max:150'],
-            'direccion' => ['nullable', 'string'],
-            'notas' => ['nullable', 'string'],
-            'estado' => ['required', 'in:activa,inactiva'],
+            'contacto_email'    => ['nullable', 'email', 'max:150'],
+            'direccion'         => ['nullable', 'string'],
+            'notas'             => ['nullable', 'string'],
+            'estado'            => ['required', 'in:activa,inactiva'],
         ]);
 
         $entidad->update($validated);
@@ -101,16 +100,36 @@ class EntidadController extends Controller
         return redirect()->route('entidades.index')->with('success', 'Entidad actualizada correctamente.');
     }
 
-    public function destroy(Entidad $entidad)
+    public function destroy($id)
     {
-        $this->authorize($entidad);
+        $entidad = Entidad::find($id);
+
+        \Log::info('destroy() llamado', [
+            'id_param' => $id,
+            'entidad_id' => $entidad?->id,
+            'entidad_user_id' => $entidad?->user_id,
+            'auth_id' => \Illuminate\Support\Facades\Auth::id(),
+            'auth_name' => \Illuminate\Support\Facades\Auth::user()->name ?? 'null',
+        ]);
+
+        if (!$entidad) {
+            abort(404, 'Entidad no encontrada');
+        }
+
+        // Admin o propietario pueden eliminar
+        if (Auth::id() !== $entidad->user_id && Auth::user()->name !== 'Administrador') {
+            \Log::warning('Acceso denegado en destroy', [
+                'auth_id' => Auth::id(),
+                'entidad_user_id' => $entidad->user_id,
+            ]);
+            abort(403);
+        }
 
         if ($entidad->deudaEntidades()->whereHas('deuda', fn($q) => $q->where('estado', 'activa'))->exists()) {
             return back()->with('error', 'No se puede eliminar una entidad con deudas activas.');
         }
 
         $entidad->delete();
-
         return redirect()->route('entidades.index')->with('success', 'Entidad eliminada correctamente.');
     }
 

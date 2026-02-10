@@ -1,12 +1,15 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Layout from '../../../Components/Layout';
 import { useState } from 'react';
+import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/currencyHelper';
 
 export default function EntidadDeudaCreate({ entidades }) {
+    const currencies = getAvailableCurrencies();
     const { data, setData, post, processing, errors } = useForm({
         entidad_id: '',
         descripcion: '',
         orden_compra: '',
+        currency_code: 'PEN',
         fecha_emision: new Date().toISOString().split('T')[0],
         producto_servicio: '',
         monto_total: '',
@@ -240,12 +243,12 @@ export default function EntidadDeudaCreate({ entidades }) {
                             {errors.producto_servicio && <p className="mt-1 text-sm text-red-600">{errors.producto_servicio}</p>}
                         </div>
 
-                        {/* Monto Total + Codigo SIAF */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        {/* Monto Total + Moneda + Codigo SIAF */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Monto Total *</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">{getCurrencySymbol(data.currency_code)}</span>
                                     <input
                                         type="number"
                                         step="0.01"
@@ -257,6 +260,15 @@ export default function EntidadDeudaCreate({ entidades }) {
                                     />
                                 </div>
                                 {errors.monto_total && <p className="mt-1 text-sm text-red-600">{errors.monto_total}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Tipo de Moneda</label>
+                                <select value={data.currency_code} onChange={(e) => setData('currency_code', e.target.value)}
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 bg-white">
+                                    {currencies.map((curr) => (
+                                        <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Número Expediente</label>
