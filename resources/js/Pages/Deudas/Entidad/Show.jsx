@@ -2,14 +2,45 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Layout from '../../../Components/Layout';
 
-function formatMoney(amount) {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount || 0);
+function formatMoney(amount, currencyCode = 'PEN') {
+    const currencyMap = {
+        'PEN': 'es-PE',
+        'USD': 'en-US',
+        'EUR': 'es-ES',
+        'BRL': 'pt-BR',
+        'COP': 'es-CO',
+        'CLP': 'es-CL',
+        'ARS': 'es-AR',
+        'MXN': 'es-MX'
+    };
+
+    return new Intl.NumberFormat(currencyMap[currencyCode] || 'es-PE', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2
+    }).format(amount || 0);
 }
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    try {
+        // Intenta parsear como ISO date (YYYY-MM-DD)
+        if (typeof dateStr === 'string' && dateStr.includes('-')) {
+            const [year, month, day] = dateStr.split('T')[0].split('-');
+            const d = new Date(year, month - 1, day);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+        }
+        // Intenta parsear normalmente
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        return '-';
+    } catch (e) {
+        return '-';
+    }
 }
 
 const ESTADO_STYLES = {
@@ -127,15 +158,15 @@ export default function EntidadDeudaShow({ deuda }) {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="p-4 rounded-xl bg-slate-50">
                             <p className="text-xs text-slate-400">Monto Total</p>
-                            <p className="text-lg font-bold text-slate-900 mt-1">{formatMoney(deuda.monto_total)}</p>
+                            <p className="text-lg font-bold text-slate-900 mt-1">{formatMoney(deuda.monto_total, deuda.currency_code)}</p>
                         </div>
                         <div className="p-4 rounded-xl bg-amber-50">
                             <p className="text-xs text-amber-600">Pendiente</p>
-                            <p className="text-lg font-bold text-amber-700 mt-1">{formatMoney(deuda.monto_pendiente)}</p>
+                            <p className="text-lg font-bold text-amber-700 mt-1">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</p>
                         </div>
                         <div className="p-4 rounded-xl bg-emerald-50">
                             <p className="text-xs text-emerald-600">Pagado</p>
-                            <p className="text-lg font-bold text-emerald-700 mt-1">{formatMoney(deuda.monto_total - deuda.monto_pendiente)}</p>
+                            <p className="text-lg font-bold text-emerald-700 mt-1">{formatMoney(deuda.monto_total - deuda.monto_pendiente, deuda.currency_code)}</p>
                         </div>
                         <div className="p-4 rounded-xl bg-violet-50">
                             <p className="text-xs text-violet-600">Entidad</p>
@@ -166,11 +197,11 @@ export default function EntidadDeudaShow({ deuda }) {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-100">
                         <div>
                             <p className="text-xs text-slate-400">Monto Total</p>
-                            <p className="text-sm font-medium text-slate-700 mt-0.5">{formatMoney(deuda.monto_total)}</p>
+                            <p className="text-sm font-medium text-slate-700 mt-0.5">{formatMoney(deuda.monto_total, deuda.currency_code)}</p>
                         </div>
                         <div>
                             <p className="text-xs text-slate-400">Monto Pendiente</p>
-                            <p className="text-sm font-medium text-amber-600 mt-0.5">{formatMoney(deuda.monto_pendiente)}</p>
+                            <p className="text-sm font-medium text-amber-600 mt-0.5">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</p>
                         </div>
                         <div>
                             <p className="text-xs text-slate-400">Fecha Limite de Pago</p>
@@ -181,6 +212,37 @@ export default function EntidadDeudaShow({ deuda }) {
                             <p className="text-sm font-medium text-slate-700 mt-0.5">{deudaEntidad.cerrado ? 'Si' : 'No'}</p>
                         </div>
                     </div>
+
+                    {/* Información del SIAF */}
+                    {(deudaEntidad.estado_siaf || deudaEntidad.fase_siaf || deudaEntidad.estado_expediente || deudaEntidad.fecha_proceso) && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-100">
+                            <div>
+                                <p className="text-xs text-slate-400">Estado SIAF</p>
+                                <p className="text-sm font-medium text-slate-700 mt-0.5">
+                                    {deudaEntidad.estado_siaf ? (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+                                            {deudaEntidad.estado_siaf === 'C' && 'COMPROMISO'}
+                                            {deudaEntidad.estado_siaf === 'D' && 'DEVENGADO'}
+                                            {deudaEntidad.estado_siaf === 'G' && 'GIRADO'}
+                                            {deudaEntidad.estado_siaf === 'R' && 'RECHAZADA'}
+                                        </span>
+                                    ) : '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400">Fase SIAF</p>
+                                <p className="text-sm font-medium text-slate-700 mt-0.5">{deudaEntidad.fase_siaf || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400">Estado Expediente</p>
+                                <p className="text-sm font-medium text-slate-700 mt-0.5">{deudaEntidad.estado_expediente || '-'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-400">Fecha de Proceso</p>
+                                <p className="text-sm font-medium text-slate-700 mt-0.5">{deudaEntidad.fecha_proceso ? new Date(deudaEntidad.fecha_proceso).toLocaleDateString('es-MX') : '-'}</p>
+                            </div>
+                        </div>
+                    )}
 
                     {deuda.notas && (
                         <div className="mt-4 pt-4 border-t border-slate-100">
@@ -266,7 +328,7 @@ export default function EntidadDeudaShow({ deuda }) {
                                     {pagos.map((pago) => (
                                         <tr key={pago.id} className="hover:bg-slate-50/50">
                                             <td className="px-5 py-3 text-sm text-slate-700">{formatDate(pago.fecha_pago)}</td>
-                                            <td className="px-5 py-3 text-sm font-semibold text-emerald-600 text-right">{formatMoney(pago.monto)}</td>
+                                            <td className="px-5 py-3 text-sm font-semibold text-emerald-600 text-right">{formatMoney(pago.monto, deuda.currency_code)}</td>
                                             <td className="px-5 py-3 text-sm text-slate-600">{METODO_LABELS[pago.metodo_pago] || pago.metodo_pago}</td>
                                             <td className="px-5 py-3 text-sm text-slate-400">{pago.referencia || '-'}</td>
                                             <td className="px-5 py-3 text-sm text-slate-400">{pago.notas || '-'}</td>

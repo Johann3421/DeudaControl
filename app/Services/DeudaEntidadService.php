@@ -34,6 +34,7 @@ class DeudaEntidadService
                 'fecha_vencimiento' => $datos['fecha_limite_pago'],
                 'frecuencia_pago' => 'unico',
                 'notas' => $datos['notas'] ?? null,
+                'currency_code' => $datos['currency_code'] ?? 'PEN',
             ]);
 
             DeudaEntidad::create([
@@ -45,6 +46,11 @@ class DeudaEntidadService
                 'codigo_siaf' => $datos['codigo_siaf'] ?? null,
                 'fecha_limite_pago' => $datos['fecha_limite_pago'],
                 'estado_seguimiento' => 'emitido',
+                // Campos SIAF
+                'estado_siaf' => $datos['estado_siaf'] ?? null,
+                'fase_siaf' => $datos['fase_siaf'] ?? null,
+                'estado_expediente' => $datos['estado_expediente'] ?? null,
+                'fecha_proceso' => $datos['fecha_proceso'] ?? null,
             ]);
 
             Movimiento::create([
@@ -77,6 +83,7 @@ class DeudaEntidadService
                 'descripcion' => $datos['descripcion'] ?? $deuda->descripcion,
                 'notas' => $datos['notas'] ?? $deuda->notas,
                 'estado' => $datos['estado'] ?? $deuda->estado,
+                'currency_code' => $datos['currency_code'] ?? $deuda->currency_code,
             ]);
 
             if ($extension) {
@@ -84,6 +91,10 @@ class DeudaEntidadService
                     'producto_servicio' => $datos['producto_servicio'] ?? null,
                     'codigo_siaf' => $datos['codigo_siaf'] ?? null,
                     'fecha_limite_pago' => $datos['fecha_limite_pago'] ?? null,
+                    'estado_siaf' => $datos['estado_siaf'] ?? null,
+                    'fase_siaf' => $datos['fase_siaf'] ?? null,
+                    'estado_expediente' => $datos['estado_expediente'] ?? null,
+                    'fecha_proceso' => $datos['fecha_proceso'] ?? null,
                 ], fn($v) => $v !== null));
             }
 

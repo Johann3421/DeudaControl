@@ -259,9 +259,21 @@ class SiafService
                 // Parsear la tabla para obtener datos estructurados
                 $datos = $this->parsearTablaSiaf($tabla);
 
+                // Si hay datos, extraer información del primer registro para la deuda
+                $primerRegistro = $datos[0] ?? null;
+                $infoSiaf = [];
+                if ($primerRegistro) {
+                    $infoSiaf = [
+                        'fase' => $primerRegistro['fase'] ?? null,
+                        'estado' => $primerRegistro['estado'] ?? null,
+                        'fechaProceso' => $primerRegistro['fechaHora'] ?? null,
+                    ];
+                }
+
                 \Log::info('SIAF Connection Success (cURL)', [
                     'url' => $baseUrl,
-                    'registros_encontrados' => count($datos)
+                    'registros_encontrados' => count($datos),
+                    'info_siaf' => $infoSiaf
                 ]);
 
                 return [
@@ -270,6 +282,7 @@ class SiafService
                         'codigo_siaf' => $codigoSiaf,
                         'datos' => $datos,  // Array de registros
                         'tabla_html' => $tabla,  // HTML original para respaldo
+                        'info_siaf' => $infoSiaf,  // Info del primer registro para la deuda
                         'anoEje' => $anoEje,
                         'secEjec' => $secEjec,
                         'expediente' => $expediente,
@@ -291,9 +304,21 @@ class SiafService
                 // Parsear la tabla para obtener datos estructurados
                 $datos = $this->parsearTablaSiaf($tabla);
 
+                // Si hay datos, extraer información del primer registro para la deuda
+                $primerRegistro = $datos[0] ?? null;
+                $infoSiaf = [];
+                if ($primerRegistro) {
+                    $infoSiaf = [
+                        'fase' => $primerRegistro['fase'] ?? null,
+                        'estado' => $primerRegistro['estado'] ?? null,
+                        'fechaProceso' => $primerRegistro['fechaHora'] ?? null,
+                    ];
+                }
+
                 \Log::info('SIAF Connection Success (Guzzle)', [
                     'url' => $baseUrl,
-                    'registros_encontrados' => count($datos)
+                    'registros_encontrados' => count($datos),
+                    'info_siaf' => $infoSiaf
                 ]);
 
                 return [
@@ -302,6 +327,7 @@ class SiafService
                         'codigo_siaf' => $codigoSiaf,
                         'datos' => $datos,  // Array de registros
                         'tabla_html' => $tabla,  // HTML original para respaldo
+                        'info_siaf' => $infoSiaf,  // Info del primer registro para la deuda
                         'anoEje' => $anoEje,
                         'secEjec' => $secEjec,
                         'expediente' => $expediente,

@@ -22,6 +22,10 @@ class DeudaEntidad extends Model
         'fecha_limite_pago',
         'estado_seguimiento',
         'cerrado',
+        'estado_siaf',
+        'fase_siaf',
+        'estado_expediente',
+        'fecha_proceso',
     ];
 
     protected function casts(): array
@@ -29,6 +33,7 @@ class DeudaEntidad extends Model
         return [
             'fecha_emision' => 'date',
             'fecha_limite_pago' => 'date',
+            'fecha_proceso' => 'datetime',
             'cerrado' => 'boolean',
         ];
     }

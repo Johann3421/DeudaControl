@@ -16,6 +16,11 @@ export default function EntidadDeudaCreate({ entidades }) {
         codigo_siaf: '',
         fecha_limite_pago: '',
         notas: '',
+        // Nuevos campos SIAF
+        estado_siaf: '',
+        fase_siaf: '',
+        estado_expediente: '',
+        fecha_proceso: '',
     });
 
     // Obtener token CSRF de Inertia o del DOM
@@ -142,6 +147,17 @@ export default function EntidadDeudaCreate({ entidades }) {
                 setSiafResults(result.data);
                 setSearchSuccess(true);
                 setSearchError('');
+
+                // Guardar la información del SIAF en el formulario principal
+                if (result.data.info_siaf) {
+                    setData({
+                        ...data,
+                        estado_siaf: result.data.info_siaf.estado || '',
+                        fase_siaf: result.data.info_siaf.fase || '',
+                        estado_expediente: result.data.info_siaf.estado || '',
+                        fecha_proceso: result.data.info_siaf.fechaProceso || '',
+                    });
+                }
             } else {
                 setSearchError(result.message || 'No se encontraron datos para el código SIAF especificado');
                 setSiafResults(null);
@@ -318,7 +334,62 @@ export default function EntidadDeudaCreate({ entidades }) {
 
                                     {/* Mostrar tabla de resultados */}
                                     {searchSuccess && siafResults && siafResults.datos && (
-                                        <div className="overflow-x-auto mt-4">
+                                        <div className="mt-4 space-y-4">
+                                            {/* Información del SIAF extraída */}
+                                            {siafResults.info_siaf && (
+                                                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                                                    <h4 className="text-sm font-semibold text-blue-900 mb-3">Información del SIAF</h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-blue-700">Fase</label>
+                                                            <input
+                                                                type="text"
+                                                                value={data.fase_siaf}
+                                                                onChange={(e) => setData('fase_siaf', e.target.value)}
+                                                                placeholder={siafResults.info_siaf.fase || 'N/A'}
+                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-white"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-blue-700">Estado Expediente</label>
+                                                            <input
+                                                                type="text"
+                                                                value={data.estado_expediente}
+                                                                onChange={(e) => setData('estado_expediente', e.target.value)}
+                                                                placeholder={siafResults.info_siaf.estado || 'N/A'}
+                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-white"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-blue-700">Fecha Proceso</label>
+                                                            <input
+                                                                type="text"
+                                                                value={data.fecha_proceso}
+                                                                readOnly
+                                                                placeholder={siafResults.info_siaf.fechaProceso ? new Date(siafResults.info_siaf.fechaProceso).toLocaleDateString('es-ES') : 'N/A'}
+                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-gray-100"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <label className="block text-xs font-medium text-blue-700 mb-1">Estado SIAF *</label>
+                                                        <select
+                                                            value={data.estado_siaf}
+                                                            onChange={(e) => setData('estado_siaf', e.target.value)}
+                                                            className="w-full px-3 py-2 rounded border border-blue-300 text-xs bg-white"
+                                                        >
+                                                            <option value="">Selecciona un estado</option>
+                                                            <option value="C">C - COMPROMISO</option>
+                                                            <option value="D">D - DEVENGADO</option>
+                                                            <option value="G">G - GIRADO</option>
+                                                            <option value="R">R - RECHAZADA</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Tabla de resultados */}
+                                            <div className="overflow-x-auto mt-4">
                                             <table className="w-full text-xs border-collapse">
                                                 <thead>
                                                     <tr className="bg-slate-200">
@@ -351,8 +422,9 @@ export default function EntidadDeudaCreate({ entidades }) {
                                                     ))}
                                                 </tbody>
                                             </table>
-                                        </div>
-                                    )}
+                                            </div>
+                                            </div>
+                                        )}
                                     {searchError && (
                                         <div className="p-4 rounded-lg bg-red-100 border border-red-300">
                                             <p className="text-sm text-red-700">{searchError}</p>

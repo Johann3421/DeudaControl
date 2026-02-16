@@ -41,6 +41,11 @@ class DeudaEntidadController extends Controller
             'fecha_limite_pago' => ['required', 'date', 'after_or_equal:fecha_emision'],
             'notas' => ['nullable', 'string'],
             'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
+            // Nuevos campos del SIAF
+            'estado_siaf' => ['nullable', 'in:C,D,G,R'],
+            'fase_siaf' => ['nullable', 'string', 'max:10'],
+            'estado_expediente' => ['nullable', 'string', 'max:50'],
+            'fecha_proceso' => ['nullable', 'date'],
         ], [
             'entidad_id.required' => 'Selecciona una entidad.',
             'orden_compra.required' => 'La orden de compra es obligatoria.',
@@ -50,6 +55,7 @@ class DeudaEntidadController extends Controller
             'fecha_limite_pago.required' => 'La fecha limite de pago es obligatoria.',
             'currency_code.required' => 'Selecciona una moneda.',
             'currency_code.in' => 'La moneda seleccionada no es valida.',
+            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G o R.',
         ]);
 
         $this->service->crear($validated);
@@ -105,9 +111,15 @@ class DeudaEntidadController extends Controller
             'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
             'notas' => ['nullable', 'string'],
             'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
+            // Nuevos campos del SIAF
+            'estado_siaf' => ['nullable', 'in:C,D,G,R'],
+            'fase_siaf' => ['nullable', 'string', 'max:10'],
+            'estado_expediente' => ['nullable', 'string', 'max:50'],
+            'fecha_proceso' => ['nullable', 'date'],
         ], [
             'currency_code.required' => 'Selecciona una moneda.',
             'currency_code.in' => 'La moneda seleccionada no es valida.',
+            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G o R.',
         ]);
 
         $this->service->actualizar($deuda, $validated);

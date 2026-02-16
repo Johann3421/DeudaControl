@@ -19,6 +19,9 @@ const TIPO_STYLES = {
 export default function DeudasIndex({ deudas, filtros }) {
     const [buscar, setBuscar] = useState(filtros?.buscar || '');
 
+    // Detectar si hay deudas de entidad para mostrar columnas SIAF dinámicamente
+    const tieneDeudaEntidad = deudas.data.some(d => d.tipo_deuda === 'entidad');
+
     const handleSearch = (e) => {
         e.preventDefault();
         router.get('/deudas', { buscar, estado: filtros?.estado, tipo_deuda: filtros?.tipo_deuda }, { preserveState: true });
@@ -92,6 +95,12 @@ export default function DeudasIndex({ deudas, filtros }) {
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Tipo</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto Total</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Pendiente</th>
+                                        {tieneDeudaEntidad && (
+                                            <>
+                                                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado SIAF</th>
+                                                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Fase SIAF</th>
+                                            </>
+                                        )}
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Acciones</th>
                                     </tr>
@@ -142,6 +151,34 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                 <td className="px-5 py-3.5 text-right">
                                                     <span className="text-sm font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente)}</span>
                                                 </td>
+                                                {tieneDeudaEntidad && (
+                                                    <>
+                                                        <td className="px-5 py-3.5 text-center">
+                                                            {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.estado_siaf ? (
+                                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold whitespace-nowrap
+                                                                    ${deuda.deuda_entidad.estado_siaf === 'C' ? 'bg-blue-100 text-blue-800' : ''}
+                                                                    ${deuda.deuda_entidad.estado_siaf === 'D' ? 'bg-amber-100 text-amber-800' : ''}
+                                                                    ${deuda.deuda_entidad.estado_siaf === 'G' ? 'bg-green-100 text-green-800' : ''}
+                                                                    ${deuda.deuda_entidad.estado_siaf === 'R' ? 'bg-red-100 text-red-800' : ''}
+                                                                `}>
+                                                                    {deuda.deuda_entidad.estado_siaf === 'C' && 'COMPROMISO'}
+                                                                    {deuda.deuda_entidad.estado_siaf === 'D' && 'DEVENGADO'}
+                                                                    {deuda.deuda_entidad.estado_siaf === 'G' && 'GIRADO'}
+                                                                    {deuda.deuda_entidad.estado_siaf === 'R' && 'RECHAZADA'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-300">-</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-5 py-3.5 text-center">
+                                                            {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.fase_siaf ? (
+                                                                <span className="text-xs text-slate-600 font-medium">{deuda.deuda_entidad.fase_siaf}</span>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-300">-</span>
+                                                            )}
+                                                        </td>
+                                                    </>
+                                                )}
                                                 <td className="px-5 py-3.5 text-center">
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${estilos.bg} ${estilos.text}`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${estilos.dot}`} />
