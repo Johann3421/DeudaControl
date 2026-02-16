@@ -13,18 +13,17 @@ class SiafController extends Controller
     ) {}
 
     /**
-     * Genera una imagen CAPTCHA para la consulta SIAF
+     * Obtiene la imagen CAPTCHA real del SIAF
      */
     public function generarCaptcha(): JsonResponse
     {
         try {
-            $resultado = $this->siafService->generarCaptcha();
-
+            $resultado = $this->siafService->obtenerCaptchaSiaf();
             return response()->json($resultado);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al generar CAPTCHA: ' . $e->getMessage(),
+                'message' => 'Error al obtener CAPTCHA: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -64,12 +63,13 @@ class SiafController extends Controller
                 ], 422);
             }
 
-            // Consultar SIAF
+            // Consultar SIAF CON el CAPTCHA resuelto
             $resultado = $this->siafService->consultarExpediente(
                 $validated['anoEje'],
                 $validated['secEjec'],
                 $validated['expediente'],
-                $validated['codigo_siaf']
+                $validated['codigo_siaf'],
+                $validated['j_captcha']  // ← PASAR EL CAPTCHA AQUÍ
             );
 
             if ($resultado['success']) {

@@ -43,7 +43,15 @@ Route::prefix('maintenance')->group(function () {
     Route::get('/status', [MaintenanceController::class, 'status'])->name('maintenance.status');
 });
 
-// SIAF API Routes (sin CSRF en rutas API)
+// SIAF API Routes - Test endpoint (para debugging, sin CSRF)
+Route::prefix('api')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+    // Test de salud - sin protección CSRF
+    Route::post('/siaf/test', function () {
+        return response()->json(['status' => 'ok', 'message' => 'SIAF test endpoint working']);
+    });
+});
+
+// SIAF API Routes (requieren autenticación)
 Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/captcha', [SiafController::class, 'generarCaptcha']);
     Route::post('/siaf/consultar', [SiafController::class, 'consultar']);

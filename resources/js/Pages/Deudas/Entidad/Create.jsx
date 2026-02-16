@@ -435,9 +435,9 @@ export default function EntidadDeudaCreate({ entidades }) {
                                         <input
                                             type="text"
                                             value={siafSearch.j_captcha}
-                                            onChange={(e) => setSiafSearch({ ...siafSearch, j_captcha: e.target.value.toUpperCase() })}
+                                            onChange={(e) => setSiafSearch({ ...siafSearch, j_captcha: e.target.value })}
                                             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                            placeholder="Ingrese el código de la imagen"
+                                            placeholder="Ingrese el código de la imagen (mayúsculas o minúsculas)"
                                             maxLength="5"
                                         />
                                     </div>
