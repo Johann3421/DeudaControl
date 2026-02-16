@@ -35,6 +35,12 @@ class SiafController extends Controller
     public function consultar(Request $request): JsonResponse
     {
         try {
+            // Log la solicitud
+            \Log::info('SIAF Consultar Request', [
+                'user_id' => auth()->id(),
+                'timestamp' => now(),
+            ]);
+
             // Validar entrada
             $validated = $request->validate([
                 'anoEje' => ['required', 'numeric', 'digits:4'],
@@ -80,12 +86,21 @@ class SiafController extends Controller
             ], 404);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('SIAF Validation Error', [
+                'errors' => $e->errors(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            \Log::error('SIAF Consultar Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al consultar SIAF: ' . $e->getMessage(),
