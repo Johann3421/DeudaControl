@@ -10,13 +10,13 @@ return new class extends Migration
     {
         // Primero, eliminar todos los pagos
         DB::statement('TRUNCATE TABLE pagos');
-        
+
         // Luego, obtener los IDs de usuarios reales
         $usuario_ids = DB::table('users')->pluck('id')->toArray();
-        
+
         if (empty($usuario_ids)) {
             // Si no hay usuarios, eliminar todas las deudas
-            DB::statement('TRUNCATE TABLE deudas');
+            DB::table('deudas')->delete();
         } else {
             // Eliminar solo deudas que NO pertenecen a usuarios válidos
             DB::table('deudas')

@@ -13,8 +13,20 @@ fi
 
 # Create storage link
 php artisan storage:link --force 2>/dev/null || true
+# Wait for DB to be reachable (retry) then run migrations
+echo "==> Waiting for DB to be reachable..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+until php -r 'try { new PDO("mysql:host=" . getenv("DB_HOST") . ";port=" . getenv("DB_PORT") . ";dbname=" . getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD")); exit(0);} catch (Exception $e) { exit(1); }'; do
+    RETRY_COUNT=$((RETRY_COUNT+1))
+    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+        echo "DB not reachable after $((MAX_RETRIES * 5)) seconds. Aborting."
+        exit 1
+    fi
+    echo "DB not reachable yet, retrying in 5s... ($RETRY_COUNT/$MAX_RETRIES)"
+    sleep 5
+done
 
-# Run migrations
 echo "==> Running migrations..."
 php artisan migrate --force
 
