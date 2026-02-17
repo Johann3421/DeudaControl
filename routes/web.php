@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\MaintenancePanelController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Auth\LoginController;
@@ -42,11 +43,11 @@ Route::get('/api/health', function () {
 Route::prefix('maintenance')->group(function () {
     Route::get('/cleanup', [MaintenanceController::class, 'cleanup'])->name('maintenance.cleanup');
     Route::get('/status', [MaintenanceController::class, 'status'])->name('maintenance.status');
+    Route::get('/test-siaf', [MaintenanceController::class, 'testSiafProxy'])->name('maintenance.test-siaf');
 });
 
-// SIAF API Routes - Test endpoint (para debugging, sin CSRF)
-Route::prefix('api')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])->group(function () {
-    // Test de salud - sin protección CSRF
+// SIAF API Routes - Test endpoint (para debugging)
+Route::prefix('api')->group(function () {
     Route::post('/siaf/test', function () {
         return response()->json(['status' => 'ok', 'message' => 'SIAF test endpoint working']);
     });
@@ -117,5 +118,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
 
         Route::get('/diagnostic/siaf', [DiagnosticController::class, 'siaf'])->name('diagnostic.siaf');
+
+        // Maintenance Panel (visual, no SSH needed)
+        Route::get('/maintenance', [MaintenancePanelController::class, 'index'])->name('maintenance.index');
+        Route::post('/maintenance/clear-all', [MaintenancePanelController::class, 'clearAll'])->name('maintenance.clearAll');
+        Route::post('/maintenance/clear-cache', [MaintenancePanelController::class, 'clearCache'])->name('maintenance.clearCache');
+        Route::post('/maintenance/clear-config', [MaintenancePanelController::class, 'clearConfig'])->name('maintenance.clearConfig');
+        Route::post('/maintenance/clear-views', [MaintenancePanelController::class, 'clearViews'])->name('maintenance.clearViews');
+        Route::post('/maintenance/test-siaf', [MaintenancePanelController::class, 'testSiafProxy'])->name('maintenance.testSiaf');
+        Route::get('/maintenance/logs', [MaintenancePanelController::class, 'viewLogs'])->name('maintenance.logs');
+        Route::post('/maintenance/clear-logs', [MaintenancePanelController::class, 'clearLogs'])->name('maintenance.clearLogs');
     });
 });

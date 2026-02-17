@@ -45,7 +45,7 @@ class SiafController extends Controller
                 'anoEje' => ['required', 'numeric', 'digits:4'],
                 'secEjec' => ['required', 'string', 'max:6'],
                 'expediente' => ['required', 'string', 'max:10'],
-                'j_captcha' => ['required', 'string', 'max:5'],
+                'j_captcha' => ['required', 'string', 'max:6'],
                 'codigo_siaf' => ['required', 'string', 'max:50'],
             ], [
                 'anoEje.required' => 'El año es obligatorio',

@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
+
+        // Excluir rutas API de verificación CSRF (Laravel 11)
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+            'maintenance/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

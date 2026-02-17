@@ -41,4 +41,9 @@ return [
         'group_id' => env('WHATSAPP_GROUP_ID', ''),
     ],
 
+    'siaf' => [
+        'proxy_url' => env('SIAF_PROXY_URL', ''),
+        'proxy_secret' => env('SIAF_PROXY_SECRET', ''),
+    ],
+
 ];
