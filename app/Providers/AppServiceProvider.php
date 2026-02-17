@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\WhatsApp\Contracts\WhatsAppProviderInterface;
 use App\Services\WhatsApp\Providers\DefaultWhatsAppProvider;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        if (config('app.env') === 'production') {
+        URL::forceScheme('https');
+    }
     }
 }
