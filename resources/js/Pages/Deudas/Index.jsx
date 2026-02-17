@@ -146,10 +146,10 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                     </span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
-                                                    <span className="text-sm font-medium text-slate-800">{formatMoney(deuda.monto_total)}</span>
+                                                    <span className="text-sm font-medium text-slate-800">{formatMoney(deuda.monto_total, deuda.currency_code)}</span>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-right">
-                                                    <span className="text-sm font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente)}</span>
+                                                    <span className="text-sm font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</span>
                                                 </td>
                                                 {tieneDeudaEntidad && (
                                                     <>

@@ -5,6 +5,24 @@ import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/curr
 
 export default function EntidadDeudaCreate({ entidades }) {
     const currencies = getAvailableCurrencies();
+
+    // Función para traducir mensajes de error genéricos
+    const traducirError = (campo, mensaje) => {
+        if (mensaje === 'validation.date') {
+            return 'El campo debe ser una fecha válida.';
+        }
+        if (mensaje === 'validation.in') {
+            return 'El valor seleccionado no es válido.';
+        }
+        if (mensaje === 'validation.numeric') {
+            return 'El campo debe ser un número.';
+        }
+        if (mensaje === 'validation.string') {
+            return 'El campo debe ser texto.';
+        }
+        return mensaje;
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         entidad_id: '',
         descripcion: '',
@@ -16,7 +34,7 @@ export default function EntidadDeudaCreate({ entidades }) {
         codigo_siaf: '',
         fecha_limite_pago: '',
         notas: '',
-        // Nuevos campos SIAF
+        // Nuevos campos SIAF - deben ser strings vacíos, no undefined
         estado_siaf: '',
         fase_siaf: '',
         estado_expediente: '',
@@ -71,6 +89,13 @@ export default function EntidadDeudaCreate({ entidades }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        console.log('📤 Enviando datos del formulario:', {
+            ...data,
+            estado_siaf: data.estado_siaf || '(vacío)',
+            fase_siaf: data.fase_siaf || '(vacío)',
+            estado_expediente: data.estado_expediente || '(vacío)',
+            fecha_proceso: data.fecha_proceso || '(vacío)',
+        });
         post('/deudas/entidad');
     };
 
@@ -150,13 +175,17 @@ export default function EntidadDeudaCreate({ entidades }) {
 
                 // Guardar la información del SIAF en el formulario principal
                 if (result.data.info_siaf) {
-                    setData({
-                        ...data,
-                        estado_siaf: result.data.info_siaf.estado || '',
+                    console.log('📥 Actualizando campos SIAF con:', {
+                        estado_siaf: 'C',
                         fase_siaf: result.data.info_siaf.fase || '',
                         estado_expediente: result.data.info_siaf.estado || '',
                         fecha_proceso: result.data.info_siaf.fechaProceso || '',
                     });
+
+                    setData('estado_siaf', 'C');
+                    setData('fase_siaf', result.data.info_siaf.fase || '');
+                    setData('estado_expediente', result.data.info_siaf.estado || '');
+                    setData('fecha_proceso', result.data.info_siaf.fechaProceso || '');
                 }
             } else {
                 setSearchError(result.message || 'No se encontraron datos para el código SIAF especificado');
@@ -188,6 +217,21 @@ export default function EntidadDeudaCreate({ entidades }) {
                         </span>
                         <h2 className="text-lg font-semibold text-slate-900">Nueva Deuda - Entidad</h2>
                     </div>
+
+                    {/* Mostrar errores de validación si los hay */}
+                    {Object.keys(errors).length > 0 && (
+                        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200">
+                            <h3 className="font-semibold text-red-900 mb-2 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Errores de validación
+                            </h3>
+                            <ul className="text-sm text-red-700 space-y-1">
+                                {Object.entries(errors).map(([campo, mensaje]) => (
+                                    <li key={campo}>• {traducirError(campo, mensaje)}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Entidad */}
@@ -224,7 +268,7 @@ export default function EntidadDeudaCreate({ entidades }) {
                         {/* Orden de Compra + Fecha de Emision */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Orden de Compra</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Orden de Compra *</label>
                                 <input
                                     type="text"
                                     value={data.orden_compra}
@@ -337,46 +381,37 @@ export default function EntidadDeudaCreate({ entidades }) {
                                         <div className="mt-4 space-y-4">
                                             {/* Información del SIAF extraída */}
                                             {siafResults.info_siaf && (
-                                                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                                                    <h4 className="text-sm font-semibold text-blue-900 mb-3">Información del SIAF</h4>
+                                                <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                                                    <h4 className="text-sm font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                                        Datos extraídos del SIAF
+                                                    </h4>
                                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                                                         <div>
-                                                            <label className="block text-xs font-medium text-blue-700">Fase</label>
-                                                            <input
-                                                                type="text"
-                                                                value={data.fase_siaf}
-                                                                onChange={(e) => setData('fase_siaf', e.target.value)}
-                                                                placeholder={siafResults.info_siaf.fase || 'N/A'}
-                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-white"
-                                                            />
+                                                            <label className="block text-xs font-medium text-green-700 mb-1">Fase SIAF</label>
+                                                            <div className="px-3 py-2 bg-green-100 rounded border border-green-300 font-semibold text-green-900">
+                                                                {data.fase_siaf || siafResults.info_siaf.fase || '-'}
+                                                            </div>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-xs font-medium text-blue-700">Estado Expediente</label>
-                                                            <input
-                                                                type="text"
-                                                                value={data.estado_expediente}
-                                                                onChange={(e) => setData('estado_expediente', e.target.value)}
-                                                                placeholder={siafResults.info_siaf.estado || 'N/A'}
-                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-white"
-                                                            />
+                                                            <label className="block text-xs font-medium text-green-700 mb-1">Estado Expediente</label>
+                                                            <div className="px-3 py-2 bg-green-100 rounded border border-green-300 font-semibold text-green-900">
+                                                                {data.estado_expediente || siafResults.info_siaf.estado || '-'}
+                                                            </div>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-xs font-medium text-blue-700">Fecha Proceso</label>
-                                                            <input
-                                                                type="text"
-                                                                value={data.fecha_proceso}
-                                                                readOnly
-                                                                placeholder={siafResults.info_siaf.fechaProceso ? new Date(siafResults.info_siaf.fechaProceso).toLocaleDateString('es-ES') : 'N/A'}
-                                                                className="w-full mt-1 px-3 py-2 rounded border border-blue-300 text-xs bg-gray-100"
-                                                            />
+                                                            <label className="block text-xs font-medium text-green-700 mb-1">Fecha Proceso</label>
+                                                            <div className="px-3 py-2 bg-green-100 rounded border border-green-300 font-semibold text-green-900">
+                                                                {data.fecha_proceso ? new Date(data.fecha_proceso).toLocaleDateString('es-ES') : (siafResults.info_siaf.fechaProceso ? new Date(siafResults.info_siaf.fechaProceso).toLocaleDateString('es-ES') : '-')}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="mt-3">
-                                                        <label className="block text-xs font-medium text-blue-700 mb-1">Estado SIAF *</label>
+                                                        <label className="block text-xs font-medium text-green-700 mb-1">Estado SIAF (Pre-llenado con C - COMPROMISO) *</label>
                                                         <select
                                                             value={data.estado_siaf}
                                                             onChange={(e) => setData('estado_siaf', e.target.value)}
-                                                            className="w-full px-3 py-2 rounded border border-blue-300 text-xs bg-white"
+                                                            className="w-full px-3 py-2 rounded border border-green-300 text-xs bg-green-50 font-semibold"
                                                         >
                                                             <option value="">Selecciona un estado</option>
                                                             <option value="C">C - COMPROMISO</option>
@@ -550,7 +585,7 @@ export default function EntidadDeudaCreate({ entidades }) {
 
                         {/* Fecha Limite de Pago */}
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Limite de Pago</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Limite de Pago *</label>
                             <input
                                 type="date"
                                 value={data.fecha_limite_pago}

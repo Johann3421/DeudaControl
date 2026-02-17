@@ -259,14 +259,14 @@ class SiafService
                 // Parsear la tabla para obtener datos estructurados
                 $datos = $this->parsearTablaSiaf($tabla);
 
-                // Si hay datos, extraer información del primer registro para la deuda
-                $primerRegistro = $datos[0] ?? null;
+                // Si hay datos, extraer información del MEJOR registro (último con más datos) para la deuda
+                $mejorRegistro = $this->obtenerMejorRegistroSiaf($datos);
                 $infoSiaf = [];
-                if ($primerRegistro) {
+                if ($mejorRegistro) {
                     $infoSiaf = [
-                        'fase' => $primerRegistro['fase'] ?? null,
-                        'estado' => $primerRegistro['estado'] ?? null,
-                        'fechaProceso' => $primerRegistro['fechaHora'] ?? null,
+                        'fase' => $mejorRegistro['fase'] ?? null,
+                        'estado' => $mejorRegistro['estado'] ?? null,
+                        'fechaProceso' => $this->extraerSoloFecha($mejorRegistro['fechaHora'] ?? null),
                     ];
                 }
 
@@ -282,7 +282,7 @@ class SiafService
                         'codigo_siaf' => $codigoSiaf,
                         'datos' => $datos,  // Array de registros
                         'tabla_html' => $tabla,  // HTML original para respaldo
-                        'info_siaf' => $infoSiaf,  // Info del primer registro para la deuda
+                        'info_siaf' => $infoSiaf,  // Info del mejor registro para la deuda
                         'anoEje' => $anoEje,
                         'secEjec' => $secEjec,
                         'expediente' => $expediente,
@@ -304,14 +304,14 @@ class SiafService
                 // Parsear la tabla para obtener datos estructurados
                 $datos = $this->parsearTablaSiaf($tabla);
 
-                // Si hay datos, extraer información del primer registro para la deuda
-                $primerRegistro = $datos[0] ?? null;
+                // Si hay datos, extraer información del MEJOR registro (último con más datos) para la deuda
+                $mejorRegistro = $this->obtenerMejorRegistroSiaf($datos);
                 $infoSiaf = [];
-                if ($primerRegistro) {
+                if ($mejorRegistro) {
                     $infoSiaf = [
-                        'fase' => $primerRegistro['fase'] ?? null,
-                        'estado' => $primerRegistro['estado'] ?? null,
-                        'fechaProceso' => $primerRegistro['fechaHora'] ?? null,
+                        'fase' => $mejorRegistro['fase'] ?? null,
+                        'estado' => $mejorRegistro['estado'] ?? null,
+                        'fechaProceso' => $this->extraerSoloFecha($mejorRegistro['fechaHora'] ?? null),
                     ];
                 }
 
@@ -327,7 +327,7 @@ class SiafService
                         'codigo_siaf' => $codigoSiaf,
                         'datos' => $datos,  // Array de registros
                         'tabla_html' => $tabla,  // HTML original para respaldo
-                        'info_siaf' => $infoSiaf,  // Info del primer registro para la deuda
+                        'info_siaf' => $infoSiaf,  // Info del mejor registro para la deuda
                         'anoEje' => $anoEje,
                         'secEjec' => $secEjec,
                         'expediente' => $expediente,
@@ -542,6 +542,55 @@ class SiafService
     }
 
     /**
+     * Obtiene el MEJOR registro: ÚLTIMA fila, rellenando campos vacíos con filas anteriores
+     * Esto es útil cuando hay múltiples filas y la última es la más reciente pero con datos incompletos
+     * @param array $registros Array de registros parseados
+     * @return array|null El último registro con campos completados si es necesario
+     */
+    private function obtenerMejorRegistroSiaf(array $registros): ?array
+    {
+        if (empty($registros)) {
+            return null;
+        }
+
+        // Tomar el último registro como base
+        $ultimoRegistro = $registros[count($registros) - 1];
+
+        // Rellenar campos vacíos del último registro con datos de registros anteriores
+        // Priorizar registros que compartan ciclo, fase, sec, correlativo
+        foreach ($ultimoRegistro as $campo => $valor) {
+            if (empty($valor) || $valor === '') {
+                // Buscar este campo en registros anteriores (de atrás hacia adelante)
+                for ($i = count($registros) - 2; $i >= 0; $i--) {
+                    $registroAnterior = $registros[$i];
+
+                    // Preferir registros con misma fase y ciclo
+                    if (!empty($registroAnterior[$campo]) &&
+                        $registroAnterior[$campo] !== '' &&
+                        $registroAnterior['ciclo'] === $ultimoRegistro['ciclo'] &&
+                        $registroAnterior['fase'] === $ultimoRegistro['fase']) {
+                        $ultimoRegistro[$campo] = $registroAnterior[$campo];
+                        break;
+                    }
+                }
+
+                // Si aún están vacíos, buscar en cualquier registro anterior
+                if (empty($ultimoRegistro[$campo]) || $ultimoRegistro[$campo] === '') {
+                    for ($i = count($registros) - 2; $i >= 0; $i--) {
+                        $registroAnterior = $registros[$i];
+                        if (!empty($registroAnterior[$campo]) && $registroAnterior[$campo] !== '') {
+                            $ultimoRegistro[$campo] = $registroAnterior[$campo];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $ultimoRegistro;
+    }
+
+    /**
      * Falla cuando no se puede conectar a SIAF
      * Retorna error claro para que el usuario sepa qué pasó
      */
@@ -656,5 +705,35 @@ class SiafService
         $html .= '</table>';
 
         return $html;
+    }
+
+    /**
+     * Extrae solo la parte de fecha de un campo fechaHora
+     * Convierte formatos como "22/12/2025 15:20:55" a "2025-12-22"
+     * @param string|null $fechaHora Fecha con hora en formato dd/mm/yyyy HH:MM:SS
+     * @return string|null Fecha en formato Y-m-d o null
+     */
+    private function extraerSoloFecha(?string $fechaHora): ?string
+    {
+        if (empty($fechaHora) || $fechaHora === '') {
+            return null;
+        }
+
+        // Si contiene espacio, es formato con hora (dd/mm/yyyy HH:MM:SS)
+        if (strpos($fechaHora, ' ') !== false) {
+            $fechaHora = explode(' ', $fechaHora)[0];
+        }
+
+        // Si está en formato dd/mm/yyyy, convertir a Y-m-d
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $fechaHora, $matches)) {
+            return $matches[3] . '-' . $matches[2] . '-' . $matches[1];
+        }
+
+        // Si ya está en Y-m-d, devolverla
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fechaHora)) {
+            return $fechaHora;
+        }
+
+        return null;
     }
 }

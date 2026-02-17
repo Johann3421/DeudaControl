@@ -10,7 +10,12 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
         producto_servicio: deudaEntidad.producto_servicio || '',
         codigo_siaf: deudaEntidad.codigo_siaf || '',
         fecha_limite_pago: deudaEntidad.fecha_limite_pago ? deudaEntidad.fecha_limite_pago.split('T')[0] : '',
+        currency_code: deuda.currency_code || 'PEN',
         estado: deuda.estado || 'activa',
+        estado_siaf: deudaEntidad.estado_siaf || '',
+        fase_siaf: deudaEntidad.fase_siaf || '',
+        estado_expediente: deudaEntidad.estado_expediente || '',
+        fecha_proceso: deudaEntidad.fecha_proceso ? deudaEntidad.fecha_proceso.split('T')[0] : '',
         notas: deuda.notas || '',
     });
 
@@ -120,21 +125,107 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                             </div>
                         </div>
 
-                        {/* Estado */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado</label>
-                            <select
-                                value={data.estado}
-                                onChange={(e) => setData('estado', e.target.value)}
-                                disabled={cerrado}
-                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
-                            >
-                                <option value="activa">Activa</option>
-                                <option value="pagada">Pagada</option>
-                                <option value="vencida">Vencida</option>
-                                <option value="cancelada">Cancelada</option>
-                            </select>
-                            {errors.estado && <p className="mt-1 text-sm text-red-600">{errors.estado}</p>}
+                        {/* Currency Code + Estado */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Moneda</label>
+                                <select
+                                    value={data.currency_code}
+                                    onChange={(e) => setData('currency_code', e.target.value)}
+                                    disabled={cerrado}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.currency_code ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                >
+                                    <option value="PEN">Soles (PEN)</option>
+                                    <option value="USD">Dolares (USD)</option>
+                                    <option value="EUR">Euros (EUR)</option>
+                                    <option value="BRL">Reales (BRL)</option>
+                                    <option value="COP">Pesos Colombianos (COP)</option>
+                                    <option value="CLP">Pesos Chilenos (CLP)</option>
+                                </select>
+                                {errors.currency_code && <p className="mt-1 text-sm text-red-600">{errors.currency_code}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado</label>
+                                <select
+                                    value={data.estado}
+                                    onChange={(e) => setData('estado', e.target.value)}
+                                    disabled={cerrado}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                >
+                                    <option value="activa">Activa</option>
+                                    <option value="pagada">Pagada</option>
+                                    <option value="vencida">Vencida</option>
+                                    <option value="cancelada">Cancelada</option>
+                                </select>
+                                {errors.estado && <p className="mt-1 text-sm text-red-600">{errors.estado}</p>}
+                            </div>
+                        </div>
+
+                        {/* SIAF Fields Divider */}
+                        <div className="border-t border-slate-200 pt-5">
+                            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-violet-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                Informacion SIAF
+                            </h3>
+
+                            {/* Estado SIAF + Fase SIAF */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado SIAF</label>
+                                    <select
+                                        value={data.estado_siaf}
+                                        onChange={(e) => setData('estado_siaf', e.target.value)}
+                                        disabled={cerrado}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    >
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="C">Compromiso (C)</option>
+                                        <option value="D">Devengado (D)</option>
+                                        <option value="G">Girado (G)</option>
+                                        <option value="R">Rechazada (R)</option>
+                                    </select>
+                                    {errors.estado_siaf && <p className="mt-1 text-sm text-red-600">{errors.estado_siaf}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase SIAF</label>
+                                    <input
+                                        type="text"
+                                        value={data.fase_siaf}
+                                        onChange={(e) => setData('fase_siaf', e.target.value)}
+                                        disabled={cerrado}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        placeholder="Fase del proceso SIAF"
+                                    />
+                                    {errors.fase_siaf && <p className="mt-1 text-sm text-red-600">{errors.fase_siaf}</p>}
+                                </div>
+                            </div>
+
+                            {/* Estado Expediente + Fecha Proceso */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado Expediente</label>
+                                    <input
+                                        type="text"
+                                        value={data.estado_expediente}
+                                        onChange={(e) => setData('estado_expediente', e.target.value)}
+                                        disabled={cerrado}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado_expediente ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        placeholder="Estado del expediente"
+                                    />
+                                    {errors.estado_expediente && <p className="mt-1 text-sm text-red-600">{errors.estado_expediente}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha de Proceso SIAF</label>
+                                    <input
+                                        type="date"
+                                        value={data.fecha_proceso}
+                                        onChange={(e) => setData('fecha_proceso', e.target.value)}
+                                        disabled={cerrado}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.fecha_proceso ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    />
+                                    {errors.fecha_proceso && <p className="mt-1 text-sm text-red-600">{errors.fecha_proceso}</p>}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Notas */}

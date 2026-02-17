@@ -14,11 +14,11 @@ class DeudaController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         // Admin ve todas, usuarios ven solo las suyas
-        $query = Deuda::with(['cliente', 'deudaEntidad.entidad', 'user:id,name,email,rol'])
+        $query = Deuda::with(['cliente', 'user:id,name,email,rol', 'deudaEntidad.entidad'])
             ->withCount('pagos');
-        
+
         if ($user->rol !== 'superadmin') {
             $query->where('user_id', $user->id);
         }
@@ -50,6 +50,20 @@ class DeudaController extends Controller
         }
 
         $deudas = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+
+        // Transformar datos para incluir relaciones ANTES de enviar a Inertia
+        $deudasTransformadas = $deudas->map(function ($deuda) {
+            $arrDeuda = $deuda->toArray();
+            if ($deuda->tipo_deuda === 'entidad' && $deuda->deudaEntidad) {
+                $arrDeuda['deuda_entidad'] = $deuda->deudaEntidad->toArray();
+                if ($deuda->deudaEntidad->entidad) {
+                    $arrDeuda['deuda_entidad']['entidad'] = $deuda->deudaEntidad->entidad->toArray();
+                }
+            }
+            return $arrDeuda;
+        })->all();
+
+        $deudas->setCollection(collect($deudasTransformadas));
 
         return Inertia::render('Deudas/Index', [
             'deudas' => $deudas,
