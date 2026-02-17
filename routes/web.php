@@ -10,6 +10,7 @@ use App\Http\Controllers\DeudaAlquilerController;
 use App\Http\Controllers\DeudaController;
 use App\Http\Controllers\DeudaEntidadController;
 use App\Http\Controllers\DeudaParticularController;
+use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\InmuebleController;
 use App\Http\Controllers\MaintenanceController;
@@ -114,5 +115,7 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+        Route::get('/diagnostic/siaf', [DiagnosticController::class, 'siaf'])->name('diagnostic.siaf');
     });
 });

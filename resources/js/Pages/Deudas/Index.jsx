@@ -3,6 +3,29 @@ import { useState } from 'react';
 import Layout from '../../Components/Layout';
 import { formatMoney } from '../../helpers/currencyHelper';
 
+// Función para formatear fecha
+const formatDate = (date) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+// Función para mostrar tiempo relativo (ej: "hace 2 horas")
+const formatRelativeTime = (date) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) return `hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+    if (diffHours > 0) return `hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    if (diffMins > 0) return `hace ${diffMins} min`;
+    return 'ahora';
+};
+
 const ESTADO_STYLES = {
     activa: { bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500' },
     pagada: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -91,7 +114,8 @@ export default function DeudasIndex({ deudas, filtros }) {
                                     <tr className="border-b border-slate-100">
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Descripcion</th>
                                         <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente / Entidad</th>
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Creado Por</th>
+                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Creado</th>
+                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Última Edición</th>
                                         <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Tipo</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto Total</th>
                                         <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Pendiente</th>
@@ -135,9 +159,15 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                     ) : <span className="text-sm text-slate-400">-</span>}
                                                 </td>
                                                 <td className="px-5 py-3.5">
-                                                    <div className="text-sm">
-                                                        <p className="text-slate-700 font-medium">{deuda.user?.name}</p>
-                                                        <p className="text-xs text-slate-400">{deuda.user?.email}</p>
+                                                    <div className="text-sm space-y-1">
+                                                        <p className="text-slate-700 font-medium">{formatDate(deuda.created_at)}</p>
+                                                        <p className="text-xs text-slate-400">por {deuda.user?.name}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-5 py-3.5">
+                                                    <div className="text-sm space-y-1">
+                                                        <p className="text-slate-600">{formatRelativeTime(deuda.updated_at)}</p>
+                                                        <p className="text-xs text-slate-400">{formatDate(deuda.updated_at)}</p>
                                                     </div>
                                                 </td>
                                                 <td className="px-5 py-3.5 text-center">

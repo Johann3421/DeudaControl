@@ -25,7 +25,15 @@ class SiafService
      */
     private function getPersistentCookieFile(): string
     {
-        return sys_get_temp_dir() . '/siaf_session_cookies.txt';
+        // En producción, usar storage/app en lugar de /tmp
+        $storageDir = storage_path('app/siaf');
+
+        // Crear directorio si no existe
+        if (!is_dir($storageDir)) {
+            @mkdir($storageDir, 0755, true);
+        }
+
+        return $storageDir . '/siaf_session_cookies.txt';
     }
 
     /**
@@ -36,13 +44,25 @@ class SiafService
     {
         try {
             $cookieFile = $this->getPersistentCookieFile();
+            \Log::info('SIAF CAPTCHA - Using cookie file: ' . $cookieFile);
+
+            // Verificar que el directorio de cookies sea escribible
+            $cookieDir = dirname($cookieFile);
+            if (!is_writable($cookieDir)) {
+                \Log::error('SIAF CAPTCHA - Cookie directory not writable: ' . $cookieDir);
+                return [
+                    'success' => false,
+                    'message' => 'Error de configuración: El servidor no puede guardar cookies'
+                ];
+            }
 
             // Paso 1: GET inicial para crear sesión en SIAF
+            \Log::info('SIAF CAPTCHA - Step 1: Establishing session');
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => 'https://apps2.mef.gob.pe/consulta-vfp-webapp/consultaExpediente.jspx',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 10,
+                CURLOPT_TIMEOUT => 15,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false,
                 CURLOPT_COOKIEFILE => $cookieFile,
@@ -52,15 +72,27 @@ class SiafService
                 ],
             ]);
 
-            curl_exec($ch);
+            $response1 = curl_exec($ch);
+            $httpCode1 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError1 = curl_error($ch);
             curl_close($ch);
 
+            if (!$response1) {
+                \Log::error('SIAF CAPTCHA - Step 1 failed: ' . $curlError1);
+                return [
+                    'success' => false,
+                    'message' => 'No se pudo conectar con el servidor SIAF (Error 1)'
+                ];
+            }
+            \Log::info('SIAF CAPTCHA - Step 1 completed', ['httpCode' => $httpCode1]);
+
             // Paso 2: GET a Captcha.jpg con la MISMA sesión
+            \Log::info('SIAF CAPTCHA - Step 2: Retrieving CAPTCHA image');
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => 'https://apps2.mef.gob.pe/consulta-vfp-webapp/Captcha.jpg',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 10,
+                CURLOPT_TIMEOUT => 15,
                 CURLOPT_BINARYTRANSFER => true,
                 CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false,
@@ -72,28 +104,51 @@ class SiafService
 
             $imageData = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
             curl_close($ch);
 
-            if ($httpCode !== 200 || !$imageData) {
+            if ($curlError) {
+                \Log::error('SIAF CAPTCHA - cURL error: ' . $curlError);
                 return [
                     'success' => false,
-                    'message' => 'No se pudo obtener el CAPTCHA del SIAF'
+                    'message' => 'Error de conexión con SIAF'
+                ];
+            }
+
+            if ($httpCode !== 200) {
+                \Log::error('SIAF CAPTCHA - HTTP error', ['httpCode' => $httpCode]);
+                return [
+                    'success' => false,
+                    'message' => 'El servidor SIAF respondió con error (HTTP ' . $httpCode . ')'
+                ];
+            }
+
+            if (!$imageData) {
+                \Log::error('SIAF CAPTCHA - No image data returned');
+                return [
+                    'success' => false,
+                    'message' => 'No se recibió la imagen del CAPTCHA'
                 ];
             }
 
             $base64 = base64_encode($imageData);
-
-            \Log::info('SIAF CAPTCHA Obtained', ['cookieFile' => $cookieFile, 'httpCode' => $httpCode]);
+            \Log::info('SIAF CAPTCHA obtained successfully', [
+                'imageSize' => strlen($imageData),
+                'base64Size' => strlen('data:image/jpg;base64,' . $base64),
+            ]);
 
             return [
                 'success' => true,
                 'captcha' => 'data:image/jpg;base64,' . $base64,
             ];
         } catch (\Exception $e) {
-            \Log::warning('Error obtaining SIAF CAPTCHA: ' . $e->getMessage());
+            \Log::error('SIAF CAPTCHA - Exception: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return [
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error al obtener el CAPTCHA: ' . $e->getMessage()
             ];
         }
     }

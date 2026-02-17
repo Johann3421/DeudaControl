@@ -101,20 +101,36 @@ export default function EntidadDeudaCreate({ entidades }) {
 
     const loadCaptcha = async () => {
         try {
+            setSearchError('');
             // Endpoint que proporciona la imagen del CAPTCHA
             const response = await fetch('/api/captcha', {
-                method: 'GET'
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('CAPTCHA Error:', response.status, errorText);
+                setSearchError(`Error al cargar CAPTCHA (HTTP ${response.status})`);
+                return;
+            }
+
             const data = await response.json();
 
             if (data.success && data.captcha) {
                 setCaptchaImage(data.captcha);
+                setSearchError('');
             } else {
-                setSearchError('Error al cargar el CAPTCHA');
+                const errorMsg = data.message || 'Error desconocido';
+                console.error('CAPTCHA Response:', data);
+                setSearchError('Error al cargar el CAPTCHA: ' + errorMsg);
             }
         } catch (error) {
             console.error('Error al cargar CAPTCHA:', error);
-            setSearchError('Error al cargar el CAPTCHA: ' + error.message);
+            setSearchError('Error al cargar el CAPTCHA: ' + error.message + '. Verifica la consola del navegador.');
         }
     };
 

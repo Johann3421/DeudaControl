@@ -155,7 +155,8 @@ class DeudaController extends Controller
 
     private function authorize(Deuda $deuda): void
     {
-        if ($deuda->user_id !== Auth::id()) {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
             abort(403);
         }
     }

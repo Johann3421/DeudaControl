@@ -14,10 +14,10 @@ class PagoController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         // Admin ve todos, usuarios ven solo los suyos
         $query = Pago::with(['deuda.cliente', 'deuda.user:id,name,email,rol']);
-        
+
         if ($user->rol !== 'superadmin') {
             $query->whereHas('deuda', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -52,11 +52,16 @@ class PagoController extends Controller
 
     public function create(Request $request)
     {
-        $deudas = Deuda::where('user_id', Auth::id())
-            ->where('estado', 'activa')
-            ->with('cliente')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $user = Auth::user();
+        $query = Deuda::where('estado', 'activa')
+            ->with('cliente');
+
+        // Superadmins ven todas las deudas, usuarios ven solo las suyas
+        if ($user->rol !== 'superadmin') {
+            $query->where('user_id', $user->id);
+        }
+
+        $deudas = $query->orderBy('created_at', 'desc')->get();
 
         return Inertia::render('Pagos/Create', [
             'deudas' => $deudas,
@@ -83,10 +88,16 @@ class PagoController extends Controller
             'currency_code.in' => 'La moneda seleccionada no es valida.',
         ]);
 
+        $user = Auth::user();
         $deuda = Deuda::where('id', $validated['deuda_id'])
-            ->where('user_id', Auth::id())
-            ->where('estado', 'activa')
-            ->firstOrFail();
+            ->where('estado', 'activa');
+
+        // Superadmins pueden registrar pagos de cualquier deuda
+        if ($user->rol !== 'superadmin') {
+            $deuda->where('user_id', $user->id);
+        }
+
+        $deuda = $deuda->firstOrFail();
 
         if ($validated['monto'] > $deuda->monto_pendiente) {
             return back()->withErrors([
@@ -118,8 +129,9 @@ class PagoController extends Controller
     public function destroy(Pago $pago)
     {
         $deuda = $pago->deuda;
+        $user = Auth::user();
 
-        if ($deuda->user_id !== Auth::id()) {
+        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
             abort(403);
         }
 
