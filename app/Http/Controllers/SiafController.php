@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\SiafService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -61,6 +63,19 @@ class SiafController extends Controller
                     'success' => false,
                     'message' => 'El código de la imagen es incorrecto. Intenta de nuevo.',
                 ], 422);
+            }
+
+            // Rehidratar proxy session desde cache si el frontend envió session_key
+            if ($request->filled('session_key')) {
+                $key = $request->input('session_key');
+                $cached = Cache::get($key);
+                if (!empty($cached)) {
+                    Session::put('siaf_proxy_session', $cached);
+                    Session::put('siaf_proxy_key', $key);
+                    \Log::info('SIAF Controller - Rehidratada proxy session desde cache con session_key', ['session_key' => $key, 'user' => auth()->id()]);
+                } else {
+                    \Log::warning('SIAF Controller - session_key proporcionada pero no encontrada en cache', ['session_key' => $key]);
+                }
             }
 
             // Consultar SIAF CON el CAPTCHA resuelto

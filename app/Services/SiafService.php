@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Cache;
 
 class SiafService
 {
@@ -66,29 +67,49 @@ class SiafService
      */
     public function obtenerCaptchaSiaf(): array
     {
-        // ESTRATEGIA 1: Usar proxy si está configurado
         $proxyUrl = $this->getProxyUrl();
+
+        // If running locally or not in production, prefer direct connection for easier development
+        if (!app()->environment('production')) {
+            \Log::info('SIAF CAPTCHA - Entorno local/no-production: intentando conexión directa primero');
+            $direct = $this->obtenerCaptchaDirecto(20);
+            if ($direct['success']) {
+                return $direct;
+            }
+
+            // If direct failed but proxy is configured, try proxy as fallback
+            if ($proxyUrl) {
+                \Log::info('SIAF CAPTCHA - Directo falló en local, intentando proxy: ' . $proxyUrl);
+                $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
+                if ($resultado['success']) {
+                    return $resultado;
+                }
+                \Log::warning('SIAF CAPTCHA - Proxy también falló: ' . ($resultado['message'] ?? 'unknown'));
+            }
+
+            \Log::warning('SIAF CAPTCHA - Todas las estrategias fallaron en entorno no-produc. Usando fallback local.');
+            return $this->obtenerCaptchaLocal('Directo y proxy fallaron en entorno local.');
+        }
+
+        // En producción preferimos el proxy (evita timeouts por firewall del hosting)
         if ($proxyUrl) {
-            \Log::info('SIAF CAPTCHA - Intentando vía proxy: ' . $proxyUrl);
+            \Log::info('SIAF CAPTCHA - Entorno producción: intentando vía proxy: ' . $proxyUrl);
             $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
             if ($resultado['success']) {
                 return $resultado;
             }
-            \Log::warning('SIAF CAPTCHA - Proxy falló: ' . ($resultado['message'] ?? 'unknown'));
-            // Si el proxy está configurado pero falló, NO intentar directo (sabemos que directo no funciona en producción)
-            // Ir directo al fallback local
+            \Log::warning('SIAF CAPTCHA - Proxy falló en producción: ' . ($resultado['message'] ?? 'unknown'));
             return $this->obtenerCaptchaLocal('Proxy configurado pero falló: ' . ($resultado['message'] ?? 'unknown'));
         }
 
-        // ESTRATEGIA 2: Sin proxy → conexión directa (solo funciona en desarrollo local)
-        \Log::info('SIAF CAPTCHA - Sin proxy configurado. Intentando conexión directa.');
-        $resultado = $this->obtenerCaptchaDirecto(5);
+        // Si no hay proxy configurado en producción, intentar directo (raro) y luego fallback
+        \Log::info('SIAF CAPTCHA - Sin proxy configurado en producción. Intentando conexión directa.');
+        $resultado = $this->obtenerCaptchaDirecto(20);
         if ($resultado['success']) {
             return $resultado;
         }
 
-        // ESTRATEGIA 3: Fallback a CAPTCHA local
-        \Log::warning('SIAF CAPTCHA - Todas las estrategias fallaron. Usando fallback local.');
+        \Log::warning('SIAF CAPTCHA - Todas las estrategias fallaron en producción. Usando fallback local.');
         return $this->obtenerCaptchaLocal('Sin proxy y conexión directa falló. Configura SIAF_PROXY_URL en .env');
     }
 
@@ -164,15 +185,28 @@ class SiafService
             if ($response->successful() && ($data['success'] ?? false)) {
                 // Guardar la sesión SIAF del proxy para usarla en la consulta
                 if (!empty($data['session'])) {
-                    Session::put('siaf_proxy_session', $data['session']);
+                    // Guardar la cookie completa en la sesión y en cache con una key corta
+                    $sessionString = $data['session'];
+                    Session::put('siaf_proxy_session', $sessionString);
                     Session::put('siaf_proxy_timestamp', time());
-                    \Log::info('SIAF CAPTCHA - Proxy session guardada');
+
+                    // Crear una clave corta para el cache (por si la sesión se pierde o el driver es inestable)
+                    try {
+                        $token = 'siaf_' . bin2hex(random_bytes(10));
+                    } catch (\Exception $e) {
+                        $token = 'siaf_' . uniqid();
+                    }
+                    Cache::put($token, $sessionString, now()->addMinutes(10));
+                    Session::put('siaf_proxy_key', $token);
+
+                    \Log::info('SIAF CAPTCHA - Proxy session guardada (session + cache key)', ['cache_key' => $token]);
                 }
 
                 \Log::info('SIAF CAPTCHA - Obtenido exitosamente via proxy');
                 return [
                     'success' => true,
                     'captcha' => $data['captcha'],
+                    'session_key' => Session::get('siaf_proxy_key'),
                     'source' => 'siaf_proxy',
                 ];
             }
@@ -338,24 +372,59 @@ class SiafService
     ): array {
         $proxyUrl = $this->getProxyUrl();
         $proxySession = Session::get('siaf_proxy_session');
-
-        // ESTRATEGIA 1: Proxy (si hay sesión de proxy guardada)
-        if ($proxyUrl && $proxySession) {
-            \Log::info('SIAF Consulta - Usando proxy con sesión guardada');
-            $resultado = $this->consultarViaProxy($proxyUrl, $proxySession, $anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
-            if ($resultado['success']) {
-                return $resultado;
+        // Si por alguna razón la sesión no está en el driver (drivers inestables), intentar rehidratar desde cache
+        if (empty($proxySession) && Session::has('siaf_proxy_key')) {
+            $key = Session::get('siaf_proxy_key');
+            $cached = Cache::get($key);
+            if (!empty($cached)) {
+                $proxySession = $cached;
+                // Reponer en la sesión para las próximas requests
+                Session::put('siaf_proxy_session', $proxySession);
+                \Log::info('SIAF Consulta - Rehidratada proxy_session desde cache', ['cache_key' => $key]);
+            } else {
+                \Log::warning('SIAF Consulta - clave de cache de proxy encontrada pero sin valor', ['cache_key' => $key]);
             }
-            \Log::warning('SIAF Consulta - Proxy falló: ' . ($resultado['message'] ?? ''));
-            // Si proxy está configurado, NO intentar directo (sabemos que falla en producción)
+        }
+
+        // En desarrollo/local preferimos la conexión directa
+        if (!app()->environment('production')) {
+            \Log::info('SIAF Consulta - Entorno local/no-production: intentando conexión directa');
+            $direct = $this->consultarDirecto($anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
+            if ($direct['success']) {
+                return $direct;
+            }
+
+            // Si directo falló y hay proxy, intentar proxy
+            if ($proxyUrl && $proxySession) {
+                \Log::info('SIAF Consulta - Directo falló en local, intentando proxy con sesión');
+                $resultado = $this->consultarViaProxy($proxyUrl, $proxySession, $anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
+                if ($resultado['success']) {
+                    return $resultado;
+                }
+                \Log::warning('SIAF Consulta - Proxy falló también en local: ' . ($resultado['message'] ?? ''));
+            }
+
             return [
                 'success' => false,
-                'message' => 'Error al consultar SIAF via proxy: ' . ($resultado['message'] ?? 'Error desconocido') . '. Intenta recargar el CAPTCHA.',
+                'message' => 'No se pudo conectar al servidor SIAF en entorno local.',
             ];
         }
 
-        // ESTRATEGIA 2: Proxy configurado pero sin sesión → error de flujo
-        if ($proxyUrl && !$proxySession) {
+        // En producción preferimos proxy (evita bloqueos de hosting)
+        if ($proxyUrl) {
+            if ($proxySession) {
+                \Log::info('SIAF Consulta - Usando proxy con sesión guardada');
+                $resultado = $this->consultarViaProxy($proxyUrl, $proxySession, $anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
+                if ($resultado['success']) {
+                    return $resultado;
+                }
+                \Log::warning('SIAF Consulta - Proxy falló: ' . ($resultado['message'] ?? ''));
+                return [
+                    'success' => false,
+                    'message' => 'Error al consultar SIAF via proxy: ' . ($resultado['message'] ?? 'Error desconocido') . '. Intenta recargar el CAPTCHA.',
+                ];
+            }
+
             \Log::error('SIAF Consulta - Proxy configurado pero sin sesión. El CAPTCHA no guardó la sesión.');
             return [
                 'success' => false,
@@ -363,8 +432,8 @@ class SiafService
             ];
         }
 
-        // ESTRATEGIA 3: Sin proxy → conexión directa (solo funciona en local)
-        \Log::info('SIAF Consulta - Sin proxy, intentando conexión directa');
+        // Sin proxy en producción, intentar directo (poco común)
+        \Log::info('SIAF Consulta - Sin proxy en producción, intentando conexión directa');
         $resultado = $this->consultarDirecto($anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
         if ($resultado['success']) {
             return $resultado;

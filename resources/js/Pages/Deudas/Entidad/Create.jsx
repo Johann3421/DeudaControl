@@ -82,6 +82,7 @@ export default function EntidadDeudaCreate({ entidades }) {
     });
     const [showSiafSearch, setShowSiafSearch] = useState(false);
     const [captchaImage, setCaptchaImage] = useState('');
+    const [siafSessionKey, setSiafSessionKey] = useState('');
     const [searchingCode, setSearchingCode] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [searchSuccess, setSearchSuccess] = useState(false);
@@ -122,6 +123,13 @@ export default function EntidadDeudaCreate({ entidades }) {
 
             if (data.success && data.captcha) {
                 setCaptchaImage(data.captcha);
+                // Guardar session_key devuelto por el backend (si existe)
+                if (data.session_key) {
+                    console.log('✓ session_key recibido del endpoint CAPTCHA:', data.session_key);
+                    setSiafSessionKey(data.session_key);
+                } else {
+                    setSiafSessionKey('');
+                }
                 setSearchError('');
             } else {
                 const errorMsg = data.message || 'Error desconocido';
@@ -169,6 +177,8 @@ export default function EntidadDeudaCreate({ entidades }) {
                     secEjec: siafSearch.secEjec,
                     expediente: siafSearch.expediente,
                     j_captcha: siafSearch.j_captcha,
+                    // Incluir session_key para que el backend pueda rehidratar la sesión de proxy
+                    session_key: siafSessionKey || undefined,
                     codigo_siaf: data.codigo_siaf
                 })
             });
