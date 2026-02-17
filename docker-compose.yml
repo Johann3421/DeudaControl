@@ -1,0 +1,63 @@
+# docker-compose.yml — Solo para pruebas locales.
+# En Dokploy NO necesitas este archivo; Dokploy usa el Dockerfile directamente.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      APP_NAME: "Control de Deudas"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost
+      APP_KEY: "" # Se genera automáticamente en el primer arranque
+
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: control_deudas
+      DB_USERNAME: deudas_user
+      DB_PASSWORD: SecurePassword123!
+
+      SESSION_DRIVER: database
+      SESSION_LIFETIME: "120"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+
+      SIAF_PROXY_URL: ""
+      SIAF_PROXY_SECRET: ""
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: RootPassword123!
+      MYSQL_DATABASE: control_deudas
+      MYSQL_USER: deudas_user
+      MYSQL_PASSWORD: SecurePassword123!
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mysql_data:
