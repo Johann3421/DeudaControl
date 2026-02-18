@@ -51,6 +51,12 @@ class ExcelSiafController extends Controller
         // Soporta: d/m/yyyy, dd/mm/yyyy, d-m-yyyy, dd-mm-yyyy
         $dateStr = str_replace('-', '/', $dateStr);
 
+        // Si incluye hora (ej. "06/02/2026 16:28:43"), quedarnos solo con la parte de fecha
+        if (preg_match('/\d{1,2}\/\d{1,2}\/\d{4}/', $dateStr, $dateMatch)) {
+            // extraer la primera ocurrencia que parezca fecha
+            $dateStr = $dateMatch[0];
+        }
+
         // Patrón: capturar día, mes, año (soporta 1 o 2 dígitos)
         if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dateStr, $matches)) {
             $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
@@ -209,11 +215,13 @@ class ExcelSiafController extends Controller
                     $datos[] = $row_data;
 
                     // Usar el ÚLTIMO registro con datos válidos como referencia
-                    if ($fase && $estado && $fecha) {
+                    if ($fase && $estado) {
+                        // Preferir la columna Fecha Proceso (L) si está presente, sino usar Fecha (G)
+                        $fechaFuente = $fechaHora ?: $fecha;
                         $infoSiaf = [
                             'fase' => $fase,
                             'estado' => $estado,
-                            'fechaProceso' => $this->formatExcelDate($fecha),
+                            'fechaProceso' => $this->formatExcelDate($fechaFuente),
                         ];
                     }
                 }

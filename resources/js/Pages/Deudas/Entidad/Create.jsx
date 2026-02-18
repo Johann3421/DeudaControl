@@ -29,10 +29,14 @@ export default function EntidadDeudaCreate({ entidades }) {
     const formatSiafDateForDisplay = (dateStr) => {
         if (!dateStr) return '-';
 
-        // ISO yyyy-mm-dd -> usar Date para formatear localmente
+        // ISO yyyy-mm-dd -> construir Date con componentes (evitar parseo como UTC)
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            const d = new Date(dateStr);
-            if (!isNaN(d)) return d.toLocaleDateString('es-ES');
+            const parts = dateStr.split('-');
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1; // monthIndex
+            const d = parseInt(parts[2], 10);
+            const dt = new Date(y, m, d);
+            if (!isNaN(dt)) return dt.toLocaleDateString('es-ES');
             return dateStr;
         }
 
