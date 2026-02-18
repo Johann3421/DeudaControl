@@ -42,7 +42,7 @@ class ExcelSiafController extends Controller
 
         // Convertir a string
         $dateStr = trim((string)$cellValue);
-        
+
         if (empty($dateStr)) {
             return '';
         }
@@ -50,7 +50,7 @@ class ExcelSiafController extends Controller
         // Intentar parsear diferentes formatos y devolver dd/mm/yyyy
         // Soporta: d/m/yyyy, dd/mm/yyyy, d-m-yyyy, dd-mm-yyyy
         $dateStr = str_replace('-', '/', $dateStr);
-        
+
         // Patrón: capturar día, mes, año (soporta 1 o 2 dígitos)
         if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dateStr, $matches)) {
             $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
@@ -70,14 +70,14 @@ class ExcelSiafController extends Controller
                 'Y-m-d',      // ISO
                 'd-m-Y',      // Con guiones
             ];
-            
+
             foreach ($parseFormats as $format) {
                 $parsed = \DateTime::createFromFormat($format, $dateStr);
                 if ($parsed !== false && !($parsed->getLastErrors()['error_count'] ?? 0)) {
                     $formatted = $parsed->format('d/m/Y');
                     // Asegurar ceros a la izquierda
                     if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $formatted, $m)) {
-                        $formatted = str_pad($m[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                        $formatted = str_pad($m[1], 2, '0', STR_PAD_LEFT) . '/' .
                                     str_pad($m[2], 2, '0', STR_PAD_LEFT) . '/' . $m[3];
                     }
                     \Log::info('[EXCEL DATE FORMATTED (DateTime parse)]', ['input' => $dateStr, 'format' => $format, 'result' => $formatted]);

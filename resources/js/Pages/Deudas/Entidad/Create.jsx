@@ -51,6 +51,34 @@ export default function EntidadDeudaCreate({ entidades }) {
         return dateStr;
     };
 
+    // Convierte dd/mm/yyyy o d/m/yyyy a YYYY-MM-DD (ISO) para validación en backend
+    const parseSiafToIso = (dateStr) => {
+        if (!dateStr) return '';
+
+        // Si ya está en formato ISO
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+
+        // dd/mm/yyyy o d/m/yyyy
+        if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+            const parts = dateStr.split('/');
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return `${year}-${month}-${day}`;
+        }
+
+        // Intentar parsear con Date como último recurso
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed)) {
+            const y = parsed.getFullYear();
+            const m = String(parsed.getMonth() + 1).padStart(2, '0');
+            const d = String(parsed.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        return '';
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         entidad_id: '',
         descripcion: '',
@@ -185,7 +213,8 @@ export default function EntidadDeudaCreate({ entidades }) {
                     setData('estado_siaf', 'C');
                     setData('fase_siaf', result.info_siaf.fase || '');
                     setData('estado_expediente', result.info_siaf.estado || '');
-                    setData('fecha_proceso', result.info_siaf.fechaProceso || '');
+                    // Convertir fecha SIAF (dd/mm/yyyy) a ISO (YYYY-MM-DD) para la validación del backend
+                    setData('fecha_proceso', parseSiafToIso(result.info_siaf.fechaProceso || '') || '');
                 }
             } else {
                 setSearchError(result.error || 'Error al procesar el Excel');
