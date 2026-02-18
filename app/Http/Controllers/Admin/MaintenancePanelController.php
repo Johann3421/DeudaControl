@@ -185,36 +185,73 @@ class MaintenancePanelController extends Controller
 
         $proxyUrl = rtrim($proxyUrl, '/');
 
-        // Test 1: Health
+        // Test 1: Health (usando cURL directo para máximo control)
         try {
-            $health = Http::withOptions(['verify' => false, 'timeout' => 10])
-                ->withHeaders(['X-Proxy-Secret' => $proxySecret])
-                ->get($proxyUrl . '/health');
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $proxyUrl . '/health',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER => [
+                    'X-Proxy-Secret: ' . $proxySecret,
+                    'Accept: application/json',
+                ],
+            ]);
 
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $data = json_decode($response, true);
             $results['health'] = [
-                'success' => $health->successful(),
-                'status' => $health->status(),
-                'body' => $health->json(),
+                'success' => ($httpCode === 200 && ($data['success'] ?? false)),
+                'status' => $httpCode,
+                'body' => $data,
             ];
         } catch (\Exception $e) {
             $results['health'] = ['success' => false, 'error' => $e->getMessage()];
         }
 
-        // Test 2: Captcha
+        // Test 2: Captcha (usando cURL directo para máximo control)
         try {
-            $captcha = Http::withOptions(['verify' => false, 'timeout' => 20])
-                ->withHeaders(['X-Proxy-Secret' => $proxySecret, 'Accept' => 'application/json'])
-                ->get($proxyUrl . '/captcha');
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $proxyUrl . '/captcha',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER => [
+                    'X-Proxy-Secret: ' . $proxySecret,
+                    'Accept: application/json',
+                ],
+            ]);
 
-            $captchaData = $captcha->json();
-            $results['captcha'] = [
-                'success' => $captchaData['success'] ?? false,
-                'status' => $captcha->status(),
-                'has_image' => !empty($captchaData['captcha']),
-                'has_session' => !empty($captchaData['session']),
-                'source' => $captchaData['source'] ?? 'unknown',
-                'message' => $captchaData['message'] ?? null,
-            ];
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErrno = curl_errno($ch);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if ($curlErrno !== 0) {
+                $results['captcha'] = [
+                    'success' => false,
+                    'error' => "cURL error $curlErrno: $curlError"
+                ];
+            } else {
+                $captchaData = json_decode($response, true);
+                $results['captcha'] = [
+                    'success' => ($httpCode === 200 && ($captchaData['success'] ?? false)),
+                    'status' => $httpCode,
+                    'has_image' => !empty($captchaData['captcha']),
+                    'has_session' => !empty($captchaData['session']),
+                    'source' => $captchaData['source'] ?? 'unknown',
+                    'message' => $captchaData['message'] ?? null,
+                ];
+            }
         } catch (\Exception $e) {
             $results['captcha'] = ['success' => false, 'error' => $e->getMessage()];
         }

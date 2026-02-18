@@ -127,7 +127,7 @@ class SiafService
     }
 
     /**
-     * Obtiene CAPTCHA via el Cloudflare Worker proxy
+     * Obtiene CAPTCHA via el Cloudflare Worker proxy (usando cURL directo para máximo control SSL)
      */
     private function obtenerCaptchaViaProxy(string $proxyUrl): array
     {
@@ -143,90 +143,101 @@ class SiafService
 
             // Intentar con retries porque la llamada al SIAF puede ser lenta desde el Worker
             $attemptTimeouts = [20, 40, 60];
-            $response = null;
-            $lastException = null;
+            $lastError = null;
+            
             foreach ($attemptTimeouts as $attempt => $t) {
                 try {
                     $started = microtime(true);
-                    $response = Http::withOptions([
-                        'verify' => false,
-                        'timeout' => $t,
-                        'connect_timeout' => min(15, (int)($t / 2)),
-                    ])->withHeaders([
-                        'X-Proxy-Secret' => $secret,
-                        'Accept' => 'application/json',
-                    ])->get($fullUrl);
+                    
+                    $ch = curl_init();
+                    curl_setopt_array($ch, [
+                        CURLOPT_URL => $fullUrl,
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_TIMEOUT => $t,
+                        CURLOPT_CONNECTTIMEOUT => min(15, (int)($t / 2)),
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => false,
+                        CURLOPT_HTTPHEADER => [
+                            'X-Proxy-Secret: ' . $secret,
+                            'Accept: application/json',
+                        ],
+                    ]);
+
+                    $response = curl_exec($ch);
+                    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    $curlErrno = curl_errno($ch);
+                    $curlError = curl_error($ch);
+                    curl_close($ch);
 
                     $duration = round((microtime(true) - $started) * 1000);
+                    
                     \Log::info('SIAF Proxy CAPTCHA Response', [
                         'attempt' => $attempt + 1,
                         'timeout_seconds' => $t,
                         'duration_ms' => $duration,
-                        'status' => $response->status(),
-                        'body_length' => strlen($response->body()),
-                        'body_preview' => substr($response->body(), 0, 200),
+                        'http_code' => $httpCode,
+                        'curl_errno' => $curlErrno,
+                        'curl_error' => $curlError,
+                        'response_length' => strlen($response ?? ''),
                     ]);
 
-                    // Si recibimos algo legible, rompemos el loop
-                    if ($response->successful()) {
-                        break;
+                    if ($curlErrno !== 0) {
+                        $lastError = "cURL error $curlErrno: $curlError";
+                        usleep(200000); // Pequeña espera antes del siguiente intento
+                        continue;
+                    }
+
+                    $data = json_decode($response, true);
+                    
+                    if ($httpCode === 200 && ($data['success'] ?? false)) {
+                        // ✓ Éxito
+                        // Guardar la sesión SIAF del proxy para usarla en la consulta
+                        if (!empty($data['session'])) {
+                            $sessionString = $data['session'];
+                            Session::put('siaf_proxy_session', $sessionString);
+                            Session::put('siaf_proxy_timestamp', time());
+
+                            // Crear una clave corta para el cache
+                            try {
+                                $token = 'siaf_' . bin2hex(random_bytes(10));
+                            } catch (\Exception $e) {
+                                $token = 'siaf_' . uniqid();
+                            }
+                            Cache::put($token, $sessionString, now()->addMinutes(10));
+                            Session::put('siaf_proxy_key', $token);
+
+                            \Log::info('SIAF CAPTCHA - Proxy session guardada', ['cache_key' => $token]);
+                        }
+
+                        \Log::info('SIAF CAPTCHA - ✓ Obtenido exitosamente via proxy');
+                        return [
+                            'success' => true,
+                            'captcha' => $data['captcha'],
+                            'session_key' => Session::get('siaf_proxy_key'),
+                            'source' => 'siaf_proxy',
+                        ];
+                    } else {
+                        $lastError = "HTTP $httpCode or success=false";
+                        usleep(200000);
+                        continue;
                     }
                 } catch (\Exception $inner) {
-                    $lastException = $inner;
-                    \Log::warning('SIAF Proxy CAPTCHA attempt failed', [
+                    $lastError = $inner->getMessage();
+                    \Log::warning('SIAF Proxy CAPTCHA attempt exception', [
                         'attempt' => $attempt + 1,
-                        'timeout_seconds' => $t,
-                        'error' => $inner->getMessage(),
+                        'error' => $lastError,
                     ]);
-                    // pequeña espera antes del siguiente intento
                     usleep(200000);
                 }
             }
 
-            if (is_null($response)) {
-                if ($lastException) {
-                    throw $lastException;
-                }
-                return [
-                    'success' => false,
-                    'message' => 'No response from proxy after retries',
-                ];
-            }
-
-            $data = $response->json();
-
-            if ($response->successful() && ($data['success'] ?? false)) {
-                // Guardar la sesión SIAF del proxy para usarla en la consulta
-                if (!empty($data['session'])) {
-                    // Guardar la cookie completa en la sesión y en cache con una key corta
-                    $sessionString = $data['session'];
-                    Session::put('siaf_proxy_session', $sessionString);
-                    Session::put('siaf_proxy_timestamp', time());
-
-                    // Crear una clave corta para el cache (por si la sesión se pierde o el driver es inestable)
-                    try {
-                        $token = 'siaf_' . bin2hex(random_bytes(10));
-                    } catch (\Exception $e) {
-                        $token = 'siaf_' . uniqid();
-                    }
-                    Cache::put($token, $sessionString, now()->addMinutes(10));
-                    Session::put('siaf_proxy_key', $token);
-
-                    \Log::info('SIAF CAPTCHA - Proxy session guardada (session + cache key)', ['cache_key' => $token]);
-                }
-
-                \Log::info('SIAF CAPTCHA - Obtenido exitosamente via proxy');
-                return [
-                    'success' => true,
-                    'captcha' => $data['captcha'],
-                    'session_key' => Session::get('siaf_proxy_key'),
-                    'source' => 'siaf_proxy',
-                ];
-            }
-
+            // Si llegamos aquí, todos los intentos fallaron
+            $errorMsg = "Proxy CAPTCHA failed after retries: $lastError";
+            \Log::error('SIAF CAPTCHA Proxy - ✗ Todos los intentos fallaron', ['error' => $lastError]);
+            
             return [
                 'success' => false,
-                'message' => 'Proxy response: ' . ($data['message'] ?? 'Error desconocido'),
+                'message' => $errorMsg,
             ];
         } catch (\Exception $e) {
             \Log::error('SIAF CAPTCHA Proxy Exception: ' . $e->getMessage());
@@ -516,16 +527,10 @@ class SiafService
         string $captcha
     ): array {
         try {
-
             $started = microtime(true);
-            $response = Http::withOptions([
-                'verify' => false,
-                'timeout' => 60,
-                'connect_timeout' => 20,
-            ])->withHeaders([
-                'X-Proxy-Secret' => $this->getProxySecret(),
-                'Accept' => 'application/json',
-            ])->post($proxyUrl . '/consultar', [
+            
+            $secret = $this->getProxySecret();
+            $postData = http_build_query([
                 'session' => $session,
                 'anoEje' => $anoEje,
                 'secEjec' => $secEjec,
@@ -533,21 +538,52 @@ class SiafService
                 'j_captcha' => $captcha,
             ]);
 
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $proxyUrl . '/consultar',
+                CURLOPT_POST => 1,
+                CURLOPT_POSTFIELDS => $postData,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 60,
+                CURLOPT_CONNECTTIMEOUT => 20,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER => [
+                    'X-Proxy-Secret: ' . $secret,
+                    'Accept: application/json',
+                    'Content-Type: application/x-www-form-urlencoded',
+                ],
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErrno = curl_errno($ch);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
             $duration = round((microtime(true) - $started) * 1000);
+            
             \Log::info('SIAF Proxy CONSULTA Response', [
                 'url' => $proxyUrl . '/consultar',
                 'duration_ms' => $duration,
-                'status' => $response->status(),
-                'body_length' => strlen($response->body()),
-                'body_preview' => substr($response->body(), 0, 200),
+                'http_code' => $httpCode,
+                'curl_errno' => $curlErrno,
+                'response_length' => strlen($response ?? ''),
             ]);
 
-            $data = $response->json();
-
-            if (!$response->successful() || !($data['success'] ?? false)) {
+            if ($curlErrno !== 0) {
                 return [
                     'success' => false,
-                    'message' => 'Proxy consulta failed: ' . ($data['message'] ?? 'Error'),
+                    'message' => "Proxy consulta failed: cURL error $curlErrno: $curlError",
+                ];
+            }
+
+            $data = json_decode($response, true);
+
+            if ($httpCode !== 200 || !($data['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => 'Proxy consulta failed: ' . ($data['message'] ?? "HTTP $httpCode"),
                 ];
             }
 
