@@ -12,6 +12,7 @@ use App\Http\Controllers\DeudaController;
 use App\Http\Controllers\DeudaEntidadController;
 use App\Http\Controllers\DeudaParticularController;
 use App\Http\Controllers\DiagnosticController;
+use App\Http\Controllers\DiagnosticSiafController;
 use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\InmuebleController;
 use App\Http\Controllers\MaintenanceController;
@@ -51,6 +52,9 @@ Route::prefix('api')->group(function () {
     Route::post('/siaf/test', function () {
         return response()->json(['status' => 'ok', 'message' => 'SIAF test endpoint working']);
     });
+    
+    // Diagnóstico SIAF (sin autenticación por si hay problemas de sesión)
+    Route::get('/diagnostic/siaf/status', [DiagnosticSiafController::class, 'status'])->name('api.diagnostic.siaf');
 });
 
 // SIAF API Routes (requieren autenticación)

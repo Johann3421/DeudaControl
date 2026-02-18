@@ -223,6 +223,12 @@ class SiafService
     {
         try {
             $cookieFile = $this->getPersistentCookieFile();
+            
+            \Log::info('SIAF Directo PASO 1: Estableciendo sesión', [
+                'url' => self::SIAF_BASE_URL . 'consultaExpediente.jspx',
+                'timeout' => $timeoutSecs,
+                'cookie_file' => $cookieFile,
+            ]);
 
             // PASO 1: Establecer sesión en SIAF
             $ch = curl_init();
@@ -243,14 +249,28 @@ class SiafService
             ]);
 
             $response1 = curl_exec($ch);
+            $httpCode1 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErrno1 = curl_errno($ch);
             $curlError1 = curl_error($ch);
             curl_close($ch);
 
-            if (!$response1 || $curlError1) {
-                return ['success' => false, 'message' => "Session failed: $curlError1"];
+            \Log::info('SIAF Directo PASO 1 - Resultado', [
+                'http_code' => $httpCode1,
+                'curl_errno' => $curlErrno1,
+                'curl_error' => $curlError1,
+                'response_length' => strlen($response1 ?? ''),
+                'has_response' => !empty($response1),
+            ]);
+
+            if (!$response1 || $curlErrno1 !== 0) {
+                $errorMsg = $curlError1 ?: "No response from session request (HTTP $httpCode1)";
+                \Log::error('SIAF Directo PASO 1 FALLÓ', ['error' => $errorMsg, 'errno' => $curlErrno1]);
+                return ['success' => false, 'message' => "Session failed: $errorMsg"];
             }
 
             // PASO 2: Obtener imagen CAPTCHA
+            \Log::info('SIAF Directo PASO 2: Obteniendo imagen CAPTCHA');
+            
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => self::SIAF_BASE_URL . 'Captcha.jpg',
@@ -268,16 +288,51 @@ class SiafService
             ]);
 
             $imageData = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $httpCode2 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErrno2 = curl_errno($ch);
             $curlError2 = curl_error($ch);
             curl_close($ch);
 
-            if ($curlError2 || $httpCode !== 200 || !$imageData) {
-                return ['success' => false, 'message' => "Captcha image failed: $curlError2"];
+            \Log::info('SIAF Directo PASO 2 - Resultado', [
+                'http_code' => $httpCode2,
+                'curl_errno' => $curlErrno2,
+                'curl_error' => $curlError2,
+                'image_size_bytes' => strlen($imageData ?? ''),
+                'has_image' => !empty($imageData),
+            ]);
+
+            if ($curlErrno2 !== 0 || $httpCode2 !== 200 || !$imageData) {
+                $errorMsg = $curlError2 ?: "HTTP $httpCode2 or empty image";
+                \Log::error('SIAF Directo PASO 2 FALLÓ', [
+                    'errno' => $curlErrno2,
+                    'http_code' => $httpCode2,
+                    'error' => $errorMsg,
+                    'image_empty' => empty($imageData),
+                ]);
+                return ['success' => false, 'message' => "Captcha image failed: $errorMsg"];
             }
 
             // Marcar que usamos conexión directa (no proxy)
             Session::forget('siaf_proxy_session');
+            Session::forget('siaf_proxy_key');
+
+            \Log::info('SIAF Directo ✓ ÉXITO - CAPTCHA obtenido via conexión directa');
+            
+            return [
+                'success' => true,
+                'captcha' => 'data:image/jpg;base64,' . base64_encode($imageData),
+                'source' => 'siaf_direct',
+            ];
+        } catch (\Exception $e) {
+            \Log::error('SIAF Directo Exception', [
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
 
             return [
                 'success' => true,
