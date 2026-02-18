@@ -15,11 +15,20 @@ class ExcelSiafController extends Controller
     {
         try {
             // Validar que existe el archivo
-            $request->validate([
-                'file' => 'required|file|mimes:xlsx,xls,csv'
+            $validated = $request->validate([
+                'file' => 'required|file|max:5120' // 5MB máximo
             ]);
 
             $file = $request->file('file');
+            
+            // Validar extensión
+            $ext = strtolower($file->getClientOriginalExtension());
+            if (!in_array($ext, ['xlsx', 'xls', 'csv'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Solo se aceptan archivos Excel (.xlsx, .xls) o CSV'
+                ], 422);
+            }
 
             \Log::info('[EXCEL SIAF] Procesando archivo', [
                 'filename' => $file->getClientOriginalName(),
