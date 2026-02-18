@@ -170,11 +170,11 @@ class ExcelSiafController extends Controller
                     $datos[] = $row_data;
 
                     // Usar el ÚLTIMO registro con datos válidos como referencia
-                    if ($fase && $estado) {
+                    if ($fase && $estado && $fecha) {
                         $infoSiaf = [
                             'fase' => $fase,
                             'estado' => $estado,
-                            'fechaProceso' => $this->formatExcelDate($fechaHora),
+                            'fechaProceso' => $this->formatExcelDate($fecha),
                         ];
                     }
                 }
