@@ -78,6 +78,9 @@ export default function EntidadDeudaCreate({ entidades }) {
         anoEje: new Date().getFullYear().toString(),
         secEjec: '',
         expediente: '',
+        fase: '',
+        estado: '',
+        fecha: '',
     });
     const [showSiafSearch, setShowSiafSearch] = useState(false);
     const [searchError, setSearchError] = useState('');
@@ -97,84 +100,58 @@ export default function EntidadDeudaCreate({ entidades }) {
         post('/deudas/entidad');
     };
 
-    // Escuchar mensajes de la ventana modal
-    useEffect(() => {
-        const handleSiafMessage = (event) => {
-            // Validar que sea un mensaje SIAF
-            if (!event.data || event.data.type !== 'SIAF_RESULT') {
-                return;
-            }
+    const openSiafDirect = () => {
+        // Abre SIAF directamente
+        window.open(
+            'https://apps2.mef.gob.pe/consulta-vfp-webapp/consultaExpediente.jspx',
+            'siaf_window',
+            'width=1200,height=800,resizable=yes,scrollbars=yes'
+        );
+        
+        setSearchError('');
+        setSiafSearch({
+            anoEje: new Date().getFullYear().toString(),
+            secEjec: '',
+            expediente: '',
+        });
+    };
 
-            const { success, data, error } = event.data;
+    const handleManualSiafSubmit = (e) => {
+        e.preventDefault();
 
-            if (success && data) {
-                console.log('✓ Resultado recibido de SIAF:', data);
-
-                try {
-                    setSearchSuccess(true);
-                    setSiafResults(data);
-                    setSearchError('');
-
-                    // Llenar los campos del formulario con los datos obtenidos
-                    if (data.info_siaf) {
-                        console.log('📥 Actualizando campos SIAF con:', {
-                            estado_siaf: 'C',
-                            fase_siaf: data.info_siaf.fase || '',
-                            estado_expediente: data.info_siaf.estado || '',
-                            fecha_proceso: data.info_siaf.fechaProceso || '',
-                        });
-
-                        setData('estado_siaf', 'C');
-                        setData('fase_siaf', data.info_siaf.fase || '');
-                        setData('estado_expediente', data.info_siaf.estado || '');
-                        setData('fecha_proceso', data.info_siaf.fechaProceso || '');
-                    }
-
-                    // Cerrar modal
-                    if (siafModalWindow && !siafModalWindow.closed) {
-                        setTimeout(() => {
-                            siafModalWindow.close();
-                        }, 1500);
-                    }
-                } catch (err) {
-                    console.error('Error procesando resultados SIAF:', err);
-                    setSearchError('Error al procesar los datos recibidos');
-                }
-            } else {
-                console.error('✗ Error recibido de SIAF:', error);
-                setSearchError(error || 'Error al procesar la búsqueda SIAF');
-                setSearchSuccess(false);
-                setSiafResults(null);
-            }
-        };
-
-        window.addEventListener('message', handleSiafMessage);
-        return () => window.removeEventListener('message', handleSiafMessage);
-    }, [siafModalWindow, setData]);
-
-    const openSiafModal = () => {
-        if (!data.codigo_siaf) {
-            setSearchError('Por favor ingresa un número de expediente primero');
+        // Validar campos
+        if (!siafSearch.expediente || !siafSearch.secEjec) {
+            setSearchError('Por favor completa Ejecutora y Expediente');
             return;
         }
 
-        // Construir la URL para la modal con los parámetros
-        const modalUrl = `/siaf-modal.html?anoEje=${encodeURIComponent(siafSearch.anoEje)}&secEjec=${encodeURIComponent(siafSearch.secEjec)}&expediente=${encodeURIComponent(siafSearch.expediente)}`;
+        // Crear datos manuales
+        const manualData = {
+            datos: [{
+                ciclo: siafSearch.anoEje,
+                fase: siafSearch.fase || '-',
+                secuencia: siafSearch.secEjec,
+                estado: siafSearch.estado || '-',
+                fecha: siafSearch.fecha || '-',
+                moneda: 'PEN',
+            }],
+            info_siaf: {
+                fase: siafSearch.fase || '-',
+                estado: siafSearch.estado || '-',
+                fechaProceso: siafSearch.fecha || '-',
+            }
+        };
 
-        // Abrir ventana modal
-        const modalWindow = window.open(
-            modalUrl,
-            'siaf_modal',
-            'width=700,height=700,resizable=yes,scrollbars=yes,left=100,top=100'
-        );
+        setSearchSuccess(true);
+        setSiafResults(manualData);
 
-        if (modalWindow) {
-            setSiafModalWindow(modalWindow);
-            setShowSiafSearch(false);
-            setSearchError('');
-        } else {
-            setSearchError('No se pudo abrir la ventana modal. Verifica que no esté bloqueada por el navegador.');
-        }
+        // Llenar campos del formulario
+        setData('estado_siaf', 'C');
+        setData('fase_siaf', manualData.info_siaf.fase);
+        setData('estado_expediente', manualData.info_siaf.estado);
+        setData('fecha_proceso', manualData.info_siaf.fechaProceso);
+
+        setSearchError('');
     };
 
     return (
@@ -320,15 +297,89 @@ export default function EntidadDeudaCreate({ entidades }) {
                                 />
                                 <button
                                     type="button"
-                                    onClick={openSiafModal}
+                                    onClick={openSiafDirect}
                                     className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/25"
                                 >
-                                    Buscar
+                                    Abrir SIAF
                                 </button>
                             </div>
                                 {errors.codigo_siaf && <p className="mt-1 text-sm text-red-600">{errors.codigo_siaf}</p>}
                             </div>
                         </div>
+
+                        {/* Formulario Manual - Cuando SIAF no funciona */}
+                        {!searchSuccess && (
+                            <div className="mt-6 p-6 rounded-xl border border-yellow-200 bg-yellow-50">
+                                <h3 className="text-base font-semibold text-slate-900 mb-4">⚠️ Entrada Manual de Datos SIAF</h3>
+                                <p className="text-sm text-slate-600 mb-4">Si SIAF no te devuelve información, ingresa los datos manualmente:</p>
+                                
+                                <form onSubmit={handleManualSiafSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de Unidad Ejecutora</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.secEjec}
+                                                onChange={(e) => setSiafSearch({...siafSearch, secEjec: e.target.value})}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="Ej: 001234"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Expediente</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.expediente}
+                                                onChange={(e) => setSiafSearch({...siafSearch, expediente: e.target.value})}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="Ej: 2024000001"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase (ej: D, C, G)</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.fase}
+                                                onChange={(e) => setSiafSearch({...siafSearch, fase: e.target.value.toUpperCase()})}
+                                                maxLength="1"
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="D"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado (ej: F, P, A)</label>
+                                            <input
+                                                type="text"
+                                                value={siafSearch.estado}
+                                                onChange={(e) => setSiafSearch({...siafSearch, estado: e.target.value.toUpperCase()})}
+                                                maxLength="1"
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                placeholder="F"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Proceso</label>
+                                            <input
+                                                type="date"
+                                                value={siafSearch.fecha}
+                                                onChange={(e) => setSiafSearch({...siafSearch, fecha: e.target.value})}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-yellow-600 hover:bg-yellow-700 transition-colors shadow-lg shadow-yellow-600/25"
+                                    >
+                                        Registrar Datos Manualmente
+                                    </button>
+                                </form>
+                            </div>
+                        )}
 
                         {/* Resultados de Búsqueda SIAF */}
                         {searchSuccess && siafResults && (
