@@ -23,6 +23,34 @@ export default function EntidadDeudaCreate({ entidades }) {
         return mensaje;
     };
 
+    // Formatea fechas recibidas desde SIAF para mostrar en UI sin depender
+    // del parsing nativo de `new Date()` (que no entiende dd/mm/yyyy en todos
+    // los navegadores). Acepta: yyyy-mm-dd, d/m/yyyy, dd/mm/yyyy.
+    const formatSiafDateForDisplay = (dateStr) => {
+        if (!dateStr) return '-';
+
+        // ISO yyyy-mm-dd -> usar Date para formatear localmente
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            const d = new Date(dateStr);
+            if (!isNaN(d)) return d.toLocaleDateString('es-ES');
+            return dateStr;
+        }
+
+        // dd/mm/yyyy o d/m/yyyy -> normalizar y devolver dd/mm/yyyy
+        if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+            const parts = dateStr.split('/');
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return `${day}/${month}/${year}`;
+        }
+
+        // Fallback: intentar parsear con Date y formatear
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed)) return parsed.toLocaleDateString('es-ES');
+        return dateStr;
+    };
+
     const { data, setData, post, processing, errors } = useForm({
         entidad_id: '',
         descripcion: '',
@@ -389,7 +417,7 @@ export default function EntidadDeudaCreate({ entidades }) {
                                             <div>
                                                 <label className="block text-xs font-medium text-green-700 mb-1">Fecha Proceso</label>
                                                 <div className="px-3 py-2 bg-green-100 rounded border border-green-300 font-semibold text-green-900">
-                                                    {data.fecha_proceso ? new Date(data.fecha_proceso).toLocaleDateString('es-ES') : (siafResults.info_siaf.fechaProceso ? new Date(siafResults.info_siaf.fechaProceso).toLocaleDateString('es-ES') : '-')}
+                                                    {formatSiafDateForDisplay(data.fecha_proceso || (siafResults.info_siaf.fechaProceso || ''))}
                                                 </div>
                                             </div>
                                         </div>
