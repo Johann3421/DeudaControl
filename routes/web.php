@@ -22,6 +22,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SiafController;
 use App\Http\Controllers\SiafIntegrationController;
 use App\Http\Controllers\SiafScraperController;
+use App\Http\Controllers\ExcelSiafController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -71,6 +72,9 @@ Route::prefix('api')->middleware('auth')->group(function () {
 
     // Scraping de resultados de SIAF
     Route::post('/siaf/scrape', [SiafScraperController::class, 'scrapeTable']);
+
+    // Upload de Excel desde SIAF
+    Route::post('/siaf/upload-excel', [ExcelSiafController::class, 'uploadExcel']);
 });
 
 Route::middleware('auth')->group(function () {

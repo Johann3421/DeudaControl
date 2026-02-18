@@ -74,21 +74,10 @@ export default function EntidadDeudaCreate({ entidades }) {
     const csrfToken = getCsrfToken();
 
     // Estado para la búsqueda de SIAF
-    const [siafSearch, setSiafSearch] = useState({
-        anoEje: new Date().getFullYear().toString(),
-        secEjec: '',
-        expediente: '',
-        fase: '',
-        estado: '',
-        fecha: '',
-    });
-    const [showSiafSearch, setShowSiafSearch] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [searchSuccess, setSearchSuccess] = useState(false);
     const [siafResults, setSiafResults] = useState(null);
-    const [siafModalWindow, setSiafModalWindow] = useState(null);
-    const [siafResultUrl, setSiafResultUrl] = useState('');
-    const [isScrapingUrl, setIsScrapingUrl] = useState(false);
+    const [isUploadingExcel, setIsUploadingExcel] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -109,104 +98,56 @@ export default function EntidadDeudaCreate({ entidades }) {
             'siaf_window',
             'width=1200,height=800,resizable=yes,scrollbars=yes'
         );
-        
-        setSearchError('');
-        setSiafSearch({
-            anoEje: new Date().getFullYear().toString(),
-            secEjec: '',
-            expediente: '',
-        });
-    };
-
-    const handleManualSiafSubmit = (e) => {
-        e.preventDefault();
-
-        // Validar campos
-        if (!siafSearch.expediente || !siafSearch.secEjec) {
-            setSearchError('Por favor completa Ejecutora y Expediente');
-            return;
-        }
-
-        // Crear datos manuales
-        const manualData = {
-            datos: [{
-                ciclo: siafSearch.anoEje,
-                fase: siafSearch.fase || '-',
-                secuencia: siafSearch.secEjec,
-                estado: siafSearch.estado || '-',
-                fecha: siafSearch.fecha || '-',
-                moneda: 'PEN',
-            }],
-            info_siaf: {
-                fase: siafSearch.fase || '-',
-                estado: siafSearch.estado || '-',
-                fechaProceso: siafSearch.fecha || '-',
-            }
-        };
-
-        setSearchSuccess(true);
-        setSiafResults(manualData);
-
-        // Llenar campos del formulario
-        setData('estado_siaf', 'C');
-        setData('fase_siaf', manualData.info_siaf.fase);
-        setData('estado_expediente', manualData.info_siaf.estado);
-        setData('fecha_proceso', manualData.info_siaf.fechaProceso);
-
         setSearchError('');
     };
 
-    const handleScrapeUrl = async (e) => {
-        e.preventDefault();
+    const handleExcelUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-        if (!siafResultUrl.trim()) {
-            setSearchError('Por favor pega la URL de los resultados de SIAF');
-            return;
-        }
-
-        setIsScrapingUrl(true);
+        setIsUploadingExcel(true);
         setSearchError('');
 
         try {
-            const response = await fetch('/api/siaf/scrape', {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/siaf/upload-excel', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                body: JSON.stringify({
-                    url: siafResultUrl
-                })
+                body: formData
             });
 
             const result = await response.json();
 
             if (result.success) {
-                console.log('✓ Datos extraídos de SIAF:', result);
+                console.log('✓ Excel procesado:', result);
                 setSearchSuccess(true);
                 setSiafResults(result);
 
-                // Llenar campos del formulario con los datos extraídos
+                // Llenar campos del formulario
                 if (result.info_siaf) {
                     setData('estado_siaf', 'C');
                     setData('fase_siaf', result.info_siaf.fase || '');
                     setData('estado_expediente', result.info_siaf.estado || '');
                     setData('fecha_proceso', result.info_siaf.fechaProceso || '');
                 }
-
-                setSiafResultUrl('');
             } else {
-                setSearchError(result.error || 'Error al extraer datos de SIAF');
+                setSearchError(result.error || 'Error al procesar el Excel');
                 setSearchSuccess(false);
                 setSiafResults(null);
             }
         } catch (error) {
-            console.error('Error en scraping:', error);
-            setSearchError('Error al procesar la URL: ' + error.message);
+            console.error('Error al subir Excel:', error);
+            setSearchError('Error al procesar el archivo: ' + error.message);
             setSearchSuccess(false);
             setSiafResults(null);
         } finally {
-            setIsScrapingUrl(false);
+            // Limpiar el input
+            e.target.value = '';
+            setIsUploadingExcel(false);
         }
     };
 
@@ -363,107 +304,34 @@ export default function EntidadDeudaCreate({ entidades }) {
                             </div>
                         </div>
 
-                        {/* Formulario Manual + URL Scraping - Cuando SIAF no funciona */}
+                        {/* Upload Excel desde SIAF */}
                         {!searchSuccess && (
-                            <div className="mt-6 space-y-4">
-                                {/* Opción 1: Pegar URL de resultados de SIAF */}
-                                <div className="p-6 rounded-xl border border-blue-200 bg-blue-50">
-                                    <h3 className="text-base font-semibold text-slate-900 mb-4">📋 Pegar Resultados de SIAF</h3>
-                                    <p className="text-sm text-slate-600 mb-4">Si ya completaste la búsqueda en SIAF, copia la URL completa de la página con los resultados y pégala aquí:</p>
-                                    
-                                    <form onSubmit={handleScrapeUrl} className="space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">URL de SIAF con Resultados</label>
-                                            <textarea
-                                                value={siafResultUrl}
-                                                onChange={(e) => setSiafResultUrl(e.target.value)}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 font-mono"
-                                                placeholder="https://apps2.mef.gob.pe/consulta-vfp-webapp/expedientePaginate.jspx?..."
-                                                rows={2}
-                                            />
-                                            <p className="text-xs text-slate-500 mt-2">La URL debe contener los parámetros de búsqueda</p>
+                            <div className="mt-6 p-6 rounded-xl border border-blue-200 bg-blue-50">
+                                <h3 className="text-base font-semibold text-slate-900 mb-4">📥 Descargar y Subir Excel de SIAF</h3>
+                                <div className="space-y-4">
+                                    <p className="text-sm text-slate-600">
+                                        1. Haz clic en "Abrir SIAF" arriba<br/>
+                                        2. Completa la búsqueda (año, ejecutora, expediente, CAPTCHA)<br/>
+                                        3. Descarga el resultado como Excel<br/>
+                                        4. Sube el archivo aquí
+                                    </p>
+
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            accept=".xlsx,.xls,.csv"
+                                            onChange={handleExcelUpload}
+                                            disabled={isUploadingExcel}
+                                            className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-blue-300 cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    {isUploadingExcel && (
+                                        <div className="flex items-center gap-2 text-sm text-blue-600">
+                                            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                            Procesando archivo...
                                         </div>
-
-                                        <button
-                                            type="submit"
-                                            disabled={isScrapingUrl}
-                                            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            {isScrapingUrl ? 'Extrayendo datos...' : 'Extraer Datos de SIAF'}
-                                        </button>
-                                    </form>
-                                </div>
-
-                                {/* Opción 2: Entrada manual */}
-                                <div className="p-6 rounded-xl border border-yellow-200 bg-yellow-50">
-                                    <h3 className="text-base font-semibold text-slate-900 mb-4">⚠️ Entrada Manual de Datos SIAF</h3>
-                                    <p className="text-sm text-slate-600 mb-4">Si SIAF no te devuelve información o prefieres ingresar manualmente:</p>
-                                    
-                                    <form onSubmit={handleManualSiafSubmit} className="space-y-4">
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de Unidad Ejecutora</label>
-                                                <input
-                                                    type="text"
-                                                    value={siafSearch.secEjec}
-                                                    onChange={(e) => setSiafSearch({...siafSearch, secEjec: e.target.value})}
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                    placeholder="Ej: 001234"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Expediente</label>
-                                                <input
-                                                    type="text"
-                                                    value={siafSearch.expediente}
-                                                    onChange={(e) => setSiafSearch({...siafSearch, expediente: e.target.value})}
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                    placeholder="Ej: 2024000001"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase (ej: D, C, G)</label>
-                                                <input
-                                                    type="text"
-                                                    value={siafSearch.fase}
-                                                    onChange={(e) => setSiafSearch({...siafSearch, fase: e.target.value.toUpperCase()})}
-                                                    maxLength="1"
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                    placeholder="D"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado (ej: F, P, A)</label>
-                                                <input
-                                                    type="text"
-                                                    value={siafSearch.estado}
-                                                    onChange={(e) => setSiafSearch({...siafSearch, estado: e.target.value.toUpperCase()})}
-                                                    maxLength="1"
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                    placeholder="F"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Proceso</label>
-                                                <input
-                                                    type="date"
-                                                    value={siafSearch.fecha}
-                                                    onChange={(e) => setSiafSearch({...siafSearch, fecha: e.target.value})}
-                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="submit"
-                                            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-yellow-600 hover:bg-yellow-700 transition-colors shadow-lg shadow-yellow-600/25"
-                                        >
-                                            Registrar Datos Manualmente
-                                        </button>
-                                    </form>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -560,20 +428,6 @@ export default function EntidadDeudaCreate({ entidades }) {
                                         <p className="text-sm text-red-700">{searchError}</p>
                                     </div>
                                 )}
-
-                                <div className="mt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSearchSuccess(false);
-                                            setSiafResults(null);
-                                            setSearchError('');
-                                        }}
-                                        className="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-                                    >
-                                        Limpiar resultados
-                                    </button>
-                                </div>
                             </div>
                         )}
 
@@ -616,9 +470,6 @@ export default function EntidadDeudaCreate({ entidades }) {
                             >
                                 {processing ? 'Guardando...' : 'Registrar Deuda'}
                             </button>
-                            <Link href="/deudas/create" className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-                                Cancelar
-                            </Link>
                         </div>
                     </form>
                 </div>

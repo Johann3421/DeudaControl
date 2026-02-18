@@ -1,0 +1,7 @@
+"Ciclo"	"Fase"	"Sec"	"Corr"	"Doc"	"Numero"	"Fecha"	"FF"	"Moneda"	"Monto"	"Est."	"Fecha Proceso"	"Id Trx"	"Enviado"
+"G"	"C"	"1"	"1"	"031"	"0000072"	"06/02/2026"	"00"	"S/."	"9,251.00"	"A"	"06/02/2026 16:28:43"	"<label>4078351867</label>"	"<form id=""command"" name=""reenviarRespuesta"" action=""reenviarRespuestaById.jspx"" method=""post"">
+                                    <input type=""submit"" value=""Enviar"" onClick=""return verificarEnvio()"">
+                                    <input type=""hidden"" name=""controlTransferenciaId"" id=""controlTransferenciaId"" value=""4078351867"" >
+                                </form>"
+"G"	"D"	"2"	"1"	""	""	""	""	""	""	"V"	"17/02/2026 16:07:39"	""	""
+"G"	"D"	"2"	"1"	"001"	"00000198"	"09/02/2026"	""	"S/."	"9,251.00"	"F"	"17/02/2026 16:03:06"	""	""
