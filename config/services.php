@@ -44,8 +44,8 @@ return [
     'siaf' => [
         'proxy_url' => env('SIAF_PROXY_URL', ''),
         'proxy_secret' => env('SIAF_PROXY_SECRET', ''),
-        'timeout' => env('SIAF_TIMEOUT', 30),
-        'connect_timeout' => env('SIAF_CONNECT_TIMEOUT', 15),
+        'timeout' => env('SIAF_TIMEOUT', 40),
+        'connect_timeout' => env('SIAF_CONNECT_TIMEOUT', 25),
     ],
 
 ];
