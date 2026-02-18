@@ -42,7 +42,24 @@ class SiafService
      */
     private function getProxySecret(): string
     {
-        return config('services.siaf.proxy_secret') ?: 'default-secret-change-me';
+        $secret = config('services.siaf.proxy_secret');
+        
+        // Log DETALLADO para diagnosticar el problema del token inválido
+        \Log::info('SIAF getProxySecret()', [
+            'secret_value' => $secret,
+            'secret_is_empty' => empty($secret),
+            'config_cached' => app()->configurationIsCached(),
+            'environment' => app()->environment(),
+            'secret_length' => strlen($secret ?? ''),
+            'is_using_default' => empty($secret),
+        ]);
+        
+        if (empty($secret)) {
+            \Log::warning('SIAF - ⚠️ USANDO SECRET POR DEFECTO (Config vacío, probablemente .env no configurado en Dokploy)');
+            return 'default-secret-change-me';
+        }
+        
+        return $secret;
     }
 
     /**
@@ -144,11 +161,11 @@ class SiafService
             // Intentar con retries porque la llamada al SIAF puede ser lenta desde el Worker
             $attemptTimeouts = [20, 40, 60];
             $lastError = null;
-            
+
             foreach ($attemptTimeouts as $attempt => $t) {
                 try {
                     $started = microtime(true);
-                    
+
                     $ch = curl_init();
                     curl_setopt_array($ch, [
                         CURLOPT_URL => $fullUrl,
@@ -170,7 +187,7 @@ class SiafService
                     curl_close($ch);
 
                     $duration = round((microtime(true) - $started) * 1000);
-                    
+
                     \Log::info('SIAF Proxy CAPTCHA Response', [
                         'attempt' => $attempt + 1,
                         'timeout_seconds' => $t,
@@ -188,7 +205,7 @@ class SiafService
                     }
 
                     $data = json_decode($response, true);
-                    
+
                     if ($httpCode === 200 && ($data['success'] ?? false)) {
                         // ✓ Éxito
                         // Guardar la sesión SIAF del proxy para usarla en la consulta
@@ -234,7 +251,7 @@ class SiafService
             // Si llegamos aquí, todos los intentos fallaron
             $errorMsg = "Proxy CAPTCHA failed after retries: $lastError";
             \Log::error('SIAF CAPTCHA Proxy - ✗ Todos los intentos fallaron', ['error' => $lastError]);
-            
+
             return [
                 'success' => false,
                 'message' => $errorMsg,
@@ -528,7 +545,7 @@ class SiafService
     ): array {
         try {
             $started = microtime(true);
-            
+
             $secret = $this->getProxySecret();
             $postData = http_build_query([
                 'session' => $session,
@@ -562,7 +579,7 @@ class SiafService
             curl_close($ch);
 
             $duration = round((microtime(true) - $started) * 1000);
-            
+
             \Log::info('SIAF Proxy CONSULTA Response', [
                 'url' => $proxyUrl . '/consultar',
                 'duration_ms' => $duration,
@@ -710,7 +727,7 @@ class SiafService
             $cookieFile = $this->getPersistentCookieFile();
             $timeout = config('services.siaf.timeout', 20);
             $connectTimeout = config('services.siaf.connect_timeout', 10);
-            
+
             $ch = curl_init();
 
             curl_setopt_array($ch, [
@@ -755,7 +772,7 @@ class SiafService
         try {
             $timeout = config('services.siaf.timeout', 20);
             $connectTimeout = config('services.siaf.connect_timeout', 10);
-            
+
             $response = Http::withOptions([
                 'verify' => false,
                 'timeout' => $timeout,

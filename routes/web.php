@@ -55,6 +55,7 @@ Route::prefix('api')->group(function () {
 
     // Diagnóstico SIAF (sin autenticación por si hay problemas de sesión)
     Route::get('/diagnostic/siaf/status', [DiagnosticSiafController::class, 'status'])->name('api.diagnostic.siaf');
+    Route::get('/diagnostic/siaf/config', [DiagnosticController::class, 'siafConfig'])->name('api.diagnostic.siaf.config');
 });
 
 // SIAF API Routes (requieren autenticación)

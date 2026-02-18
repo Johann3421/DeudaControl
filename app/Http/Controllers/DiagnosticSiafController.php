@@ -74,7 +74,7 @@ class DiagnosticSiafController extends Controller
             $curlErrno = curl_errno($ch);
             $curlError = curl_error($ch);
             $duration = (microtime(true) - $start) * 1000;
-            
+
             // Get verbose output (DNS, SSL handshake info)
             rewind($verbose);
             $verboseLog = stream_get_contents($verbose);
@@ -89,7 +89,7 @@ class DiagnosticSiafController extends Controller
             $result['timeout_seconds'] = $timeout;
             $result['connect_timeout_seconds'] = $connectTimeout;
             $result['response_size_bytes'] = strlen($response ?? '');
-            
+
             // Parse verbose output for connection info
             $verboseLines = array_filter(array_map('trim', explode("\n", $verboseLog)));
             $result['verbose_log'] = array_slice($verboseLines, 0, 20); // First 20 lines of verbose output
@@ -105,10 +105,10 @@ class DiagnosticSiafController extends Controller
                     35 => 'SSL/TLS connection error',
                     60 => 'SSL certificate problem with peer verification',
                 ];
-                
+
                 $userMessage = $errnoMessages[$curlErrno] ?? "cURL Error $curlErrno: $curlError";
                 $result['errors'][] = $userMessage;
-                
+
                 if ($httpCode && $httpCode !== 0) {
                     $result['errors'][] = "HTTP Response Code: $httpCode";
                 }

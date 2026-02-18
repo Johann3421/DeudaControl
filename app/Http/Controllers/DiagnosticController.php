@@ -388,4 +388,41 @@ class DiagnosticController extends Controller
             ];
         }
     }
+
+    /**
+     * API endpoint para diagnosticar SIAF config
+     * GET /api/diagnostic/siaf/config
+     * (Sin autenticación, para debugging de VPS remota)
+     */
+    public function siafConfig()
+    {
+        return response()->json([
+            'timestamp' => now(),
+            'environment' => app()->environment(),
+            'config_cached' => app()->configurationIsCached(),
+            'siaf_config' => [
+                'proxy_url' => [
+                    'value' => config('services.siaf.proxy_url'),
+                    'is_empty' => empty(config('services.siaf.proxy_url')),
+                    'length' => strlen(config('services.siaf.proxy_url') ?? ''),
+                ],
+                'proxy_secret' => [
+                    'value' => config('services.siaf.proxy_secret'),
+                    'is_empty' => empty(config('services.siaf.proxy_secret')),
+                    'length' => strlen(config('services.siaf.proxy_secret') ?? ''),
+                    'first_3_chars' => substr(config('services.siaf.proxy_secret') ?? '', 0, 3) . '***',
+                ],
+                'timeout' => config('services.siaf.timeout'),
+                'connect_timeout' => config('services.siaf.connect_timeout'),
+            ],
+            'diagnostics' => [
+                'curl_enabled' => function_exists('curl_init'),
+                'openssl_enabled' => extension_loaded('openssl'),
+                'allow_url_fopen' => ini_get('allow_url_fopen'),
+            ],
+            'warning' => empty(config('services.siaf.proxy_secret')) 
+                ? '⚠️ SIAF_PROXY_SECRET está vacío. Verifica que esté configurado en Dokploy → Environment Variables'
+                : '✓ Config parece OK',
+        ]);
+    }
 }
