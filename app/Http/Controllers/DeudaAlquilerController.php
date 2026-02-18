@@ -64,8 +64,6 @@ class DeudaAlquilerController extends Controller
 
     public function show(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $deuda->load([
             'cliente',
             'deudaAlquiler.inmueble',
@@ -81,8 +79,6 @@ class DeudaAlquilerController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $deuda->load('deudaAlquiler');
 
         $clientes = Cliente::where('user_id', Auth::id())
@@ -103,8 +99,6 @@ class DeudaAlquilerController extends Controller
 
     public function update(Request $request, Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $validated = $request->validate([
             'descripcion' => ['required', 'string', 'max:255'],
             'monto_mensual' => ['required', 'numeric', 'min:0.01'],
@@ -126,8 +120,6 @@ class DeudaAlquilerController extends Controller
 
     public function generarRecibo(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $alquiler = $deuda->deudaAlquiler;
         if (!$alquiler) {
             return back()->with('error', 'Esta deuda no es de tipo alquiler.');
@@ -140,20 +132,8 @@ class DeudaAlquilerController extends Controller
 
     public function pagarRecibo(ReciboAlquiler $recibo)
     {
-        $deuda = $recibo->deudaAlquiler->deuda;
-        if ($deuda->user_id !== Auth::id()) {
-            abort(403);
-        }
-
         $this->service->marcarReciboPagado($recibo);
 
         return back()->with('success', 'Recibo marcado como pagado.');
-    }
-
-    private function authorize(Deuda $deuda): void
-    {
-        if ($deuda->user_id !== Auth::id()) {
-            abort(403);
-        }
     }
 }

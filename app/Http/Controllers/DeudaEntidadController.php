@@ -72,8 +72,6 @@ class DeudaEntidadController extends Controller
 
     public function show(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $deuda->load([
             'deudaEntidad.entidad',
             'pagos' => fn($q) => $q->orderBy('fecha_pago', 'desc'),
@@ -87,8 +85,6 @@ class DeudaEntidadController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $deuda->load('deudaEntidad');
 
         if ($deuda->deudaEntidad && !$deuda->deudaEntidad->estaEditable()) {
@@ -108,8 +104,6 @@ class DeudaEntidadController extends Controller
 
     public function update(Request $request, Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $validated = $request->validate([
             'descripcion' => ['required', 'string', 'max:255'],
             'producto_servicio' => ['required', 'string', 'max:255'],

@@ -78,8 +78,6 @@ class DeudaController extends Controller
 
     public function show(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         if ($deuda->esEntidad()) {
             $deuda->load([
                 'deudaEntidad.entidad',
@@ -105,8 +103,6 @@ class DeudaController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         if ($deuda->esEntidad()) {
             return redirect()->route('deudas.entidad.edit', $deuda);
         }
@@ -119,8 +115,6 @@ class DeudaController extends Controller
 
     public function update(Request $request, Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $validated = $request->validate([
             'descripcion' => ['required', 'string', 'max:255'],
             'tasa_interes' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -138,8 +132,6 @@ class DeudaController extends Controller
 
     public function destroy(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         if ($deuda->pagos()->exists()) {
             return back()->with('error', 'No se puede eliminar una deuda que tiene pagos registrados.');
         }

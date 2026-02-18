@@ -58,8 +58,6 @@ class DeudaParticularController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $clientes = Cliente::where('user_id', Auth::id())
             ->where('estado', 'activo')
             ->orderBy('nombre')
@@ -73,8 +71,6 @@ class DeudaParticularController extends Controller
 
     public function update(Request $request, Deuda $deuda)
     {
-        $this->authorize($deuda);
-
         $validated = $request->validate([
             'descripcion' => ['required', 'string', 'max:255'],
             'tasa_interes' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -88,12 +84,5 @@ class DeudaParticularController extends Controller
         $this->service->actualizar($deuda, $validated);
 
         return redirect()->route('deudas.index')->with('success', 'Deuda actualizada correctamente.');
-    }
-
-    private function authorize(Deuda $deuda): void
-    {
-        if ($deuda->user_id !== Auth::id()) {
-            abort(403);
-        }
     }
 }
