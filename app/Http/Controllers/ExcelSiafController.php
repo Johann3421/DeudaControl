@@ -17,6 +17,12 @@ class ExcelSiafController extends Controller
             return '';
         }
 
+        \Log::info('[EXCEL DATE DEBUG]', [
+            'cellValue' => $cellValue,
+            'type' => gettype($cellValue),
+            'class' => is_object($cellValue) ? get_class($cellValue) : 'N/A',
+        ]);
+
         // Si es un número serial de Excel
         if (is_numeric($cellValue)) {
             try {
@@ -25,9 +31,12 @@ class ExcelSiafController extends Controller
                 $day = str_pad($dateTime->format('d'), 2, '0', STR_PAD_LEFT);
                 $month = str_pad($dateTime->format('m'), 2, '0', STR_PAD_LEFT);
                 $year = $dateTime->format('Y');
-                return "{$day}/{$month}/{$year}";
+                $formatted = "{$day}/{$month}/{$year}";
+                \Log::info('[EXCEL DATE FORMATTED (numeric)]', ['result' => $formatted]);
+                return $formatted;
             } catch (\Exception $e) {
                 // Si falla, tratar como string
+                \Log::warning('[EXCEL DATE numeric conversion failed]', ['error' => $e->getMessage()]);
             }
         }
 
@@ -42,14 +51,44 @@ class ExcelSiafController extends Controller
         // Soporta: d/m/yyyy, dd/mm/yyyy, d-m-yyyy, dd-mm-yyyy
         $dateStr = str_replace('-', '/', $dateStr);
         
-        // Patrón: capturar día, mes, año
+        // Patrón: capturar día, mes, año (soporta 1 o 2 dígitos)
         if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dateStr, $matches)) {
             $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
             $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
             $year = $matches[3];
-            return "{$day}/{$month}/{$year}";
+            $formatted = "{$day}/{$month}/{$year}";
+            \Log::info('[EXCEL DATE FORMATTED (string pattern matched)]', ['input' => $dateStr, 'result' => $formatted]);
+            return $formatted;
         }
 
+        // Último intento: intentar interpretar como una fecha usando strtotime
+        try {
+            // Probar diferentes locales y formatos
+            $parseFormats = [
+                'd/m/Y',      // 2/6/2026, 02/06/2026
+                'm/d/Y',      // Formato US
+                'Y-m-d',      // ISO
+                'd-m-Y',      // Con guiones
+            ];
+            
+            foreach ($parseFormats as $format) {
+                $parsed = \DateTime::createFromFormat($format, $dateStr);
+                if ($parsed !== false && !($parsed->getLastErrors()['error_count'] ?? 0)) {
+                    $formatted = $parsed->format('d/m/Y');
+                    // Asegurar ceros a la izquierda
+                    if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $formatted, $m)) {
+                        $formatted = str_pad($m[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                                    str_pad($m[2], 2, '0', STR_PAD_LEFT) . '/' . $m[3];
+                    }
+                    \Log::info('[EXCEL DATE FORMATTED (DateTime parse)]', ['input' => $dateStr, 'format' => $format, 'result' => $formatted]);
+                    return $formatted;
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('[EXCEL DATE DateTime parse failed]', ['input' => $dateStr, 'error' => $e->getMessage()]);
+        }
+
+        \Log::warning('[EXCEL DATE no pattern match]', ['input' => $dateStr]);
         return $dateStr;
     }
     /**
