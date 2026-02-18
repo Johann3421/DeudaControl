@@ -13,30 +13,73 @@ class ExcelSiafController extends Controller
      */
     public function uploadExcel(Request $request)
     {
+        // Asegurar que siempre devolvemos JSON
+        $request->headers->set('Accept', 'application/json');
+        
         try {
-            // Validar que existe el archivo
-            $validated = $request->validate([
-                'file' => 'required|file|max:5120' // 5MB máximo
+            \Log::info('[EXCEL SIAF] Solicitud recibida', [
+                'has_file' => $request->hasFile('file'),
+                'method' => $request->method(),
             ]);
 
+            // Validar que existe el archivo
+            if (!$request->hasFile('file')) {
+                \Log::error('[EXCEL SIAF] No hay archivo en la solicitud');
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se encontró ningún archivo'
+                ], 422);
+            }
+
             $file = $request->file('file');
+            
+            // Validar que es un archivo
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'El archivo no es válido'
+                ], 422);
+            }
+
+            // Validar tamaño (5MB máximo)
+            if ($file->getSize() > 5 * 1024 * 1024) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'El archivo es demasiado grande (máximo 5MB)'
+                ], 422);
+            }
             
             // Validar extensión
             $ext = strtolower($file->getClientOriginalExtension());
             if (!in_array($ext, ['xlsx', 'xls', 'csv'])) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Solo se aceptan archivos Excel (.xlsx, .xls) o CSV'
+                    'error' => 'Solo se aceptan archivos Excel (.xlsx, .xls) o CSV. Extensión detectada: ' . $ext
                 ], 422);
             }
 
             \Log::info('[EXCEL SIAF] Procesando archivo', [
                 'filename' => $file->getClientOriginalName(),
-                'size' => $file->getSize()
+                'size' => $file->getSize(),
+                'extension' => $ext,
+                'path' => $file->getRealPath()
             ]);
 
             // Leer el Excel
-            $spreadsheet = IOFactory::load($file->getRealPath());
+            try {
+                $spreadsheet = IOFactory::load($file->getRealPath());
+            } catch (\Exception $e) {
+                \Log::error('[EXCEL SIAF] Error cargando spreadsheet', [
+                    'error' => $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se pudo leer el archivo Excel. Verifica que sea un archivo válido descargado de SIAF. Detalle: ' . $e->getMessage()
+                ], 500);
+            }
+
             $worksheet = $spreadsheet->getActiveSheet();
 
             // Extraer datos de la tabla

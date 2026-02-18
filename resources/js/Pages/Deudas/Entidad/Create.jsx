@@ -112,13 +112,38 @@ export default function EntidadDeudaCreate({ entidades }) {
             const formData = new FormData();
             formData.append('file', file);
 
+            console.log('📤 Enviando archivo Excel:', {
+                name: file.name,
+                size: file.size,
+                type: file.type
+            });
+
             const response = await fetch('/api/siaf/upload-excel', {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
                 },
                 body: formData
             });
+
+            console.log('📥 Respuesta recibida:', {
+                status: response.status,
+                statusText: response.statusText,
+                contentType: response.headers.get('content-type')
+            });
+
+            // Si no es 200-299, hay error
+            if (!response.ok) {
+                const text = await response.text();
+                console.error('❌ Error en respuesta:', text);
+                setSearchError(`Error del servidor (${response.status}): ${response.statusText}`);
+                setSearchSuccess(false);
+                setSiafResults(null);
+                setIsUploadingExcel(false);
+                e.target.value = '';
+                return;
+            }
 
             const result = await response.json();
 
