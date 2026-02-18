@@ -21,26 +21,33 @@ class ExcelSiafController extends Controller
         if (is_numeric($cellValue)) {
             try {
                 $dateTime = Date::excelToDateTimeObject($cellValue);
-                return $dateTime->format('d/m/Y');
+                // Asegurar que el día y mes tengan ceros a la izquierda (dd/mm/yyyy)
+                $day = str_pad($dateTime->format('d'), 2, '0', STR_PAD_LEFT);
+                $month = str_pad($dateTime->format('m'), 2, '0', STR_PAD_LEFT);
+                $year = $dateTime->format('Y');
+                return "{$day}/{$month}/{$year}";
             } catch (\Exception $e) {
-                return trim((string)$cellValue);
+                // Si falla, tratar como string
             }
         }
 
-        // Si ya es string, intentar parsearlo
+        // Convertir a string
         $dateStr = trim((string)$cellValue);
         
-        // Si está en formato dd/mm/yyyy, devolver igual
-        if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dateStr)) {
-            return $dateStr;
+        if (empty($dateStr)) {
+            return '';
         }
 
-        // Si está en formato d/m/yyyy (sin leading zero), formatear
-        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateStr)) {
-            $parts = explode('/', $dateStr);
-            return str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '/' . 
-                   str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '/' . 
-                   $parts[2];
+        // Intentar parsear diferentes formatos y devolver dd/mm/yyyy
+        // Soporta: d/m/yyyy, dd/mm/yyyy, d-m-yyyy, dd-mm-yyyy
+        $dateStr = str_replace('-', '/', $dateStr);
+        
+        // Patrón: capturar día, mes, año
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $dateStr, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $year = $matches[3];
+            return "{$day}/{$month}/{$year}";
         }
 
         return $dateStr;
@@ -162,8 +169,8 @@ class ExcelSiafController extends Controller
 
                     $datos[] = $row_data;
 
-                    // Usar la primera fila con datos como referencia
-                    if (count($infoSiaf) === 0 && $fase && $estado) {
+                    // Usar el ÚLTIMO registro con datos válidos como referencia
+                    if ($fase && $estado) {
                         $infoSiaf = [
                             'fase' => $fase,
                             'estado' => $estado,
