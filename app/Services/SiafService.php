@@ -334,16 +334,6 @@ class SiafService
         }
     }
 
-            return [
-                'success' => true,
-                'captcha' => 'data:image/jpg;base64,' . base64_encode($imageData),
-                'source' => 'siaf_direct',
-            ];
-        } catch (\Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
-    }
-
     /**
      * Genera un CAPTCHA local como fallback
      */
