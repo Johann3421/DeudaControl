@@ -63,48 +63,65 @@ class SiafService
 
     /**
      * Obtiene el CAPTCHA del SIAF
-     * Estrategia: Directo → Proxy → Local Fallback
-     * (Directo primero porque funciona en local, VPS y hosting sin restricciones)
+     * Estrategia:
+     *   - En producción CON proxy: Proxy → Directo → Local
+     *   - En local/dev SIN proxy: Directo → Proxy → Local
+     * (Proxy primero en prod porque la VPS parece tener restricción SSL con SIAF)
      */
     public function obtenerCaptchaSiaf(): array
     {
         $proxyUrl = $this->getProxyUrl();
         $timeoutSecs = config('services.siaf.timeout', 20);
+        $isProduction = app()->environment() === 'production';
+        $hasProxy = !empty($proxyUrl);
 
-        // ESTRATEGIA: Intentar directo primero (funciona en VPS y local)
-        // Si falla, fallback a proxy (para hosting compartido con firewall)
-        \Log::info('SIAF CAPTCHA - Intentando conexión DIRECTA a SIAF (prioritario en VPS/local)', [
-            'timeout_seconds' => $timeoutSecs,
-            'environment' => app()->environment(),
-        ]);
-        $direct = $this->obtenerCaptchaDirecto($timeoutSecs);
-        if ($direct['success']) {
-            \Log::info('SIAF CAPTCHA - ✓ Conexión directa exitosa');
-            return $direct;
-        }
-
-        \Log::warning('SIAF CAPTCHA - Conexión directa falló, intentando fallback');
-
-        // Si directo falló y hay proxy configurado, intentar proxy como fallback
-        if ($proxyUrl) {
-            \Log::info('SIAF CAPTCHA - Intentando proxy como FALLBACK: ' . $proxyUrl);
+        // En producción con proxy, intentar proxy PRIMERO (parece haber bloqueo SSL en la IP de la VPS)
+        if ($isProduction && $hasProxy) {
+            \Log::info('SIAF CAPTCHA - En producción con proxy. Intentando PROXY primero', [
+                'proxy_url' => $proxyUrl,
+                'environment' => app()->environment(),
+            ]);
             $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
             if ($resultado['success']) {
                 \Log::info('SIAF CAPTCHA - ✓ Proxy exitoso');
                 return $resultado;
             }
-            \Log::warning('SIAF CAPTCHA - Proxy también falló: ' . ($resultado['message'] ?? 'unknown'));
+            \Log::warning('SIAF CAPTCHA - Proxy falló, intentando fallback a directo');
         } else {
-            \Log::warning('SIAF CAPTCHA - Sin proxy configurado para fallback');
+            // En local/dev o sin proxy: intentar directo primero
+            \Log::info('SIAF CAPTCHA - Intentando conexión DIRECTA a SIAF (directo primero en local)', [
+                'timeout_seconds' => $timeoutSecs,
+                'environment' => app()->environment(),
+                'has_proxy' => $hasProxy,
+            ]);
+            $direct = $this->obtenerCaptchaDirecto($timeoutSecs);
+            if ($direct['success']) {
+                \Log::info('SIAF CAPTCHA - ✓ Conexión directa exitosa');
+                return $direct;
+            }
+            \Log::warning('SIAF CAPTCHA - Conexión directa falló, intentando fallback');
+
+            // Si directo falló y hay proxy, intentar proxy como fallback
+            if ($hasProxy) {
+                \Log::info('SIAF CAPTCHA - Intentando proxy como FALLBACK: ' . $proxyUrl);
+                $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
+                if ($resultado['success']) {
+                    \Log::info('SIAF CAPTCHA - ✓ Proxy exitoso');
+                    return $resultado;
+                }
+                \Log::warning('SIAF CAPTCHA - Proxy también falló: ' . ($resultado['message'] ?? 'unknown'));
+            } else {
+                \Log::warning('SIAF CAPTCHA - Sin proxy configurado para fallback');
+            }
         }
 
         // Último recurso: CAPTCHA local
         \Log::warning('SIAF CAPTCHA - Usando CAPTCHA local como último recurso');
-        $razon = 'Conexión directa falló. ';
-        if ($proxyUrl) {
+        $razon = 'Conexión SIAF falló (SSL timeout o IP bloqueada). ';
+        if ($hasProxy) {
             $razon .= 'Proxy también falló.';
         } else {
-            $razon .= 'Sin proxy configurado. En Dokploy, verifica que la VPS pueda acceder a apps2.mef.gob.pe.';
+            $razon .= 'Sin proxy configurado.';
         }
         return $this->obtenerCaptchaLocal($razon);
     }
@@ -426,8 +443,26 @@ class SiafService
             }
         }
 
-        // ESTRATEGIA: Intenta directo primero (para VPS/Dokploy)
-        \Log::info('SIAF Consulta - Intentando conexión DIRECTA a SIAF (prioritario en VPS)');
+        $isProduction = app()->environment() === 'production';
+        $hasProxy = !empty($proxyUrl);
+
+        // ESTRATEGIA en producción con proxy: Proxy → Directo → Error
+        // (IP de la VPS parece estar bloqueada o con problemas SSL con SIAF)
+        if ($isProduction && $hasProxy && $proxySession) {
+            \Log::info('SIAF Consulta - En producción con proxy. Intentando PROXY primero');
+            $resultado = $this->consultarViaProxy($proxyUrl, $proxySession, $anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
+            if ($resultado['success']) {
+                \Log::info('SIAF Consulta - ✓ Proxy exitoso');
+                return $resultado;
+            }
+            \Log::warning('SIAF Consulta - Proxy falló, intentando fallback a directo');
+        }
+
+        // ESTRATEGIA en local o sin proxy: Directo → Proxy → Error
+        \Log::info('SIAF Consulta - Intentando conexión DIRECTA a SIAF', [
+            'environment' => app()->environment(),
+            'has_proxy' => $hasProxy,
+        ]);
         $direct = $this->consultarDirecto($anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
         if ($direct['success']) {
             \Log::info('SIAF Consulta - ✓ Conexión directa exitosa');
@@ -438,7 +473,7 @@ class SiafService
 
         // Si directo falló y hay proxy con sesión, intentar proxy como fallback
         if ($proxyUrl && $proxySession) {
-            \Log::info('SIAF Consulta - Intentando PROXY como fallback (requiere sesión del CAPTCHA)');
+            \Log::info('SIAF Consulta - Intentando PROXY como fallback');
             $resultado = $this->consultarViaProxy($proxyUrl, $proxySession, $anoEje, $secEjec, $expediente, $codigoSiaf, $captcha);
             if ($resultado['success']) {
                 \Log::info('SIAF Consulta - ✓ Proxy exitoso');
