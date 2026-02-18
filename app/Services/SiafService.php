@@ -69,11 +69,15 @@ class SiafService
     public function obtenerCaptchaSiaf(): array
     {
         $proxyUrl = $this->getProxyUrl();
+        $timeoutSecs = config('services.siaf.timeout', 20);
 
         // ESTRATEGIA: Intentar directo primero (funciona en VPS y local)
         // Si falla, fallback a proxy (para hosting compartido con firewall)
-        \Log::info('SIAF CAPTCHA - Intentando conexión DIRECTA a SIAF (prioritario en VPS/local)');
-        $direct = $this->obtenerCaptchaDirecto(20);
+        \Log::info('SIAF CAPTCHA - Intentando conexión DIRECTA a SIAF (prioritario en VPS/local)', [
+            'timeout_seconds' => $timeoutSecs,
+            'environment' => app()->environment(),
+        ]);
+        $direct = $this->obtenerCaptchaDirecto($timeoutSecs);
         if ($direct['success']) {
             \Log::info('SIAF CAPTCHA - ✓ Conexión directa exitosa');
             return $direct;
@@ -223,7 +227,7 @@ class SiafService
     {
         try {
             $cookieFile = $this->getPersistentCookieFile();
-            
+
             \Log::info('SIAF Directo PASO 1: Estableciendo sesión', [
                 'url' => self::SIAF_BASE_URL . 'consultaExpediente.jspx',
                 'timeout' => $timeoutSecs,
@@ -270,7 +274,7 @@ class SiafService
 
             // PASO 2: Obtener imagen CAPTCHA
             \Log::info('SIAF Directo PASO 2: Obteniendo imagen CAPTCHA');
-            
+
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => self::SIAF_BASE_URL . 'Captcha.jpg',
@@ -317,7 +321,7 @@ class SiafService
             Session::forget('siaf_proxy_key');
 
             \Log::info('SIAF Directo ✓ ÉXITO - CAPTCHA obtenido via conexión directa');
-            
+
             return [
                 'success' => true,
                 'captcha' => 'data:image/jpg;base64,' . base64_encode($imageData),
@@ -633,6 +637,9 @@ class SiafService
             }
 
             $cookieFile = $this->getPersistentCookieFile();
+            $timeout = config('services.siaf.timeout', 20);
+            $connectTimeout = config('services.siaf.connect_timeout', 10);
+            
             $ch = curl_init();
 
             curl_setopt_array($ch, [
@@ -640,8 +647,8 @@ class SiafService
                 CURLOPT_POST => 1,
                 CURLOPT_POSTFIELDS => http_build_query($params),
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => $timeout,
+                CURLOPT_CONNECTTIMEOUT => $connectTimeout,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_MAXREDIRS => 5,
                 CURLOPT_SSL_VERIFYPEER => false,
@@ -661,7 +668,7 @@ class SiafService
             curl_close($ch);
 
             if ($error || !$response) {
-                \Log::warning('SIAF cURL Error', ['error' => $error]);
+                \Log::warning('SIAF cURL Error', ['error' => $error, 'timeout_seconds' => $timeout]);
                 return null;
             }
 
@@ -675,10 +682,13 @@ class SiafService
     private function intentarConexionGuzzle(string $url, array $params): ?string
     {
         try {
+            $timeout = config('services.siaf.timeout', 20);
+            $connectTimeout = config('services.siaf.connect_timeout', 10);
+            
             $response = Http::withOptions([
                 'verify' => false,
-                'timeout' => 15,
-                'connect_timeout' => 10,
+                'timeout' => $timeout,
+                'connect_timeout' => $connectTimeout,
             ])->withHeaders([
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
                 'Accept' => 'text/html',

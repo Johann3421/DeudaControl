@@ -13,16 +13,16 @@ class MakeSuperadminCommand extends Command
     public function handle()
     {
         $email = $this->argument('email');
-        
+
         $user = User::where('email', $email)->first();
-        
+
         if (!$user) {
             $this->error("User with email '{$email}' not found.");
             return 1;
         }
-        
+
         $user->update(['rol' => 'superadmin']);
-        
+
         $this->info("✓ User '{$email}' is now a superadmin!");
         return 0;
     }

@@ -52,7 +52,7 @@ Route::prefix('api')->group(function () {
     Route::post('/siaf/test', function () {
         return response()->json(['status' => 'ok', 'message' => 'SIAF test endpoint working']);
     });
-    
+
     // Diagnóstico SIAF (sin autenticación por si hay problemas de sesión)
     Route::get('/diagnostic/siaf/status', [DiagnosticSiafController::class, 'status'])->name('api.diagnostic.siaf');
 });
