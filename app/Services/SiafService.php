@@ -83,7 +83,9 @@ class SiafService
      * Estrategia:
      *   - En producción CON proxy: Proxy → Directo → Local
      *   - En local/dev SIN proxy: Directo → Proxy → Local
-     * (Proxy primero en prod porque la VPS parece tener restricción SSL con SIAF)
+     * 
+     * NOTA: Si SIAF está bloqueando ambas IPs (VPS + Cloudflare), caerá a CAPTCHA local.
+     * Esto es esperado y correcto. El CAPTCHA local es funcional pero sin integración SIAF.
      */
     public function obtenerCaptchaSiaf(): array
     {
@@ -92,54 +94,51 @@ class SiafService
         $isProduction = app()->environment() === 'production';
         $hasProxy = !empty($proxyUrl);
 
-        // En producción con proxy, intentar proxy PRIMERO (parece haber bloqueo SSL en la IP de la VPS)
+        // En producción con proxy, intentar proxy PRIMERO
         if ($isProduction && $hasProxy) {
-            \Log::info('SIAF CAPTCHA - En producción con proxy. Intentando PROXY primero', [
+            \Log::info('SIAF CAPTCHA - Strategy: Proxy-first (production)', [
                 'proxy_url' => $proxyUrl,
-                'environment' => app()->environment(),
             ]);
             $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
             if ($resultado['success']) {
-                \Log::info('SIAF CAPTCHA - ✓ Proxy exitoso');
+                \Log::info('SIAF CAPTCHA - ✓ Proxy success');
                 return $resultado;
             }
-            \Log::warning('SIAF CAPTCHA - Proxy falló, intentando fallback a directo');
+            \Log::info('SIAF CAPTCHA - Proxy unavailable, trying direct connection as fallback');
         } else {
             // En local/dev o sin proxy: intentar directo primero
-            \Log::info('SIAF CAPTCHA - Intentando conexión DIRECTA a SIAF (directo primero en local)', [
+            \Log::info('SIAF CAPTCHA - Strategy: Direct-first (local/dev)', [
                 'timeout_seconds' => $timeoutSecs,
-                'environment' => app()->environment(),
                 'has_proxy' => $hasProxy,
             ]);
             $direct = $this->obtenerCaptchaDirecto($timeoutSecs);
             if ($direct['success']) {
-                \Log::info('SIAF CAPTCHA - ✓ Conexión directa exitosa');
+                \Log::info('SIAF CAPTCHA - ✓ Direct connection success');
                 return $direct;
             }
-            \Log::warning('SIAF CAPTCHA - Conexión directa falló, intentando fallback');
+            \Log::info('SIAF CAPTCHA - Direct connection failed, trying proxy as fallback');
 
             // Si directo falló y hay proxy, intentar proxy como fallback
             if ($hasProxy) {
-                \Log::info('SIAF CAPTCHA - Intentando proxy como FALLBACK: ' . $proxyUrl);
+                \Log::info('SIAF CAPTCHA - Trying proxy as fallback');
                 $resultado = $this->obtenerCaptchaViaProxy($proxyUrl);
                 if ($resultado['success']) {
-                    \Log::info('SIAF CAPTCHA - ✓ Proxy exitoso');
+                    \Log::info('SIAF CAPTCHA - ✓ Proxy fallback success');
                     return $resultado;
                 }
-                \Log::warning('SIAF CAPTCHA - Proxy también falló: ' . ($resultado['message'] ?? 'unknown'));
-            } else {
-                \Log::warning('SIAF CAPTCHA - Sin proxy configurado para fallback');
             }
         }
 
-        // Último recurso: CAPTCHA local
-        \Log::warning('SIAF CAPTCHA - Usando CAPTCHA local como último recurso');
-        $razon = 'Conexión SIAF falló (SSL timeout o IP bloqueada). ';
-        if ($hasProxy) {
-            $razon .= 'Proxy también falló.';
-        } else {
-            $razon .= 'Sin proxy configurado.';
-        }
+        // CAPTCHA local: When SIAF is blocked/unavailable (expected in production if IP is blocked)
+        \Log::info('SIAF CAPTCHA - Using local CAPTCHA (SIAF not available)', [
+            'reason' => $isProduction ? 'Production: Both proxy and direct failed (likely IP blocked)' : 'Direct and proxy both failed',
+            'note' => 'User can still submit forms with local CAPTCHA. SIAF integration unavailable temporarily.',
+        ]);
+        
+        $razon = $isProduction 
+            ? 'SIAF no disponible. Usando CAPTCHA local. IP puede estar bloqueada por SIAF.'
+            : 'Conexión SIAF falló (proxy y directo). Usando CAPTCHA local.';
+        
         return $this->obtenerCaptchaLocal($razon);
     }
 
@@ -249,8 +248,19 @@ class SiafService
             }
 
             // Si llegamos aquí, todos los intentos fallaron
+            // HTTP 522 = Worker connection timeout (SIAF blocking Cloudflare IP)
+            // HTTP 401/403 = Auth failed (check SIAF_PROXY_SECRET)
             $errorMsg = "Proxy CAPTCHA failed after retries: $lastError";
-            \Log::error('SIAF CAPTCHA Proxy - ✗ Todos los intentos fallaron', ['error' => $lastError]);
+            
+            if (strpos($lastError, '522') !== false) {
+                \Log::warning('SIAF CAPTCHA Proxy - HTTP 522: Cloudflare IP likely blocked by SIAF', ['error' => $lastError]);
+                $errorMsg = 'Proxy: SIAF blocking Cloudflare IP (HTTP 522)';
+            } elseif (strpos($lastError, '401') !== false || strpos($lastError, '403') !== false) {
+                \Log::error('SIAF CAPTCHA Proxy - Auth failed: Check SIAF_PROXY_SECRET', ['error' => $lastError]);
+                $errorMsg = 'Proxy: Authentication failed - check SIAF_PROXY_SECRET';
+            } else {
+                \Log::error('SIAF CAPTCHA Proxy - Unexpected error', ['error' => $lastError]);
+            }
 
             return [
                 'success' => false,
