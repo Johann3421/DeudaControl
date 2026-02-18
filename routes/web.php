@@ -21,6 +21,7 @@ use App\Http\Controllers\PagoController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SiafController;
 use App\Http\Controllers\SiafIntegrationController;
+use App\Http\Controllers\SiafScraperController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -67,6 +68,9 @@ Route::prefix('api')->middleware('auth')->group(function () {
     // Nuevas rutas para integración directa de SIAF (ventana modal)
     Route::get('/siaf/embedded-form', [SiafIntegrationController::class, 'embeddedForm']);
     Route::post('/siaf/execute-query', [SiafIntegrationController::class, 'executeQuery']);
+
+    // Scraping de resultados de SIAF
+    Route::post('/siaf/scrape', [SiafScraperController::class, 'scrapeTable']);
 });
 
 Route::middleware('auth')->group(function () {

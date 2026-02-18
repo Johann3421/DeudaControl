@@ -87,6 +87,8 @@ export default function EntidadDeudaCreate({ entidades }) {
     const [searchSuccess, setSearchSuccess] = useState(false);
     const [siafResults, setSiafResults] = useState(null);
     const [siafModalWindow, setSiafModalWindow] = useState(null);
+    const [siafResultUrl, setSiafResultUrl] = useState('');
+    const [isScrapingUrl, setIsScrapingUrl] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -152,6 +154,60 @@ export default function EntidadDeudaCreate({ entidades }) {
         setData('fecha_proceso', manualData.info_siaf.fechaProceso);
 
         setSearchError('');
+    };
+
+    const handleScrapeUrl = async (e) => {
+        e.preventDefault();
+
+        if (!siafResultUrl.trim()) {
+            setSearchError('Por favor pega la URL de los resultados de SIAF');
+            return;
+        }
+
+        setIsScrapingUrl(true);
+        setSearchError('');
+
+        try {
+            const response = await fetch('/api/siaf/scrape', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    url: siafResultUrl
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('✓ Datos extraídos de SIAF:', result);
+                setSearchSuccess(true);
+                setSiafResults(result);
+
+                // Llenar campos del formulario con los datos extraídos
+                if (result.info_siaf) {
+                    setData('estado_siaf', 'C');
+                    setData('fase_siaf', result.info_siaf.fase || '');
+                    setData('estado_expediente', result.info_siaf.estado || '');
+                    setData('fecha_proceso', result.info_siaf.fechaProceso || '');
+                }
+
+                setSiafResultUrl('');
+            } else {
+                setSearchError(result.error || 'Error al extraer datos de SIAF');
+                setSearchSuccess(false);
+                setSiafResults(null);
+            }
+        } catch (error) {
+            console.error('Error en scraping:', error);
+            setSearchError('Error al procesar la URL: ' + error.message);
+            setSearchSuccess(false);
+            setSiafResults(null);
+        } finally {
+            setIsScrapingUrl(false);
+        }
     };
 
     return (
@@ -307,77 +363,108 @@ export default function EntidadDeudaCreate({ entidades }) {
                             </div>
                         </div>
 
-                        {/* Formulario Manual - Cuando SIAF no funciona */}
+                        {/* Formulario Manual + URL Scraping - Cuando SIAF no funciona */}
                         {!searchSuccess && (
-                            <div className="mt-6 p-6 rounded-xl border border-yellow-200 bg-yellow-50">
-                                <h3 className="text-base font-semibold text-slate-900 mb-4">⚠️ Entrada Manual de Datos SIAF</h3>
-                                <p className="text-sm text-slate-600 mb-4">Si SIAF no te devuelve información, ingresa los datos manualmente:</p>
-                                
-                                <form onSubmit={handleManualSiafSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="mt-6 space-y-4">
+                                {/* Opción 1: Pegar URL de resultados de SIAF */}
+                                <div className="p-6 rounded-xl border border-blue-200 bg-blue-50">
+                                    <h3 className="text-base font-semibold text-slate-900 mb-4">📋 Pegar Resultados de SIAF</h3>
+                                    <p className="text-sm text-slate-600 mb-4">Si ya completaste la búsqueda en SIAF, copia la URL completa de la página con los resultados y pégala aquí:</p>
+                                    
+                                    <form onSubmit={handleScrapeUrl} className="space-y-3">
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de Unidad Ejecutora</label>
-                                            <input
-                                                type="text"
-                                                value={siafSearch.secEjec}
-                                                onChange={(e) => setSiafSearch({...siafSearch, secEjec: e.target.value})}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                placeholder="Ej: 001234"
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">URL de SIAF con Resultados</label>
+                                            <textarea
+                                                value={siafResultUrl}
+                                                onChange={(e) => setSiafResultUrl(e.target.value)}
+                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 font-mono"
+                                                placeholder="https://apps2.mef.gob.pe/consulta-vfp-webapp/expedientePaginate.jspx?..."
+                                                rows={2}
                                             />
+                                            <p className="text-xs text-slate-500 mt-2">La URL debe contener los parámetros de búsqueda</p>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Expediente</label>
-                                            <input
-                                                type="text"
-                                                value={siafSearch.expediente}
-                                                onChange={(e) => setSiafSearch({...siafSearch, expediente: e.target.value})}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                placeholder="Ej: 2024000001"
-                                            />
-                                        </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase (ej: D, C, G)</label>
-                                            <input
-                                                type="text"
-                                                value={siafSearch.fase}
-                                                onChange={(e) => setSiafSearch({...siafSearch, fase: e.target.value.toUpperCase()})}
-                                                maxLength="1"
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                placeholder="D"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado (ej: F, P, A)</label>
-                                            <input
-                                                type="text"
-                                                value={siafSearch.estado}
-                                                onChange={(e) => setSiafSearch({...siafSearch, estado: e.target.value.toUpperCase()})}
-                                                maxLength="1"
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                                placeholder="F"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Proceso</label>
-                                            <input
-                                                type="date"
-                                                value={siafSearch.fecha}
-                                                onChange={(e) => setSiafSearch({...siafSearch, fecha: e.target.value})}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
-                                            />
-                                        </div>
-                                    </div>
+                                        <button
+                                            type="submit"
+                                            disabled={isScrapingUrl}
+                                            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isScrapingUrl ? 'Extrayendo datos...' : 'Extraer Datos de SIAF'}
+                                        </button>
+                                    </form>
+                                </div>
 
-                                    <button
-                                        type="submit"
-                                        className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-yellow-600 hover:bg-yellow-700 transition-colors shadow-lg shadow-yellow-600/25"
-                                    >
-                                        Registrar Datos Manualmente
-                                    </button>
-                                </form>
+                                {/* Opción 2: Entrada manual */}
+                                <div className="p-6 rounded-xl border border-yellow-200 bg-yellow-50">
+                                    <h3 className="text-base font-semibold text-slate-900 mb-4">⚠️ Entrada Manual de Datos SIAF</h3>
+                                    <p className="text-sm text-slate-600 mb-4">Si SIAF no te devuelve información o prefieres ingresar manualmente:</p>
+                                    
+                                    <form onSubmit={handleManualSiafSubmit} className="space-y-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Código de Unidad Ejecutora</label>
+                                                <input
+                                                    type="text"
+                                                    value={siafSearch.secEjec}
+                                                    onChange={(e) => setSiafSearch({...siafSearch, secEjec: e.target.value})}
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                    placeholder="Ej: 001234"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Expediente</label>
+                                                <input
+                                                    type="text"
+                                                    value={siafSearch.expediente}
+                                                    onChange={(e) => setSiafSearch({...siafSearch, expediente: e.target.value})}
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                    placeholder="Ej: 2024000001"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase (ej: D, C, G)</label>
+                                                <input
+                                                    type="text"
+                                                    value={siafSearch.fase}
+                                                    onChange={(e) => setSiafSearch({...siafSearch, fase: e.target.value.toUpperCase()})}
+                                                    maxLength="1"
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                    placeholder="D"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado (ej: F, P, A)</label>
+                                                <input
+                                                    type="text"
+                                                    value={siafSearch.estado}
+                                                    onChange={(e) => setSiafSearch({...siafSearch, estado: e.target.value.toUpperCase()})}
+                                                    maxLength="1"
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                    placeholder="F"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha Proceso</label>
+                                                <input
+                                                    type="date"
+                                                    value={siafSearch.fecha}
+                                                    onChange={(e) => setSiafSearch({...siafSearch, fecha: e.target.value})}
+                                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-yellow-600 hover:bg-yellow-700 transition-colors shadow-lg shadow-yellow-600/25"
+                                        >
+                                            Registrar Datos Manualmente
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         )}
 
