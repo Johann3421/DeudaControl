@@ -4,9 +4,47 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class ExcelSiafController extends Controller
 {
+    /**
+     * Formatea una fecha del Excel al formato dd/mm/yyyy
+     */
+    private function formatExcelDate($cellValue)
+    {
+        if (empty($cellValue)) {
+            return '';
+        }
+
+        // Si es un número serial de Excel
+        if (is_numeric($cellValue)) {
+            try {
+                $dateTime = Date::excelToDateTimeObject($cellValue);
+                return $dateTime->format('d/m/Y');
+            } catch (\Exception $e) {
+                return trim((string)$cellValue);
+            }
+        }
+
+        // Si ya es string, intentar parsearlo
+        $dateStr = trim((string)$cellValue);
+        
+        // Si está en formato dd/mm/yyyy, devolver igual
+        if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dateStr)) {
+            return $dateStr;
+        }
+
+        // Si está en formato d/m/yyyy (sin leading zero), formatear
+        if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $dateStr)) {
+            $parts = explode('/', $dateStr);
+            return str_pad($parts[0], 2, '0', STR_PAD_LEFT) . '/' . 
+                   str_pad($parts[1], 2, '0', STR_PAD_LEFT) . '/' . 
+                   $parts[2];
+        }
+
+        return $dateStr;
+    }
     /**
      * Procesa un archivo Excel descargado desde SIAF
      * POST /api/siaf/upload-excel
@@ -15,7 +53,7 @@ class ExcelSiafController extends Controller
     {
         // Asegurar que siempre devolvemos JSON
         $request->headers->set('Accept', 'application/json');
-        
+
         try {
             \Log::info('[EXCEL SIAF] Solicitud recibida', [
                 'has_file' => $request->hasFile('file'),
@@ -32,7 +70,7 @@ class ExcelSiafController extends Controller
             }
 
             $file = $request->file('file');
-            
+
             // Validar que es un archivo
             if (!$file->isValid()) {
                 return response()->json([
@@ -48,7 +86,7 @@ class ExcelSiafController extends Controller
                     'error' => 'El archivo es demasiado grande (máximo 5MB)'
                 ], 422);
             }
-            
+
             // Validar extensión
             $ext = strtolower($file->getClientOriginalExtension());
             if (!in_array($ext, ['xlsx', 'xls', 'csv'])) {
@@ -114,12 +152,12 @@ class ExcelSiafController extends Controller
                         'correlativo' => trim((string)$correlativo),
                         'codDoc' => trim((string)$codDoc),
                         'numDoc' => trim((string)$numDoc),
-                        'fecha' => trim((string)$fecha),
+                        'fecha' => $this->formatExcelDate($fecha),
                         'ff' => trim((string)$ff),
                         'moneda' => trim((string)$moneda),
                         'monto' => trim((string)$monto),
                         'estado' => trim((string)$estado),
-                        'fechaHora' => trim((string)$fechaHora),
+                        'fechaHora' => $this->formatExcelDate($fechaHora),
                     ];
 
                     $datos[] = $row_data;
@@ -129,7 +167,7 @@ class ExcelSiafController extends Controller
                         $infoSiaf = [
                             'fase' => $fase,
                             'estado' => $estado,
-                            'fechaProceso' => !empty($fechaHora) ? explode(' ', $fechaHora)[0] : $fecha,
+                            'fechaProceso' => $this->formatExcelDate($fechaHora),
                         ];
                     }
                 }

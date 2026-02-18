@@ -13,32 +13,32 @@ from datetime import datetime
 def extract_siaf_results(url, captcha_code=None, cookies=None):
     """
     Extrae los datos de la tabla expedienteDetalles de SIAF
-    
+
     Args:
         url: URL completa de SIAF con los parámetros
         captcha_code: Código CAPTCHA (opcional)
         cookies: Cookies de sesión (opcional)
-    
+
     Returns:
         dict con estructura de resultados
     """
-    
+
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
-    
+
     try:
         # Hacer request a SIAF
         session = requests.Session()
         response = session.get(url, headers=headers, timeout=30, verify=False)
         response.raise_for_status()
-        
+
         # Parsear HTML
         soup = BeautifulSoup(response.content, 'html.parser')
-        
+
         # Buscar tabla de resultados
         table = soup.find('table', {'id': 'expedienteDetalles'})
-        
+
         if not table:
             return {
                 'success': False,
@@ -46,11 +46,11 @@ def extract_siaf_results(url, captcha_code=None, cookies=None):
                 'datos': [],
                 'info_siaf': {}
             }
-        
+
         # Extraer filas
         rows = []
         tbody = table.find('tbody')
-        
+
         if tbody:
             for tr in tbody.find_all('tr'):
                 tds = tr.find_all('td')
@@ -70,7 +70,7 @@ def extract_siaf_results(url, captcha_code=None, cookies=None):
                         'fechaHora': tds[11].text.strip(),
                     }
                     rows.append(row)
-        
+
         # Extraer info general (primera fila como referencia)
         info_siaf = {}
         if rows:
@@ -79,7 +79,7 @@ def extract_siaf_results(url, captcha_code=None, cookies=None):
                 'estado': rows[0].get('estado', ''),
                 'fechaProceso': rows[0].get('fechaHora', '').split()[0] if rows[0].get('fechaHora') else '',
             }
-        
+
         return {
             'success': True,
             'error': None,
@@ -87,7 +87,7 @@ def extract_siaf_results(url, captcha_code=None, cookies=None):
             'info_siaf': info_siaf,
             'timestamp': datetime.now().isoformat(),
         }
-    
+
     except requests.exceptions.RequestException as e:
         return {
             'success': False,
@@ -111,7 +111,7 @@ if __name__ == '__main__':
             'error': 'Uso: python extract_siaf_table.py <url>'
         }))
         sys.exit(1)
-    
+
     url = sys.argv[1]
     result = extract_siaf_results(url)
     print(json.dumps(result, ensure_ascii=False, indent=2))
