@@ -86,26 +86,24 @@ class ExcelSiafController extends Controller
             $datos = [];
             $infoSiaf = [];
 
-            // Iterar filas (empezar desde fila 2, saltando header)
-            foreach ($worksheet->getIterator() as $row) {
-                $rowIndex = $row->getRowIndex();
-                
-                // Saltar header (fila 1)
-                if ($rowIndex === 1) continue;
+            // Obtener las filas de forma correcta
+            $highestRow = $worksheet->getHighestRow();
+            $highestColumn = $worksheet->getHighestColumn();
 
+            for ($row = 2; $row <= $highestRow; $row++) {
                 // Obtener valores de celdas
-                $ciclo = $worksheet->getCell("A{$rowIndex}")->getValue();
-                $fase = $worksheet->getCell("B{$rowIndex}")->getValue();
-                $secuencia = $worksheet->getCell("C{$rowIndex}")->getValue();
-                $correlativo = $worksheet->getCell("D{$rowIndex}")->getValue();
-                $codDoc = $worksheet->getCell("E{$rowIndex}")->getValue();
-                $numDoc = $worksheet->getCell("F{$rowIndex}")->getValue();
-                $fecha = $worksheet->getCell("G{$rowIndex}")->getValue();
-                $ff = $worksheet->getCell("H{$rowIndex}")->getValue();
-                $moneda = $worksheet->getCell("I{$rowIndex}")->getValue();
-                $monto = $worksheet->getCell("J{$rowIndex}")->getValue();
-                $estado = $worksheet->getCell("K{$rowIndex}")->getValue();
-                $fechaHora = $worksheet->getCell("L{$rowIndex}")->getValue();
+                $ciclo = $worksheet->getCell("A{$row}")->getValue();
+                $fase = $worksheet->getCell("B{$row}")->getValue();
+                $secuencia = $worksheet->getCell("C{$row}")->getValue();
+                $correlativo = $worksheet->getCell("D{$row}")->getValue();
+                $codDoc = $worksheet->getCell("E{$row}")->getValue();
+                $numDoc = $worksheet->getCell("F{$row}")->getValue();
+                $fecha = $worksheet->getCell("G{$row}")->getValue();
+                $ff = $worksheet->getCell("H{$row}")->getValue();
+                $moneda = $worksheet->getCell("I{$row}")->getValue();
+                $monto = $worksheet->getCell("J{$row}")->getValue();
+                $estado = $worksheet->getCell("K{$row}")->getValue();
+                $fechaHora = $worksheet->getCell("L{$row}")->getValue();
 
                 // Si la fila tiene al menos datos básicos, procesarla
                 if ($ciclo || $fase || $secuencia) {
