@@ -97,45 +97,44 @@ export default function EntidadDeudaCreate({ entidades }) {
         post('/deudas/entidad');
     };
 
-    // Escuchar mensajes de la ventana modal
+    // Escuchar mensajes de la ventana modal (SIAF abierto directamente)
     useEffect(() => {
         const handleSiafMessage = (event) => {
-            // Validar el origen del mensaje (solo de nuestra propia aplicación)
-            if (!event.data.type === 'SIAF_RESULT') {
+            // Validar que sea un mensaje SIAF
+            if (!event.data || event.data.type !== 'SIAF_RESULT') {
                 return;
             }
 
             const { success, data, error } = event.data;
 
             if (success && data) {
-                console.log('✓ Resultado recibido de modal SIAF:', data);
-                
-                setSearchSuccess(true);
-                setSiafResults(data);
-                setSearchError('');
+                console.log('✓ Resultado HTML recibido de SIAF:', data);
 
-                // Llenar los campos del formulario con los datos obtenidos
-                if (data.info_siaf) {
-                    console.log('📥 Actualizando campos SIAF con:', {
-                        estado_siaf: 'C',
-                        fase_siaf: data.info_siaf.fase || '',
-                        estado_expediente: data.info_siaf.estado || '',
-                        fecha_proceso: data.info_siaf.fechaProceso || '',
-                    });
+                try {
+                    setSearchSuccess(true);
+                    setSiafResults(data);
+                    setSearchError('');
 
-                    setData('estado_siaf', 'C');
-                    setData('fase_siaf', data.info_siaf.fase || '');
-                    setData('estado_expediente', data.info_siaf.estado || '');
-                    setData('fecha_proceso', data.info_siaf.fechaProceso || '');
+                    // Llenar los campos del formulario con los datos obtenidos
+                    if (data.info_siaf) {
+                        console.log('📥 Actualizando campos SIAF con:', {
+                            estado_siaf: 'C',
+                            fase_siaf: data.info_siaf.fase || '',
+                            estado_expediente: data.info_siaf.estado || '',
+                            fecha_proceso: data.info_siaf.fechaProceso || '',
+                        });
+
+                        setData('estado_siaf', 'C');
+                        setData('fase_siaf', data.info_siaf.fase || '');
+                        setData('estado_expediente', data.info_siaf.estado || '');
+                        setData('fecha_proceso', data.info_siaf.fechaProceso || '');
+                    }
+                } catch (err) {
+                    console.error('Error procesando resultados SIAF:', err);
+                    setSearchError('Error al procesar los datos recibidos');
                 }
-
-                // Cerrar la modal después de recibir los datos
-                if (siafModalWindow && !siafModalWindow.closed) {
-                    siafModalWindow.close();
-                }
-                setSiafModalWindow(null);
             } else {
-                console.error('✗ Error en modal SIAF:', error);
+                console.error('✗ Error recibido de SIAF:', error);
                 setSearchError(error || 'Error al procesar la búsqueda SIAF');
                 setSearchSuccess(false);
                 setSiafResults(null);
@@ -144,30 +143,37 @@ export default function EntidadDeudaCreate({ entidades }) {
 
         window.addEventListener('message', handleSiafMessage);
         return () => window.removeEventListener('message', handleSiafMessage);
-    }, [siafModalWindow, setData]);
+    }, [setData]);
 
-    const openSiafModal = () => {
+    const openSiafWindow = () => {
         if (!data.codigo_siaf) {
             setSearchError('Por favor ingresa un número de expediente primero');
             return;
         }
 
-        // Construir la URL para la modal con los parámetros
-        const modalUrl = `/api/siaf/embedded-form?anoEje=${encodeURIComponent(siafSearch.anoEje)}&secEjec=${encodeURIComponent(siafSearch.secEjec)}&expediente=${encodeURIComponent(siafSearch.expediente)}`;
+        // Crear la URL con los parámetros necesarios
+        const params = new URLSearchParams({
+            anoEje: siafSearch.anoEje,
+            secEjec: siafSearch.secEjec,
+            expediente: siafSearch.expediente,
+        });
 
-        // Abrir ventana modal
-        const modalWindow = window.open(
-            modalUrl,
-            'siaf_modal',
-            'width=700,height=650,resizable=yes,scrollbars=yes,left=100,top=100'
+        // URL local de SIAF que inyectará el script
+        const siafWrapperUrl = `/siaf-wrapper.html?${params.toString()}`;
+
+        // Abrir ventana con SIAF
+        const siafWindow = window.open(
+            siafWrapperUrl,
+            'siaf_window',
+            'width=1000,height=800,resizable=yes,scrollbars=yes,left=50,top=50'
         );
 
-        if (modalWindow) {
-            setSiafModalWindow(modalWindow);
+        if (siafWindow) {
+            setSiafModalWindow(siafWindow);
             setShowSiafSearch(false);
             setSearchError('');
         } else {
-            setSearchError('No se pudo abrir la ventana modal. Verifica que no esté bloqueada por el navegador.');
+            setSearchError('No se pudo abrir la ventana de SIAF. Verifica que no esté bloqueada por el navegador.');
         }
     };
 
@@ -314,7 +320,7 @@ export default function EntidadDeudaCreate({ entidades }) {
                                 />
                                 <button
                                     type="button"
-                                    onClick={openSiafModal}
+                                    onClick={openSiafWindow}
                                     className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/25"
                                 >
                                     Buscar
@@ -328,7 +334,7 @@ export default function EntidadDeudaCreate({ entidades }) {
                         {searchSuccess && siafResults && (
                             <div className="mt-6 p-6 rounded-xl border border-green-200 bg-green-50">
                                 <h3 className="text-base font-semibold text-slate-900 mb-4">Resultados de la Búsqueda SIAF</h3>
-                                
+
                                 {/* Información del SIAF extraída */}
                                 {siafResults.info_siaf && (
                                     <div className="p-4 rounded-lg bg-green-50 border border-green-200 mb-4">

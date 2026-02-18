@@ -63,7 +63,7 @@ Route::prefix('api')->group(function () {
 Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/captcha', [SiafController::class, 'generarCaptcha']);
     Route::post('/siaf/consultar', [SiafController::class, 'consultar']);
-    
+
     // Nuevas rutas para integración directa de SIAF (ventana modal)
     Route::get('/siaf/embedded-form', [SiafIntegrationController::class, 'embeddedForm']);
     Route::post('/siaf/execute-query', [SiafIntegrationController::class, 'executeQuery']);

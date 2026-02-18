@@ -420,7 +420,7 @@ class DiagnosticController extends Controller
                 'openssl_enabled' => extension_loaded('openssl'),
                 'allow_url_fopen' => ini_get('allow_url_fopen'),
             ],
-            'warning' => empty(config('services.siaf.proxy_secret')) 
+            'warning' => empty(config('services.siaf.proxy_secret'))
                 ? '⚠️ SIAF_PROXY_SECRET está vacío. Verifica que esté configurado en Dokploy → Environment Variables'
                 : '✓ Config parece OK',
         ]);

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIAF - Búsqueda de Expedientes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f1f5f9;
+            padding: 10px;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #0ea5e9;
+        }
+        .info {
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .info strong {
+            color: #0ea5e9;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-extract {
+            background: #10b981;
+            color: white;
+        }
+        .btn-extract:hover {
+            background: #059669;
+        }
+        .btn-extract:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+        .btn-close {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .btn-close:hover {
+            background: #cbd5e1;
+        }
+        #siafFrame {
+            width: 100%;
+            height: calc(100vh - 250px);
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            display: block;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 13px;
+            display: none;
+        }
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            display: block;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+        .status.info {
+            background: #e0f2fe;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="info">
+            <strong>✓ SIAF está abierto</strong><br>
+            Ingresa los datos en los campos correspondientes y completa el CAPTCHA. 
+            Una vez veas los resultados, haz clic en <strong>"Extraer Datos"</strong> para enviarlos a tu formulario.
+        </div>
+        <div class="button-group">
+            <button type="button" class="btn-extract" id="extractBtn" disabled>Extraer Datos</button>
+            <button type="button" class="btn-close" onclick="window.close(); return false;">Cerrar Ventana</button>
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <iframe id="siafFrame" src="https://apps2.mef.gob.pe/consulta-vfp-webapp/consultaExpediente.jspx"></iframe>
+
+    <script>
+        const extractBtn = document.getElementById('extractBtn');
+        const status = document.getElementById('status');
+        const siafFrame = document.getElementById('siafFrame');
+
+        // Función para mostrar mensajes de estado
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            setTimeout(() => {
+                if (type === 'success') {
+                    status.className = 'status';
+                }
+            }, 3000);
+        }
+
+        // Monitorear cambios en el iframe
+        let lastTableHTML = '';
+        let resultFound = false;
+
+        function checkForResults() {
+            try {
+                // Intentar acceder al contenido del iframe (puede ser bloqueado por CORS)
+                const iframeDoc = siafFrame.contentDocument || siafFrame.contentWindow.document;
+                
+                if (!iframeDoc) {
+                    console.warn('No se puede acceder al contenido del iframe (CORS/seguridad)');
+                    // Si no podemos acceder al iframe, mostrar instrucción manual
+                    if (!resultFound) {
+                        showStatus('⚠ SIAF cargado. Completa el formulario y CAPTCHA, luego haz clic en "Extraer Datos".', 'info');
+                    }
+                    return;
+                }
+
+                // Buscar la tabla de resultados
+                const resultTable = iframeDoc.querySelector('table');
+                
+                if (resultTable) {
+                    const tableHTML = resultTable.outerHTML;
+                    
+                    // Si la tabla cambió, habilitar el botón
+                    if (tableHTML !== lastTableHTML) {
+                        lastTableHTML = tableHTML;
+                        resultFound = true;
+                        extractBtn.disabled = false;
+                        showStatus('✓ Resultados encontrados en SIAF. Haz clic en "Extraer Datos".', 'success');
+                    }
+                }
+            } catch (error) {
+                // CORS bloqueará el acceso, pero eso está bien
+                // El usuario puede hacer clic en "Extraer Datos" manualmente
+                if (!resultFound && lastTableHTML === '') {
+                    showStatus('💡 Completa el formulario SIAF y luego haz clic en "Extraer Datos".', 'info');
+                }
+            }
+        }
+
+        // Monitorear cambios cada 500ms
+        setInterval(checkForResults, 500);
+
+        // Botón "Extraer Datos"
+        extractBtn.addEventListener('click', async () => {
+            try {
+                extractBtn.disabled = true;
+                showStatus('⏳ Extrayendo datos...', 'info');
+
+                // Intentar acceder al iframe
+                const iframeDoc = siafFrame.contentDocument || siafFrame.contentWindow.document;
+                
+                if (!iframeDoc) {
+                    throw new Error('No se puede acceder al contenido del iframe');
+                }
+
+                // Buscar la tabla de resultados
+                const resultTable = iframeDoc.querySelector('table');
+                
+                if (!resultTable) {
+                    throw new Error('No se encontraron resultados en SIAF');
+                }
+
+                // Extraer datos de la tabla
+                const rows = resultTable.querySelectorAll('tbody tr');
+                const datos = [];
+
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 0) {
+                        datos.push({
+                            ciclo: cells[0]?.textContent.trim() || '',
+                            fase: cells[1]?.textContent.trim() || '',
+                            secuencia: cells[2]?.textContent.trim() || '',
+                            correlativo: cells[3]?.textContent.trim() || '',
+                            codDoc: cells[4]?.textContent.trim() || '',
+                            numDoc: cells[5]?.textContent.trim() || '',
+                            fecha: cells[6]?.textContent.trim() || '',
+                            moneda: cells[7]?.textContent.trim() || '',
+                            monto: cells[8]?.textContent.trim() || '',
+                            estado: cells[9]?.textContent.trim() || '',
+                        });
+                    }
+                });
+
+                if (datos.length === 0) {
+                    throw new Error('La tabla de resultados está vacía');
+                }
+
+                // Extraer información de resumen (primera fila generalmente)
+                const info_siaf = datos.length > 0 ? {
+                    fase: datos[0].fase || '',
+                    estado: datos[0].estado || '',
+                    fechaProceso: datos[0].fecha || '',
+                } : {};
+
+                // Enviar datos a la ventana padre
+                if (window.opener && window.opener.postMessage) {
+                    window.opener.postMessage({
+                        type: 'SIAF_RESULT',
+                        success: true,
+                        data: {
+                            datos: datos,
+                            info_siaf: info_siaf,
+                            htmlTable: resultTable.outerHTML
+                        }
+                    }, window.location.origin);
+
+                    showStatus('✓ Datos enviados exitosamente. Puedes cerrar esta ventana.', 'success');
+                    
+                    // Cerrar después de 2 segundos
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                } else {
+                    throw new Error('No se puede comunicar con la ventana padre');
+                }
+            } catch (error) {
+                extractBtn.disabled = false;
+                showStatus(`✗ Error: ${error.message}. Por favor, intenta de nuevo.`, 'error');
+                console.error('Error extrayendo datos:', error);
+            }
+        });
+
+        // Mensaje inicial
+        window.addEventListener('load', () => {
+            showStatus('💡 SIAF cargado. Completa la búsqueda y luego haz clic en "Extraer Datos".', 'info');
+        });
+    </script>
+</body>
+</html>

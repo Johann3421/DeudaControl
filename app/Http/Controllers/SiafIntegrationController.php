@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 class SiafIntegrationController extends Controller
 {
     private const SIAF_BASE_URL = 'https://apps2.mef.gob.pe/consulta-vfp-webapp/';
-    
+
     /**
      * Obtiene el formulario SIAF pre-llenado con los parámetros
      * GET /api/siaf/embedded-form?anoEje=2026&secEjec=001&expediente=123
@@ -18,11 +18,11 @@ class SiafIntegrationController extends Controller
         $anoEje = $request->get('anoEje', date('Y'));
         $secEjec = $request->get('secEjec', '');
         $expediente = $request->get('expediente', '');
-        
+
         try {
             // Paso 1: Establecer sesión con SIAF
             $cookieFile = storage_path('app/siaf/session_' . uniqid() . '.txt');
-            
+
             $ch = curl_init();
             curl_setopt_array($ch, [
                 CURLOPT_URL => self::SIAF_BASE_URL . 'consultaExpediente.jspx',
@@ -39,11 +39,11 @@ class SiafIntegrationController extends Controller
                     'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 ],
             ]);
-            
+
             $html = curl_exec($ch);
             $errno = curl_errno($ch);
             curl_close($ch);
-            
+
             if ($errno !== 0 || !$html) {
                 \Log::error('SIAF Embedded - Session failed', ['errno' => $errno]);
                 return response()->json([
@@ -51,7 +51,7 @@ class SiafIntegrationController extends Controller
                     'message' => 'No se pudo conectar a SIAF. IP bloqueada o servidor no disponible.',
                 ], 503);
             }
-            
+
             // Paso 2: Obtener CAPTCHA
             $ch = curl_init();
             curl_setopt_array($ch, [
@@ -64,10 +64,10 @@ class SiafIntegrationController extends Controller
                 CURLOPT_SSL_VERIFYHOST => false,
                 CURLOPT_COOKIEFILE => $cookieFile,
             ]);
-            
+
             $captchaImage = curl_exec($ch);
             curl_close($ch);
-            
+
             if (!$captchaImage) {
                 \Log::error('SIAF Embedded - CAPTCHA failed');
                 return response()->json([
@@ -75,11 +75,11 @@ class SiafIntegrationController extends Controller
                     'message' => 'No se pudo obtener el CAPTCHA de SIAF.',
                 ], 503);
             }
-            
+
             // Paso 3: Devolver formulario HTML con campos pre-llenados
             $captchaBase64 = 'data:image/jpg;base64,' . base64_encode($captchaImage);
             $sessionFile = basename($cookieFile);
-            
+
             $formHtml = <<<HTML
             <!DOCTYPE html>
             <html lang="es">
@@ -200,65 +200,65 @@ class SiafIntegrationController extends Controller
                 <div class="container">
                     <h1>🔍 Búsqueda en SIAF</h1>
                     <p class="subtitle">Ingresa el código de verificación para continuar</p>
-                    
+
                     <div class="info-box">
                         <strong>Datos a consultar:</strong><br>
                         Año: {$anoEje} | Ejecutora: {$secEjec} | Expediente: {$expediente}
                     </div>
-                    
+
                     <form id="siafForm">
                         <div class="form-group">
                             <label>Año de Ejecución</label>
                             <input type="text" name="anoEje" value="{$anoEje}" readonly style="background: #f1f5f9; cursor: not-allowed;">
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Código de Unidad Ejecutora</label>
                             <input type="text" name="secEjec" value="{$secEjec}" readonly style="background: #f1f5f9; cursor: not-allowed;">
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Expediente</label>
                             <input type="text" name="expediente" value="{$expediente}" readonly style="background: #f1f5f9; cursor: not-allowed;">
                         </div>
-                        
+
                         <div class="captcha-group">
                             <label>Código de Verificación CAPTCHA *</label>
                             <div class="captcha-image">
                                 <img src="{$captchaBase64}" alt="CAPTCHA" id="captchaImg">
                             </div>
-                            <input type="text" 
-                                   name="j_captcha" 
-                                   placeholder="Ingresa el código" 
-                                   maxlength="6" 
+                            <input type="text"
+                                   name="j_captcha"
+                                   placeholder="Ingresa el código"
+                                   maxlength="6"
                                    required
                                    autofocus>
                         </div>
-                        
+
                         <div class="button-group">
                             <button type="submit" class="btn-submit">Consultar SIAF</button>
                             <button type="button" class="btn-cancel" onclick="window.close(); return false;">Cancelar</button>
                         </div>
                     </form>
                 </div>
-                
+
                 <script>
                     const form = document.getElementById('siafForm');
                     const sessionFile = '{$sessionFile}';
-                    
+
                     form.addEventListener('submit', async (e) => {
                         e.preventDefault();
-                        
+
                         const captcha = form.j_captcha.value.trim();
                         if (!captcha) {
                             alert('Por favor ingresa el código CAPTCHA');
                             return;
                         }
-                        
+
                         try {
                             document.querySelector('.btn-submit').disabled = true;
                             document.querySelector('.btn-submit').textContent = 'Consultando...';
-                            
+
                             const response = await fetch('/api/siaf/execute-query', {
                                 method: 'POST',
                                 headers: {
@@ -273,9 +273,9 @@ class SiafIntegrationController extends Controller
                                     session_file: sessionFile,
                                 })
                             });
-                            
+
                             const result = await response.json();
-                            
+
                             if (result.success && result.data) {
                                 // Enviar resultado a ventana padre
                                 if (window.opener) {
@@ -300,13 +300,13 @@ class SiafIntegrationController extends Controller
             </body>
             </html>
             HTML;
-            
+
             return response(
                 $formHtml,
                 200,
                 ['Content-Type' => 'text/html; charset=utf-8']
             );
-            
+
         } catch (\Exception $e) {
             \Log::error('SIAF Embedded Form Error: ' . $e->getMessage());
             return response()->json([
@@ -315,7 +315,7 @@ class SiafIntegrationController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Ejecuta la consulta en SIAF con el CAPTCHA ingresado
      * POST /api/siaf/execute-query
@@ -329,10 +329,10 @@ class SiafIntegrationController extends Controller
             'j_captcha' => 'required|string|max:6',
             'session_file' => 'required|string',
         ]);
-        
+
         try {
             $cookieFile = storage_path('app/siaf/' . $validated['session_file']);
-            
+
             if (!file_exists($cookieFile)) {
                 \Log::warning('SIAF Execute - Cookie file not found', ['file' => $cookieFile]);
                 return response()->json([
@@ -340,7 +340,7 @@ class SiafIntegrationController extends Controller
                     'message' => 'Sesión expirada. Por favor intenta de nuevo.',
                 ], 410);
             }
-            
+
             // Ejecutar consulta a SIAF
             $ch = curl_init();
             curl_setopt_array($ch, [
@@ -363,14 +363,14 @@ class SiafIntegrationController extends Controller
                     'Referer: https://apps2.mef.gob.pe/consulta-vfp-webapp/consultaExpediente.jspx',
                 ],
             ]);
-            
+
             $html = curl_exec($ch);
             $errno = curl_errno($ch);
             curl_close($ch);
-            
+
             // Limpiar archivo de cookies
             @unlink($cookieFile);
-            
+
             if ($errno !== 0) {
                 \Log::error('SIAF Execute - Query failed', ['errno' => $errno]);
                 return response()->json([
@@ -378,17 +378,17 @@ class SiafIntegrationController extends Controller
                     'message' => 'Error al consultar SIAF: ' . curl_strerror($errno),
                 ], 503);
             }
-            
+
             // Parsear HTML y extraer datos
             $datos = $this->parsearRespuestaSiaf($html);
-            
+
             if (empty($datos)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No se encontraron datos para los parámetros ingresados.',
                 ]);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -396,7 +396,7 @@ class SiafIntegrationController extends Controller
                     'info_siaf' => $this->extraerInfoSiaf($datos),
                 ],
             ]);
-            
+
         } catch (\Exception $e) {
             \Log::error('SIAF Execute Exception: ' . $e->getMessage());
             return response()->json([
@@ -405,14 +405,14 @@ class SiafIntegrationController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Parsea la respuesta HTML de SIAF y extrae datos de la tabla
      */
     private function parsearRespuestaSiaf(string $html): array
     {
         $datos = [];
-        
+
         // Expresión regular para extraer filas de la tabla
         if (preg_match_all('/<tr[^>]*>.*?<\/tr>/is', $html, $matches)) {
             foreach ($matches[0] as $fila) {
@@ -420,7 +420,7 @@ class SiafIntegrationController extends Controller
                     $valores = array_map(function($celda) {
                         return trim(strip_tags($celda));
                     }, $celdas[1]);
-                    
+
                     // Evitar filas de encabezado
                     if (count($valores) >= 10 && is_numeric($valores[0])) {
                         $datos[] = [
@@ -439,10 +439,10 @@ class SiafIntegrationController extends Controller
                 }
             }
         }
-        
+
         return $datos;
     }
-    
+
     /**
      * Extrae información resumen del SIAF
      */
@@ -451,9 +451,9 @@ class SiafIntegrationController extends Controller
         if (empty($datos)) {
             return [];
         }
-        
+
         $primerRegistro = $datos[0];
-        
+
         return [
             'fase' => $primerRegistro['fase'] ?? '',
             'estado' => $primerRegistro['estado'] ?? '',

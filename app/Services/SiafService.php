@@ -43,7 +43,7 @@ class SiafService
     private function getProxySecret(): string
     {
         $secret = config('services.siaf.proxy_secret');
-        
+
         // Log DETALLADO para diagnosticar el problema del token inválido
         \Log::info('SIAF getProxySecret()', [
             'secret_value' => $secret,
@@ -53,12 +53,12 @@ class SiafService
             'secret_length' => strlen($secret ?? ''),
             'is_using_default' => empty($secret),
         ]);
-        
+
         if (empty($secret)) {
             \Log::warning('SIAF - ⚠️ USANDO SECRET POR DEFECTO (Config vacío, probablemente .env no configurado en Dokploy)');
             return 'default-secret-change-me';
         }
-        
+
         return $secret;
     }
 
@@ -83,7 +83,7 @@ class SiafService
      * Estrategia:
      *   - En producción CON proxy: Proxy → Directo → Local
      *   - En local/dev SIN proxy: Directo → Proxy → Local
-     * 
+     *
      * NOTA: Si SIAF está bloqueando ambas IPs (VPS + Cloudflare), caerá a CAPTCHA local.
      * Esto es esperado y correcto. El CAPTCHA local es funcional pero sin integración SIAF.
      */
@@ -134,11 +134,11 @@ class SiafService
             'reason' => $isProduction ? 'Production: Both proxy and direct failed (likely IP blocked)' : 'Direct and proxy both failed',
             'note' => 'User can still submit forms with local CAPTCHA. SIAF integration unavailable temporarily.',
         ]);
-        
-        $razon = $isProduction 
+
+        $razon = $isProduction
             ? 'SIAF no disponible. Usando CAPTCHA local. IP puede estar bloqueada por SIAF.'
             : 'Conexión SIAF falló (proxy y directo). Usando CAPTCHA local.';
-        
+
         return $this->obtenerCaptchaLocal($razon);
     }
 
@@ -251,7 +251,7 @@ class SiafService
             // HTTP 522 = Worker connection timeout (SIAF blocking Cloudflare IP)
             // HTTP 401/403 = Auth failed (check SIAF_PROXY_SECRET)
             $errorMsg = "Proxy CAPTCHA failed after retries: $lastError";
-            
+
             if (strpos($lastError, '522') !== false) {
                 \Log::warning('SIAF CAPTCHA Proxy - HTTP 522: Cloudflare IP likely blocked by SIAF', ['error' => $lastError]);
                 $errorMsg = 'Proxy: SIAF blocking Cloudflare IP (HTTP 522)';
