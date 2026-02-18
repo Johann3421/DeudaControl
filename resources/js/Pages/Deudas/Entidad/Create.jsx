@@ -97,7 +97,7 @@ export default function EntidadDeudaCreate({ entidades }) {
         post('/deudas/entidad');
     };
 
-    // Escuchar mensajes de la ventana modal (SIAF abierto directamente)
+    // Escuchar mensajes de la ventana modal
     useEffect(() => {
         const handleSiafMessage = (event) => {
             // Validar que sea un mensaje SIAF
@@ -108,7 +108,7 @@ export default function EntidadDeudaCreate({ entidades }) {
             const { success, data, error } = event.data;
 
             if (success && data) {
-                console.log('✓ Resultado HTML recibido de SIAF:', data);
+                console.log('✓ Resultado recibido de SIAF:', data);
 
                 try {
                     setSearchSuccess(true);
@@ -129,6 +129,13 @@ export default function EntidadDeudaCreate({ entidades }) {
                         setData('estado_expediente', data.info_siaf.estado || '');
                         setData('fecha_proceso', data.info_siaf.fechaProceso || '');
                     }
+
+                    // Cerrar modal
+                    if (siafModalWindow && !siafModalWindow.closed) {
+                        setTimeout(() => {
+                            siafModalWindow.close();
+                        }, 1500);
+                    }
                 } catch (err) {
                     console.error('Error procesando resultados SIAF:', err);
                     setSearchError('Error al procesar los datos recibidos');
@@ -143,37 +150,30 @@ export default function EntidadDeudaCreate({ entidades }) {
 
         window.addEventListener('message', handleSiafMessage);
         return () => window.removeEventListener('message', handleSiafMessage);
-    }, [setData]);
+    }, [siafModalWindow, setData]);
 
-    const openSiafWindow = () => {
+    const openSiafModal = () => {
         if (!data.codigo_siaf) {
             setSearchError('Por favor ingresa un número de expediente primero');
             return;
         }
 
-        // Crear la URL con los parámetros necesarios
-        const params = new URLSearchParams({
-            anoEje: siafSearch.anoEje,
-            secEjec: siafSearch.secEjec,
-            expediente: siafSearch.expediente,
-        });
+        // Construir la URL para la modal con los parámetros
+        const modalUrl = `/siaf-modal.html?anoEje=${encodeURIComponent(siafSearch.anoEje)}&secEjec=${encodeURIComponent(siafSearch.secEjec)}&expediente=${encodeURIComponent(siafSearch.expediente)}`;
 
-        // URL local de SIAF que inyectará el script
-        const siafWrapperUrl = `/siaf-wrapper.html?${params.toString()}`;
-
-        // Abrir ventana con SIAF
-        const siafWindow = window.open(
-            siafWrapperUrl,
-            'siaf_window',
-            'width=1000,height=800,resizable=yes,scrollbars=yes,left=50,top=50'
+        // Abrir ventana modal
+        const modalWindow = window.open(
+            modalUrl,
+            'siaf_modal',
+            'width=700,height=700,resizable=yes,scrollbars=yes,left=100,top=100'
         );
 
-        if (siafWindow) {
-            setSiafModalWindow(siafWindow);
+        if (modalWindow) {
+            setSiafModalWindow(modalWindow);
             setShowSiafSearch(false);
             setSearchError('');
         } else {
-            setSearchError('No se pudo abrir la ventana de SIAF. Verifica que no esté bloqueada por el navegador.');
+            setSearchError('No se pudo abrir la ventana modal. Verifica que no esté bloqueada por el navegador.');
         }
     };
 
@@ -320,7 +320,7 @@ export default function EntidadDeudaCreate({ entidades }) {
                                 />
                                 <button
                                     type="button"
-                                    onClick={openSiafWindow}
+                                    onClick={openSiafModal}
                                     className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/25"
                                 >
                                     Buscar

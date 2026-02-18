@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda SIAF - Control Deudas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            color: #1e293b;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+        input:disabled {
+            background: #f1f5f9;
+            cursor: not-allowed;
+            color: #64748b;
+        }
+        .captcha-group {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .captcha-image {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .captcha-image img {
+            height: 60px;
+            width: auto;
+            max-width: 100%;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #0ea5e9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit {
+            background: #10b981;
+            color: white;
+        }
+        .btn-submit:hover:not(:disabled) {
+            background: #059669;
+        }
+        .btn-submit:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        .btn-cancel:hover {
+            background: #cbd5e1;
+        }
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #0c4a6e;
+        }
+        .error-box {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #991b1b;
+        }
+        .success-box {
+            background: #dcfce7;
+            border-left: 4px solid #16a34a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #15803d;
+        }
+        .manual-entry {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .manual-entry h4 {
+            color: #92400e;
+            font-size: 13px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .manual-entry p {
+            color: #78350f;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Búsqueda en SIAF</h1>
+        <p class="subtitle">Ingresa el código de verificación para continuar</p>
+
+        <div id="messageBox"></div>
+
+        <form id="siafForm">
+            <div class="form-group">
+                <label>Año de Ejecución</label>
+                <input type="text" name="anoEje" readonly style="background: #f1f5f9; cursor: not-allowed;">
+            </div>
+
+            <div class="form-group">
+                <label>Código de Unidad Ejecutora</label>
+                <input type="text" name="secEjec" readonly style="background: #f1f5f9; cursor: not-allowed;">
+            </div>
+
+            <div class="form-group">
+                <label>Expediente</label>
+                <input type="text" name="expediente" readonly style="background: #f1f5f9; cursor: not-allowed;">
+            </div>
+
+            <div class="captcha-group">
+                <label>Código de Verificación CAPTCHA *</label>
+                <div class="captcha-image" id="captchaContainer">
+                    <div class="loading-spinner"></div>
+                </div>
+                <input type="text"
+                       name="j_captcha"
+                       id="captchaInput"
+                       placeholder="Ingresa el código"
+                       maxlength="6"
+                       required
+                       autofocus>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-submit" id="submitBtn">Consultar SIAF</button>
+                <button type="button" class="btn-cancel" onclick="window.close(); return false;">Cancelar</button>
+            </div>
+        </form>
+
+        <div id="manualEntryBox" class="manual-entry" style="display: none;">
+            <h4>⚠️ SIAF no disponible</h4>
+            <p>Si SIAF no está disponible, puedes ingresar los datos manualmente:</p>
+            <div style="margin-top: 10px;">
+                <label style="margin-bottom: 8px;">Fase SIAF (ej: D, C, G):</label>
+                <input type="text" id="manualFase" placeholder="ej: D" maxlength="1" style="margin-bottom: 10px;">
+                
+                <label style="margin-bottom: 8px;">Estado (ej: F, P, A):</label>
+                <input type="text" id="manualEstado" placeholder="ej: F" maxlength="1" style="margin-bottom: 10px;">
+                
+                <label style="margin-bottom: 8px;">Fecha (YYYY-MM-DD):</label>
+                <input type="date" id="manualFecha" style="margin-bottom: 10px;">
+
+                <button type="button" id="manualSubmitBtn" class="btn-submit" style="margin-top: 10px; width: 100%;">
+                    Enviar Datos Manuales
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Obtener parámetros de URL
+        const params = new URLSearchParams(window.location.search);
+        const anoEje = params.get('anoEje') || new Date().getFullYear();
+        const secEjec = params.get('secEjec') || '';
+        const expediente = params.get('expediente') || '';
+
+        // Pre-llenar campos
+        document.querySelector('input[name="anoEje"]').value = anoEje;
+        document.querySelector('input[name="secEjec"]').value = secEjec;
+        document.querySelector('input[name="expediente"]').value = expediente;
+
+        const form = document.getElementById('siafForm');
+        const messageBox = document.getElementById('messageBox');
+        const submitBtn = document.getElementById('submitBtn');
+        const captchaInput = document.getElementById('captchaInput');
+        const manualEntryBox = document.getElementById('manualEntryBox');
+        const manualSubmitBtn = document.getElementById('manualSubmitBtn');
+
+        // Función para mostrar mensajes
+        function showMessage(message, type = 'info') {
+            const colors = {
+                info: 'info-box',
+                error: 'error-box',
+                success: 'success-box'
+            };
+            messageBox.innerHTML = `<div class="${colors[type]}">${message}</div>`;
+        }
+
+        // Cargar CAPTCHA al abrir la modal
+        async function loadCaptcha() {
+            try {
+                const response = await fetch('/api/captcha', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.captcha) {
+                    const captchaContainer = document.getElementById('captchaContainer');
+                    captchaContainer.innerHTML = `<img src="${data.captcha}" alt="CAPTCHA">`;
+                    captchaInput.focus();
+                } else {
+                    throw new Error(data.message || 'No se pudo obtener el CAPTCHA');
+                }
+            } catch (error) {
+                console.error('Error cargando CAPTCHA:', error);
+                showMessage(`⚠️ No se pudo cargar el CAPTCHA: ${error.message}. Puedes ingresar datos manualmente.`, 'error');
+                manualEntryBox.style.display = 'block';
+            }
+        }
+
+        // Cargar CAPTCHA al iniciar
+        loadCaptcha();
+
+        // Enviar consulta a SIAF
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const captcha = captchaInput.value.trim();
+            if (!captcha) {
+                showMessage('Por favor ingresa el código CAPTCHA', 'error');
+                return;
+            }
+
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Consultando SIAF...';
+                showMessage('⏳ Consultando SIAF...', 'info');
+
+                // Obtener token CSRF
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                                 Array.from(document.cookie.split('; '))
+                                     .find(row => row.startsWith('XSRF-TOKEN='))
+                                     ?.split('=')[1] ||
+                                 '';
+
+                const response = await fetch('/api/siaf/consultar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        anoEje: anoEje,
+                        secEjec: secEjec,
+                        expediente: expediente,
+                        j_captcha: captcha
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    console.log('✓ Resultados obtenidos:', result.data);
+                    showMessage('✓ ¡Búsqueda exitosa! Enviando datos...', 'success');
+
+                    // Enviar resultado a ventana padre
+                    if (window.opener && window.opener.postMessage) {
+                        window.opener.postMessage({
+                            type: 'SIAF_RESULT',
+                            success: true,
+                            data: result.data
+                        }, window.location.origin);
+
+                        setTimeout(() => {
+                            window.close();
+                        }, 1500);
+                    }
+                } else {
+                    const errorMsg = result.message || 'Error desconocido';
+                    console.error('Error SIAF:', result);
+                    showMessage(`✗ Error: ${errorMsg}. Puedes ingresar datos manualmente.`, 'error');
+                    manualEntryBox.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Consultar SIAF';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(`✗ Error de conexión: ${error.message}. Puedes ingresar datos manualmente.`, 'error');
+                manualEntryBox.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Consultar SIAF';
+            }
+        });
+
+        // Enviar datos manualmente
+        manualSubmitBtn.addEventListener('click', () => {
+            const fase = document.getElementById('manualFase').value.trim();
+            const estado = document.getElementById('manualEstado').value.trim();
+            const fecha = document.getElementById('manualFecha').value.trim();
+
+            if (!fase || !estado || !fecha) {
+                showMessage('Por favor completa todos los campos manuales', 'error');
+                return;
+            }
+
+            // Enviar datos manuales
+            if (window.opener && window.opener.postMessage) {
+                window.opener.postMessage({
+                    type: 'SIAF_RESULT',
+                    success: true,
+                    data: {
+                        datos: [{
+                            ciclo: anoEje,
+                            fase: fase,
+                            secuencia: secEjec,
+                            estado: estado,
+                            fecha: fecha,
+                            moneda: 'PEN',
+                            monto: '0.00'
+                        }],
+                        info_siaf: {
+                            fase: fase,
+                            estado: estado,
+                            fechaProceso: fecha
+                        }
+                    }
+                }, window.location.origin);
+
+                showMessage('✓ Datos enviados', 'success');
+                setTimeout(() => {
+                    window.close();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
