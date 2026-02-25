@@ -11,8 +11,13 @@ class ClienteController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cliente::where('user_id', Auth::id())
-            ->withCount(['deudas', 'deudasActivas']);
+        $user = Auth::user();
+        $query = Cliente::withCount(['deudas', 'deudasActivas']);
+
+        // Superadmin ve todos los clientes; los demás solo los suyos
+        if ($user->rol !== 'superadmin') {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -120,7 +125,8 @@ class ClienteController extends Controller
 
     private function authorize(Cliente $cliente): void
     {
-        if ($cliente->user_id !== Auth::id()) {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $cliente->user_id !== $user->id) {
             abort(403);
         }
     }

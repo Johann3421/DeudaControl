@@ -123,6 +123,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                             <>
                                                 <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Unidad Ejecutora</th>
                                                 <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Expediente</th>
+                                                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Empresa Factura</th>
                                                 <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado SIAF</th>
                                                 <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Fase SIAF</th>
                                             </>
@@ -193,6 +194,11 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                         <td className="px-5 py-3.5 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.codigo_siaf ? (
                                                                 <span className="text-xs font-mono font-semibold text-slate-700">{deuda.deuda_entidad.codigo_siaf}</span>
+                                                            ) : <span className="text-xs text-slate-300">-</span>}
+                                                        </td>
+                                                        <td className="px-5 py-3.5">
+                                                            {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.empresa_factura ? (
+                                                                <span className="text-xs text-slate-700">{deuda.deuda_entidad.empresa_factura}</span>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
                                                         <td className="px-5 py-3.5 text-center">

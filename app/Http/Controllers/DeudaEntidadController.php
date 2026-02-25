@@ -93,7 +93,8 @@ class DeudaEntidadController extends Controller
             return back()->with('error', 'Esta deuda esta cerrada y no puede editarse.');
         }
 
-        $entidades = Entidad::where('user_id', Auth::id())
+        // Cargar entidades del dueño real de la deuda (importante para superadmin)
+        $entidades = Entidad::where('user_id', $deuda->user_id)
             ->where('estado', 'activa')
             ->orderBy('razon_social')
             ->get(['id', 'razon_social', 'ruc', 'tipo']);
@@ -156,7 +157,8 @@ class DeudaEntidadController extends Controller
 
     private function authorize(Deuda $deuda): void
     {
-        if ($deuda->user_id !== Auth::id()) {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
             abort(403);
         }
     }
