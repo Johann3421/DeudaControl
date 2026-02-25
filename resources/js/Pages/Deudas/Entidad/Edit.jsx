@@ -5,6 +5,18 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
     const deudaEntidad = deuda.deuda_entidad || {};
     const cerrado = !!deudaEntidad.cerrado;
 
+    const EMPRESAS_FACTURA = [
+        'GRUPO LARIOS & ASOCIADOS S.A.C.S',
+        'THE KING COMPUTER EIRL',
+        'MACRO DISTRIBUIDORA DEL PERU E.I.R.L.',
+        'ROJAS VILLANUEVA JORGE LUIS',
+        'DISTRIBUIDORA PLAZA CENTRO EIRL',
+        'GRUPO ALMERCO EIRL',
+        'SEKAI TECH S.C.R.L.',
+        'ALMERCO JAUREGUI JULIO CESAR',
+        'KENYA TECHNOLOGY S.A.C.',
+    ];
+
     const { data, setData, put, processing, errors } = useForm({
         descripcion: deuda.descripcion || '',
         producto_servicio: deudaEntidad.producto_servicio || '',
@@ -17,6 +29,8 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
         estado_expediente: deudaEntidad.estado_expediente || '',
         fecha_proceso: deudaEntidad.fecha_proceso ? deudaEntidad.fecha_proceso.split('T')[0] : '',
         notas: deuda.notas || '',
+        empresa_factura: deudaEntidad.empresa_factura || '',
+        unidad_ejecutora: deudaEntidad.unidad_ejecutora || '',
     });
 
     const handleSubmit = (e) => {
@@ -66,6 +80,60 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                             <div>
                                 <p className="text-xs text-violet-600">RUC</p>
                                 <p className="text-sm font-medium text-violet-700">{deudaEntidad.entidad.ruc}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bloque de datos insertados del SIAF */}
+                    {(deudaEntidad.estado_siaf || deudaEntidad.fase_siaf || deudaEntidad.estado_expediente || deudaEntidad.fecha_proceso || deudaEntidad.codigo_siaf) && (
+                        <div className="p-4 rounded-xl bg-violet-50 border border-violet-200 mb-6">
+                            <h4 className="text-sm font-semibold text-violet-900 mb-3 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                Datos Registrados del SIAF
+                            </h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                <div>
+                                    <p className="text-violet-600 font-medium mb-1">Estado SIAF</p>
+                                    <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">
+                                        {deudaEntidad.estado_siaf === 'C' ? 'C – COMPROMISO' :
+                                         deudaEntidad.estado_siaf === 'D' ? 'D – DEVENGADO' :
+                                         deudaEntidad.estado_siaf === 'G' ? 'G – GIRADO' :
+                                         deudaEntidad.estado_siaf === 'R' ? 'R – RECHAZADA' :
+                                         deudaEntidad.estado_siaf || '-'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-violet-600 font-medium mb-1">Fase SIAF</p>
+                                    <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">{deudaEntidad.fase_siaf || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-violet-600 font-medium mb-1">Estado Expediente</p>
+                                    <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">{deudaEntidad.estado_expediente || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-violet-600 font-medium mb-1">Fecha Proceso</p>
+                                    <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">
+                                        {deudaEntidad.fecha_proceso ? deudaEntidad.fecha_proceso.split('T')[0] : '-'}
+                                    </p>
+                                </div>
+                                {deudaEntidad.codigo_siaf && (
+                                    <div>
+                                        <p className="text-violet-600 font-medium mb-1">Nú Expediente</p>
+                                        <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">{deudaEntidad.codigo_siaf}</p>
+                                    </div>
+                                )}
+                                {deudaEntidad.empresa_factura && (
+                                    <div className="col-span-2">
+                                        <p className="text-violet-600 font-medium mb-1">Empresa que Factura</p>
+                                        <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">{deudaEntidad.empresa_factura}</p>
+                                    </div>
+                                )}
+                                {deudaEntidad.unidad_ejecutora && (
+                                    <div className="col-span-2">
+                                        <p className="text-violet-600 font-medium mb-1">Unidad Ejecutora</p>
+                                        <p className="font-semibold text-violet-900 bg-violet-100 px-2 py-1 rounded">{deudaEntidad.unidad_ejecutora}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -239,6 +307,37 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 placeholder="Notas adicionales..."
                             />
+                        </div>
+
+                        {/* Empresa que Factura + Unidad Ejecutora */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Empresa que Factura</label>
+                                <select
+                                    value={data.empresa_factura}
+                                    onChange={(e) => setData('empresa_factura', e.target.value)}
+                                    disabled={cerrado}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.empresa_factura ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                >
+                                    <option value="">-- Seleccionar empresa --</option>
+                                    {EMPRESAS_FACTURA.map((e) => (
+                                        <option key={e} value={e}>{e}</option>
+                                    ))}
+                                </select>
+                                {errors.empresa_factura && <p className="mt-1 text-sm text-red-600">{errors.empresa_factura}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Unidad Ejecutora</label>
+                                <input
+                                    type="text"
+                                    value={data.unidad_ejecutora}
+                                    onChange={(e) => setData('unidad_ejecutora', e.target.value)}
+                                    disabled={cerrado}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.unidad_ejecutora ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    placeholder="Ej: UE-001 Gestión Administrativa"
+                                />
+                                {errors.unidad_ejecutora && <p className="mt-1 text-sm text-red-600">{errors.unidad_ejecutora}</p>}
+                            </div>
                         </div>
 
                         {/* Actions */}

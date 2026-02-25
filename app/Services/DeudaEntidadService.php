@@ -46,6 +46,8 @@ class DeudaEntidadService
                 'codigo_siaf' => $datos['codigo_siaf'] ?? null,
                 'fecha_limite_pago' => $datos['fecha_limite_pago'],
                 'estado_seguimiento' => 'emitido',
+                'empresa_factura' => $datos['empresa_factura'] ?? null,
+                'unidad_ejecutora' => $datos['unidad_ejecutora'] ?? null,
                 // Campos SIAF
                 'estado_siaf' => $datos['estado_siaf'] ?? null,
                 'fase_siaf' => $datos['fase_siaf'] ?? null,
@@ -91,6 +93,8 @@ class DeudaEntidadService
                     'producto_servicio' => $datos['producto_servicio'] ?? null,
                     'codigo_siaf' => $datos['codigo_siaf'] ?? null,
                     'fecha_limite_pago' => $datos['fecha_limite_pago'] ?? null,
+                    'empresa_factura' => $datos['empresa_factura'] ?? null,
+                    'unidad_ejecutora' => $datos['unidad_ejecutora'] ?? null,
                     'estado_siaf' => $datos['estado_siaf'] ?? null,
                     'fase_siaf' => $datos['fase_siaf'] ?? null,
                     'estado_expediente' => $datos['estado_expediente'] ?? null,

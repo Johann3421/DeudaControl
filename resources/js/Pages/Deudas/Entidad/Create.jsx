@@ -99,7 +99,22 @@ export default function EntidadDeudaCreate({ entidades }) {
         fase_siaf: '',
         estado_expediente: '',
         fecha_proceso: '',
+        // Empresa que factura y Unidad Ejecutora
+        empresa_factura: '',
+        unidad_ejecutora: '',
     });
+
+    const EMPRESAS_FACTURA = [
+        'GRUPO LARIOS & ASOCIADOS S.A.C.S',
+        'THE KING COMPUTER EIRL',
+        'MACRO DISTRIBUIDORA DEL PERU E.I.R.L.',
+        'ROJAS VILLANUEVA JORGE LUIS',
+        'DISTRIBUIDORA PLAZA CENTRO EIRL',
+        'GRUPO ALMERCO EIRL',
+        'SEKAI TECH S.C.R.L.',
+        'ALMERCO JAUREGUI JULIO CESAR',
+        'KENYA TECHNOLOGY S.A.C.',
+    ];
 
     // Obtener token CSRF de Inertia o del DOM
     const page = usePage();
@@ -522,6 +537,35 @@ export default function EntidadDeudaCreate({ entidades }) {
                                 <p className="text-sm text-red-700">{searchError}</p>
                             </div>
                         )}
+
+                        {/* Empresa que Factura + Unidad Ejecutora */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Empresa que Factura</label>
+                                <select
+                                    value={data.empresa_factura}
+                                    onChange={(e) => setData('empresa_factura', e.target.value)}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.empresa_factura ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                >
+                                    <option value="">-- Seleccionar empresa --</option>
+                                    {EMPRESAS_FACTURA.map((e) => (
+                                        <option key={e} value={e}>{e}</option>
+                                    ))}
+                                </select>
+                                {errors.empresa_factura && <p className="mt-1 text-sm text-red-600">{errors.empresa_factura}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Unidad Ejecutora</label>
+                                <input
+                                    type="text"
+                                    value={data.unidad_ejecutora}
+                                    onChange={(e) => setData('unidad_ejecutora', e.target.value)}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.unidad_ejecutora ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    placeholder="Ej: UE-001 Gestión Administrativa"
+                                />
+                                {errors.unidad_ejecutora && <p className="mt-1 text-sm text-red-600">{errors.unidad_ejecutora}</p>}
+                            </div>
+                        </div>
 
                         {/* Fecha Limite de Pago */}
                         <div>

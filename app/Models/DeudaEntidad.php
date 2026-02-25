@@ -21,6 +21,8 @@ class DeudaEntidad extends Model
         'codigo_siaf',
         'fecha_limite_pago',
         'estado_seguimiento',
+        'empresa_factura',
+        'unidad_ejecutora',
         'cerrado',
         'estado_siaf',
         'fase_siaf',
