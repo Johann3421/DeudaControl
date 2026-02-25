@@ -46,8 +46,7 @@ class DashboardController extends Controller
         $montoPendiente = $montoPendienteQuery->sum('monto_pendiente');
         $montoRecuperado = $montoTotalPrestado - $montoPendiente;
 
-        $vencidosQuery = Deuda::where('estado', 'activa')
-            ->where('fecha_vencimiento', '<', now());
+        $vencidosQuery = Deuda::where('estado', 'vencida');
         if (!$isSuperAdmin) $vencidosQuery->where('user_id', $userId);
         $deudasVencidas = $vencidosQuery->count();
 
