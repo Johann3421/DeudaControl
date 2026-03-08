@@ -135,6 +135,11 @@ class DeudaEntidadController extends Controller
             'fecha_proceso.date_format' => 'La fecha de proceso debe estar en formato válido (dd/mm/yyyy).',
         ]);
 
+        // Si la deuda se marca como pagada, asegurar que el monto pendiente sea 0
+        if (isset($validated['estado']) && $validated['estado'] === 'pagada') {
+            $validated['monto_pendiente'] = 0;
+        }
+
         $this->service->actualizar($deuda, $validated);
 
         return redirect()->route('deudas.index')->with('success', 'Deuda con entidad actualizada correctamente.');

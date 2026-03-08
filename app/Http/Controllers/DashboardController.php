@@ -23,7 +23,7 @@ class DashboardController extends Controller
         $clientesQuery = Cliente::query();
         if (!$isSuperAdmin) $clientesQuery->where('user_id', $userId);
         $totalClientes = $clientesQuery->count();
-        
+
         $clientesActivosQuery = Cliente::where('estado', 'activo');
         if (!$isSuperAdmin) $clientesActivosQuery->where('user_id', $userId);
         $clientesActivos = $clientesActivosQuery->count();

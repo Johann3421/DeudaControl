@@ -22,7 +22,8 @@ export const formatMoney = (amount, currency = 'PEN') => {
         maximumFractionDigits: 2,
     });
 
-    return `${currencyData.symbol} ${formatted}`;
+    // Usar espacio no separable para evitar que el símbolo quede en una línea distinta
+    return `${currencyData.symbol}\u00A0${formatted}`;
 };
 
 /**

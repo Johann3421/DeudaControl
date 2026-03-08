@@ -81,12 +81,25 @@ class DeudaEntidadService
 
             $originales = $deuda->getOriginal();
 
-            $deuda->update([
+            // Determinar nuevo estado y preparar campos a actualizar
+            $nuevoEstado = $datos['estado'] ?? $deuda->estado;
+
+            $updateData = [
                 'descripcion' => $datos['descripcion'] ?? $deuda->descripcion,
                 'notas' => $datos['notas'] ?? $deuda->notas,
-                'estado' => $datos['estado'] ?? $deuda->estado,
+                'estado' => $nuevoEstado,
                 'currency_code' => $datos['currency_code'] ?? $deuda->currency_code,
-            ]);
+            ];
+
+            // Si el llamador pasó explícitamente monto_pendiente, respetarlo.
+            if (array_key_exists('monto_pendiente', $datos)) {
+                $updateData['monto_pendiente'] = $datos['monto_pendiente'];
+            } elseif ($nuevoEstado === 'pagada') {
+                // Si la deuda se marca como pagada, asegurarse que el pendiente sea 0
+                $updateData['monto_pendiente'] = 0;
+            }
+
+            $deuda->update($updateData);
 
             if ($extension) {
                 $extension->update(array_filter([

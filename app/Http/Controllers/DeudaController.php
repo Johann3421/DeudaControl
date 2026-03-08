@@ -125,6 +125,11 @@ class DeudaController extends Controller
             'notas' => ['nullable', 'string'],
         ]);
 
+        // Si la deuda se marca como pagada, asegurarnos que el pendiente sea 0
+        if (isset($validated['estado']) && $validated['estado'] === 'pagada') {
+            $validated['monto_pendiente'] = 0;
+        }
+
         $deuda->update($validated);
 
         return redirect()->route('deudas.index')->with('success', 'Deuda actualizada correctamente.');
