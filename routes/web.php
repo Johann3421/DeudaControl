@@ -23,6 +23,7 @@ use App\Http\Controllers\SiafController;
 use App\Http\Controllers\SiafIntegrationController;
 use App\Http\Controllers\SiafScraperController;
 use App\Http\Controllers\ExcelSiafController;
+use App\Http\Controllers\UtilidadController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -123,6 +124,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
+
+    // Utilidades (Órdenes de Compra)
+    Route::resource('utilidades', UtilidadController::class);
+    Route::prefix('utilidades')->name('utilidades.')->group(function () {
+        // Gastos de OC
+        Route::post('{utilidad}/gastos', [UtilidadController::class, 'storeGasto'])->name('gastos.store');
+        Route::delete('{utilidad}/gastos/{gasto}', [UtilidadController::class, 'destroyGasto'])->name('gastos.destroy');
+        // Pagos de OC
+        Route::post('{utilidad}/pagos', [UtilidadController::class, 'storePago'])->name('pagos.store');
+        Route::delete('{utilidad}/pagos/{pago}', [UtilidadController::class, 'destroyPago'])->name('pagos.destroy');
+    });
 
     // Admin routes
     Route::prefix('admin')->name('admin.')->group(function () {

@@ -9,6 +9,7 @@ const NAVIGATION = [
     { name: 'Inmuebles', href: '/inmuebles', icon: 'properties' },
     { name: 'Pagos', href: '/pagos', icon: 'payments' },
     { name: 'Movimientos', href: '/movimientos', icon: 'history' },
+    { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
 ];
 
 const ADMIN_NAVIGATION = [
@@ -90,6 +91,15 @@ function PropertiesIcon() {
     );
 }
 
+function UtilidadesIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+            <polyline points="16 7 22 7 22 13" />
+        </svg>
+    );
+}
+
 function AdminIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -140,6 +150,7 @@ const ICONS = {
     properties: PropertiesIcon,
     payments: PaymentsIcon,
     history: HistoryIcon,
+    utilidades: UtilidadesIcon,
     admin: AdminIcon,
     stats: StatsIcon,
     settings: SettingsIcon,
