@@ -1,17 +1,33 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useMemo } from 'react';
 import Layout from '../../Components/Layout';
+import { formatMoney } from '../../helpers/currencyHelper';
 
-export default function UtilidadesEdit({ oc }) {
+const ESTADO_DEUDA_LABELS = {
+    pendiente: 'Pendiente',
+    vencida:   'Vencida',
+    pagada:    'Pagada',
+    parcial:   'Parcial',
+};
+
+export default function UtilidadesEdit({ oc, deudas = [] }) {
     const { data, setData, put, processing, errors } = useForm({
+        deuda_id:      oc.deuda_id      ? String(oc.deuda_id) : '',
         numero_oc:     oc.numero_oc     || '',
-        cliente:       oc.cliente       || '',
         fecha_oc:      oc.fecha_oc      ? oc.fecha_oc.split('T')[0] : '',
         fecha_entrega: oc.fecha_entrega ? oc.fecha_entrega.split('T')[0] : '',
         estado:        oc.estado        || 'pendiente',
-        total_oc:      oc.total_oc      || '',
-        currency_code: oc.currency_code || 'PEN',
         notas:         oc.notas         || '',
     });
+
+    const selectedDeuda = useMemo(
+        () => deudas.find(d => String(d.id) === String(data.deuda_id)) ?? null,
+        [data.deuda_id, deudas]
+    );
+
+    const handleDeudaChange = (e) => {
+        setData('deuda_id', e.target.value);
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -29,29 +45,62 @@ export default function UtilidadesEdit({ oc }) {
                     </Link>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                    <div className="flex items-center gap-3 mb-6">
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+                    <div className="flex items-center gap-3 mb-2">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">Editar</span>
                         <h2 className="text-lg font-semibold text-slate-900">Editar Orden de Compra</h2>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                        {/* ── Deuda vinculada ───────────────────────── */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                Deuda vinculada
+                                <span className="ml-1.5 text-xs font-normal text-slate-400">El monto y cliente se actualizan si cambias la deuda</span>
+                            </label>
+                            <select value={data.deuda_id} onChange={handleDeudaChange}
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm bg-white outline-none transition-all ${errors.deuda_id ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}>
+                                <option value="">— Sin vincular —</option>
+                                {deudas.map(d => (
+                                    <option key={d.id} value={d.id}>
+                                        {d.descripcion} · {d.cliente_nombre} · {formatMoney(d.monto_total, d.currency_code)}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.deuda_id && <p className="mt-1 text-xs text-red-600">{errors.deuda_id}</p>}
+                        </div>
+
+                        {/* ── Preview deuda seleccionada ───────────── */}
+                        {selectedDeuda && (
+                            <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div>
+                                    <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Cliente</p>
+                                    <p className="text-sm font-semibold text-sky-900">{selectedDeuda.cliente_nombre}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Total deuda</p>
+                                    <p className="text-sm font-bold text-sky-900">{formatMoney(selectedDeuda.monto_total, selectedDeuda.currency_code)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Pendiente cobro</p>
+                                    <p className="text-sm font-semibold text-sky-900">{formatMoney(selectedDeuda.monto_pendiente, selectedDeuda.currency_code)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Estado deuda</p>
+                                    <p className="text-sm font-semibold text-sky-900">{ESTADO_DEUDA_LABELS[selectedDeuda.estado] ?? selectedDeuda.estado}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── N° OC + Fechas ────────────────────────── */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">N° de OC *</label>
                                 <input type="text" value={data.numero_oc} onChange={e => setData('numero_oc', e.target.value)}
                                     className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.numero_oc ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`} />
                                 {errors.numero_oc && <p className="mt-1 text-xs text-red-600">{errors.numero_oc}</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Cliente / Entidad *</label>
-                                <input type="text" value={data.cliente} onChange={e => setData('cliente', e.target.value)}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.cliente ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`} />
-                                {errors.cliente && <p className="mt-1 text-xs text-red-600">{errors.cliente}</p>}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Fecha de OC *</label>
                                 <input type="date" value={data.fecha_oc} onChange={e => setData('fecha_oc', e.target.value)}
@@ -64,32 +113,16 @@ export default function UtilidadesEdit({ oc }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Total OC *</label>
-                                <input type="number" step="0.01" min="0" value={data.total_oc} onChange={e => setData('total_oc', e.target.value)}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.total_oc ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`} />
-                                {errors.total_oc && <p className="mt-1 text-xs text-red-600">{errors.total_oc}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Moneda</label>
-                                <select value={data.currency_code} onChange={e => setData('currency_code', e.target.value)}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none bg-white transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10">
-                                    <option value="PEN">Soles (PEN)</option>
-                                    <option value="USD">Dólares (USD)</option>
-                                    <option value="EUR">Euros (EUR)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado</label>
-                                <select value={data.estado} onChange={e => setData('estado', e.target.value)}
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none bg-white transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10">
-                                    <option value="pendiente">Pendiente</option>
-                                    <option value="entregado">Entregado</option>
-                                    <option value="facturado">Facturado</option>
-                                    <option value="pagado">Pagado</option>
-                                </select>
-                            </div>
+                        {/* ── Estado ───────────────────────────────── */}
+                        <div className="sm:w-1/3">
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado de la OC</label>
+                            <select value={data.estado} onChange={e => setData('estado', e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none bg-white transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="entregado">Entregado</option>
+                                <option value="facturado">Facturado</option>
+                                <option value="pagado">Pagado</option>
+                            </select>
                         </div>
 
                         <div>

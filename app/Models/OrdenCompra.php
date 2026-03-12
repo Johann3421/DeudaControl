@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Deuda;
 
 class OrdenCompra extends Model
 {
@@ -12,6 +13,7 @@ class OrdenCompra extends Model
 
     protected $fillable = [
         'user_id',
+        'deuda_id',
         'numero_oc',
         'cliente',
         'fecha_oc',
@@ -36,6 +38,11 @@ class OrdenCompra extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function deuda(): BelongsTo
+    {
+        return $this->belongsTo(Deuda::class);
     }
 
     public function gastos(): HasMany
@@ -84,9 +91,12 @@ class OrdenCompra extends Model
         return 'rojo';
     }
 
-    /** Deuda = total_oc – total_pagado */
+    /** Deuda = monto_pendiente de la deuda vinculada (o total_oc – pagos OC) */
     public function getDeudaPendienteAttribute(): float
     {
+        if ($this->deuda_id && $this->relationLoaded('deuda') && $this->deuda) {
+            return (float) $this->deuda->monto_pendiente;
+        }
         return max(0, (float) $this->total_oc - $this->total_pagado);
     }
 }

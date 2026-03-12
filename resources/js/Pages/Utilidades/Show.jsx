@@ -130,6 +130,7 @@ export default function UtilidadesShow({ oc }) {
     const cur    = oc.currency_code || 'PEN';
     const gastos = oc.gastos || [];
     const pagos  = oc.pagos  || [];
+    const deuda  = oc.deuda  || null;
 
     const handleDeleteGasto = (gastoId) => {
         if (!confirm('¿Eliminar este gasto?')) return;
@@ -197,8 +198,40 @@ export default function UtilidadesShow({ oc }) {
                     </div>
                 </div>
 
-                {/* Summary row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {/* Deuda vinculada */}
+                {deuda && (
+                    <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-semibold text-sky-600 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                Deuda vinculada
+                            </p>
+                            <Link href={`/deudas/${deuda.id}`} className="text-xs text-sky-600 hover:text-sky-800 underline">
+                                Ver deuda →
+                            </Link>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div>
+                                <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Cliente</p>
+                                <p className="text-sm font-semibold text-sky-900">{deuda.cliente_nombre}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Descripción</p>
+                                <p className="text-sm text-sky-800 truncate">{deuda.descripcion}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Monto total deuda</p>
+                                <p className="text-sm font-bold text-sky-900">{formatMoney(deuda.monto_total, cur)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-sky-500 font-semibold uppercase tracking-wider mb-0.5">Pendiente cobro</p>
+                                <p className="text-sm font-bold text-sky-900">{formatMoney(deuda.monto_pendiente, cur)}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Summary row */}                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
                         { label: 'Total OC',      value: formatMoney(oc.total_oc,        cur), color: 'text-slate-800' },
                         { label: 'Total Gastos',  value: formatMoney(oc.total_gastos,    cur), color: 'text-amber-700' },

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Deuda;
 use App\Models\GastoOC;
 use App\Models\OrdenCompra;
 use App\Models\PagoOC;
@@ -15,14 +16,47 @@ class UtilidadController extends Controller
 
     private function withUtilidad(OrdenCompra $oc): array
     {
-        $arr                       = $oc->toArray();
-        $arr['total_gastos']       = $oc->total_gastos;
-        $arr['total_pagado']       = $oc->total_pagado;
-        $arr['utilidad']           = $oc->utilidad;
+        $arr                        = $oc->toArray();
+        $arr['total_gastos']        = $oc->total_gastos;
+        $arr['total_pagado']        = $oc->total_pagado;
+        $arr['utilidad']            = $oc->utilidad;
         $arr['porcentaje_utilidad'] = $oc->porcentaje_utilidad;
-        $arr['color_utilidad']     = $oc->color_utilidad;
-        $arr['deuda_pendiente']    = $oc->deuda_pendiente;
+        $arr['color_utilidad']      = $oc->color_utilidad;
+        $arr['deuda_pendiente']     = $oc->deuda_pendiente;
+
+        if ($oc->relationLoaded('deuda') && $oc->deuda) {
+            $arr['deuda'] = [
+                'id'              => $oc->deuda->id,
+                'descripcion'     => $oc->deuda->descripcion,
+                'monto_total'     => $oc->deuda->monto_total,
+                'monto_pendiente' => $oc->deuda->monto_pendiente,
+                'estado'          => $oc->deuda->estado,
+                'cliente_nombre'  => optional($oc->deuda->cliente)->nombre ?? '—',
+            ];
+        }
+
         return $arr;
+    }
+
+    private function deudasDisponibles(?int $userId = null, ?int $excludeOcId = null): \Illuminate\Support\Collection
+    {
+        $usedIds = OrdenCompra::whereNotNull('deuda_id')
+            ->when($excludeOcId, fn ($q) => $q->where('id', '!=', $excludeOcId))
+            ->pluck('deuda_id');
+
+        return Deuda::with('cliente')
+            ->whereNotIn('id', $usedIds)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn ($d) => [
+                'id'              => $d->id,
+                'descripcion'     => $d->descripcion,
+                'monto_total'     => $d->monto_total,
+                'monto_pendiente' => $d->monto_pendiente,
+                'currency_code'   => $d->currency_code,
+                'cliente_nombre'  => optional($d->cliente)->nombre ?? '—',
+                'estado'          => $d->estado,
+            ]);
     }
 
     // ─── Index ───────────────────────────────────────────────────────────────
@@ -30,7 +64,7 @@ class UtilidadController extends Controller
     public function index(Request $request)
     {
         $user  = Auth::user();
-        $query = OrdenCompra::with(['gastos', 'pagos'])
+        $query = OrdenCompra::with(['gastos', 'pagos', 'deuda.cliente'])
             ->where('user_id', $user->id)
             ->orderBy('fecha_oc', 'desc');
 
@@ -68,7 +102,7 @@ class UtilidadController extends Controller
         $ocs->getCollection()->transform(fn ($oc) => $this->withUtilidad($oc));
 
         // Resumen global (solo del usuario)
-        $all   = OrdenCompra::with(['gastos', 'pagos'])->where('user_id', $user->id)->get();
+        $all   = OrdenCompra::with(['gastos', 'pagos', 'deuda'])->where('user_id', $user->id)->get();
         $resumen = [
             'total_vendido'  => $all->sum('total_oc'),
             'total_gastado'  => $all->sum(fn ($o) => $o->total_gastos),
@@ -88,7 +122,9 @@ class UtilidadController extends Controller
 
     public function create()
     {
-        return Inertia::render('Utilidades/Create');
+        return Inertia::render('Utilidades/Create', [
+            'deudas' => $this->deudasDisponibles(Auth::id()),
+        ]);
     }
 
     // ─── Store (OC) ──────────────────────────────────────────────────────────
@@ -96,17 +132,21 @@ class UtilidadController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'deuda_id'      => ['required', 'integer', 'exists:deudas,id'],
             'numero_oc'     => ['required', 'string', 'max:50', 'unique:ordenes_compra,numero_oc'],
-            'cliente'       => ['required', 'string', 'max:200'],
             'fecha_oc'      => ['required', 'date'],
             'fecha_entrega' => ['nullable', 'date', 'after_or_equal:fecha_oc'],
             'estado'        => ['required', 'in:pendiente,entregado,facturado,pagado'],
-            'total_oc'      => ['required', 'numeric', 'min:0.01'],
-            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR'],
             'notas'         => ['nullable', 'string'],
         ]);
 
-        $validated['user_id'] = Auth::id();
+        $deuda = Deuda::with('cliente')->findOrFail($validated['deuda_id']);
+
+        $validated['user_id']       = Auth::id();
+        $validated['cliente']       = optional($deuda->cliente)->nombre ?? $deuda->descripcion;
+        $validated['total_oc']      = $deuda->monto_total;
+        $validated['currency_code'] = $deuda->currency_code;
+
         OrdenCompra::create($validated);
 
         return redirect()->route('utilidades.index')->with('success', 'Orden de compra creada correctamente.');
@@ -117,6 +157,7 @@ class UtilidadController extends Controller
     public function show(OrdenCompra $utilidad)
     {
         $utilidad->load([
+            'deuda.cliente',
             'gastos' => fn ($q) => $q->orderBy('created_at', 'asc'),
             'pagos'  => fn ($q) => $q->orderBy('fecha_pago', 'desc'),
         ]);
@@ -130,8 +171,26 @@ class UtilidadController extends Controller
 
     public function edit(OrdenCompra $utilidad)
     {
+        $utilidad->load('deuda.cliente');
+
+        // Also include the currently linked deuda (even if already used) in the options
+        $deudas = $this->deudasDisponibles(Auth::id(), $utilidad->id);
+        if ($utilidad->deuda_id && ! $deudas->contains('id', $utilidad->deuda_id)) {
+            $d = $utilidad->deuda;
+            $deudas->prepend([
+                'id'              => $d->id,
+                'descripcion'     => $d->descripcion,
+                'monto_total'     => $d->monto_total,
+                'monto_pendiente' => $d->monto_pendiente,
+                'currency_code'   => $d->currency_code,
+                'cliente_nombre'  => optional($d->cliente)->nombre ?? '—',
+                'estado'          => $d->estado,
+            ]);
+        }
+
         return Inertia::render('Utilidades/Edit', [
-            'oc' => $utilidad,
+            'oc'     => $utilidad,
+            'deudas' => $deudas,
         ]);
     }
 
@@ -140,15 +199,20 @@ class UtilidadController extends Controller
     public function update(Request $request, OrdenCompra $utilidad)
     {
         $validated = $request->validate([
+            'deuda_id'      => ['nullable', 'integer', 'exists:deudas,id'],
             'numero_oc'     => ['required', 'string', 'max:50', "unique:ordenes_compra,numero_oc,{$utilidad->id}"],
-            'cliente'       => ['required', 'string', 'max:200'],
             'fecha_oc'      => ['required', 'date'],
             'fecha_entrega' => ['nullable', 'date', 'after_or_equal:fecha_oc'],
             'estado'        => ['required', 'in:pendiente,entregado,facturado,pagado'],
-            'total_oc'      => ['required', 'numeric', 'min:0.01'],
-            'currency_code' => ['required', 'string', 'in:PEN,USD,EUR'],
             'notas'         => ['nullable', 'string'],
         ]);
+
+        if (!empty($validated['deuda_id'])) {
+            $deuda = Deuda::with('cliente')->findOrFail($validated['deuda_id']);
+            $validated['cliente']       = optional($deuda->cliente)->nombre ?? $deuda->descripcion;
+            $validated['total_oc']      = $deuda->monto_total;
+            $validated['currency_code'] = $deuda->currency_code;
+        }
 
         $utilidad->update($validated);
 

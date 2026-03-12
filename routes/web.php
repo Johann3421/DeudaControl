@@ -126,7 +126,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
 
     // Utilidades (Órdenes de Compra)
-    Route::resource('utilidades', UtilidadController::class);
+    // Force the singular parameter name to `utilidad` (resource() may guess incorrectly)
+    Route::resource('utilidades', UtilidadController::class)->parameters(['utilidades' => 'utilidad']);
     Route::prefix('utilidades')->name('utilidades.')->group(function () {
         // Gastos de OC
         Route::post('{utilidad}/gastos', [UtilidadController::class, 'storeGasto'])->name('gastos.store');
