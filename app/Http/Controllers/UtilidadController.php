@@ -132,12 +132,14 @@ class UtilidadController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'deuda_id'      => ['required', 'integer', 'exists:deudas,id'],
-            'numero_oc'     => ['required', 'string', 'max:50', 'unique:ordenes_compra,numero_oc'],
-            'fecha_oc'      => ['required', 'date'],
-            'fecha_entrega' => ['nullable', 'date', 'after_or_equal:fecha_oc'],
-            'estado'        => ['required', 'in:pendiente,entregado,facturado,pagado'],
-            'notas'         => ['nullable', 'string'],
+            'deuda_id'        => ['required', 'integer', 'exists:deudas,id'],
+            'numero_oc'       => ['required', 'string', 'max:50', 'unique:ordenes_compra,numero_oc'],
+            'empresa_factura' => ['nullable', 'string', 'max:200'],
+            'entidad_recibe'  => ['nullable', 'string', 'max:200'],
+            'fecha_oc'        => ['required', 'date'],
+            'fecha_entrega'   => ['nullable', 'date', 'after_or_equal:fecha_oc'],
+            'estado'          => ['required', 'in:pendiente,entregado,facturado,pagado'],
+            'notas'           => ['nullable', 'string'],
         ]);
 
         $deuda = Deuda::with('cliente')->findOrFail($validated['deuda_id']);
@@ -199,12 +201,14 @@ class UtilidadController extends Controller
     public function update(Request $request, OrdenCompra $utilidad)
     {
         $validated = $request->validate([
-            'deuda_id'      => ['nullable', 'integer', 'exists:deudas,id'],
-            'numero_oc'     => ['required', 'string', 'max:50', "unique:ordenes_compra,numero_oc,{$utilidad->id}"],
-            'fecha_oc'      => ['required', 'date'],
-            'fecha_entrega' => ['nullable', 'date', 'after_or_equal:fecha_oc'],
-            'estado'        => ['required', 'in:pendiente,entregado,facturado,pagado'],
-            'notas'         => ['nullable', 'string'],
+            'deuda_id'        => ['nullable', 'integer', 'exists:deudas,id'],
+            'numero_oc'       => ['required', 'string', 'max:50', "unique:ordenes_compra,numero_oc,{$utilidad->id}"],
+            'empresa_factura' => ['nullable', 'string', 'max:200'],
+            'entidad_recibe'  => ['nullable', 'string', 'max:200'],
+            'fecha_oc'        => ['required', 'date'],
+            'fecha_entrega'   => ['nullable', 'date', 'after_or_equal:fecha_oc'],
+            'estado'          => ['required', 'in:pendiente,entregado,facturado,pagado'],
+            'notas'           => ['nullable', 'string'],
         ]);
 
         if (!empty($validated['deuda_id'])) {
@@ -242,6 +246,19 @@ class UtilidadController extends Controller
         GastoOC::create($validated);
 
         return back()->with('success', 'Gasto añadido.');
+    }
+
+    public function updateGasto(Request $request, OrdenCompra $utilidad, GastoOC $gasto)
+    {
+        abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
+        $validated = $request->validate([
+            'tipo_gasto'  => ['required', 'in:compra_producto,transporte,envio,accesorios,logistica,otro'],
+            'descripcion' => ['nullable', 'string', 'max:255'],
+            'monto'       => ['required', 'numeric', 'min:0.01'],
+            'fecha'       => ['nullable', 'date'],
+        ]);
+        $gasto->update($validated);
+        return back()->with('success', 'Gasto actualizado.');
     }
 
     public function destroyGasto(OrdenCompra $utilidad, GastoOC $gasto)

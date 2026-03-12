@@ -181,6 +181,20 @@ export default function UtilidadesShow({ oc }) {
                                 </span>
                             </div>
                             <p className="text-slate-500 text-sm">{oc.cliente}</p>
+                            {(oc.empresa_factura || oc.entidad_recibe) && (
+                                <div className="flex flex-wrap gap-4 mt-1.5">
+                                    {oc.empresa_factura && (
+                                        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                            <span className="font-semibold text-slate-400">Factura:</span> {oc.empresa_factura}
+                                        </span>
+                                    )}
+                                    {oc.entidad_recibe && (
+                                        <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                                            <span className="font-semibold text-slate-400">Recibe:</span> {oc.entidad_recibe}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                             <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                                 <span>Fecha OC: {oc.fecha_oc ? new Date(oc.fecha_oc).toLocaleDateString('es-PE') : '-'}</span>
                                 {oc.fecha_entrega && <span>Entrega: {new Date(oc.fecha_entrega).toLocaleDateString('es-PE')}</span>}

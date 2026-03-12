@@ -16,6 +16,8 @@ class OrdenCompra extends Model
         'deuda_id',
         'numero_oc',
         'cliente',
+        'empresa_factura',
+        'entidad_recibe',
         'fecha_oc',
         'fecha_entrega',
         'estado',

@@ -131,6 +131,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('utilidades')->name('utilidades.')->group(function () {
         // Gastos de OC
         Route::post('{utilidad}/gastos', [UtilidadController::class, 'storeGasto'])->name('gastos.store');
+        Route::put('{utilidad}/gastos/{gasto}', [UtilidadController::class, 'updateGasto'])->name('gastos.update');
         Route::delete('{utilidad}/gastos/{gasto}', [UtilidadController::class, 'destroyGasto'])->name('gastos.destroy');
         // Pagos de OC
         Route::post('{utilidad}/pagos', [UtilidadController::class, 'storePago'])->name('pagos.store');

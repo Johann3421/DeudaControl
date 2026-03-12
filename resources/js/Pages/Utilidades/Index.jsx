@@ -3,6 +3,15 @@ import { useState } from 'react';
 import Layout from '../../Components/Layout';
 import { formatMoney } from '../../helpers/currencyHelper';
 
+const TIPO_LABELS = {
+    compra_producto: 'Compra',
+    transporte:      'Transporte',
+    envio:           'Envío',
+    accesorios:      'Accesorios',
+    logistica:       'Logística',
+    otro:            'Otro',
+};
+
 const ESTADO_STYLES = {
     pendiente:  { bg: 'bg-amber-50',   text: 'text-amber-700',   dot: 'bg-amber-400',   label: 'Pendiente'  },
     entregado:  { bg: 'bg-sky-50',     text: 'text-sky-700',     dot: 'bg-sky-500',     label: 'Entregado'  },
@@ -33,8 +42,160 @@ function StatCard({ label, value, sub, color = 'slate' }) {
     );
 }
 
+// ─── Inline gasto editor ─────────────────────────────────────────────────────
+function GastoRow({ gasto, ocId, cur }) {
+    const [editing, setEditing] = useState(false);
+    const [form, setForm] = useState({
+        tipo_gasto:  gasto.tipo_gasto,
+        descripcion: gasto.descripcion || '',
+        monto:       gasto.monto,
+        fecha:       gasto.fecha ? gasto.fecha.split('T')[0] : '',
+    });
+    const [saving, setSaving] = useState(false);
+
+    const save = () => {
+        setSaving(true);
+        router.put(`/utilidades/${ocId}/gastos/${gasto.id}`, form, {
+            preserveScroll: true,
+            onFinish: () => { setSaving(false); setEditing(false); },
+        });
+    };
+
+    const del = () => {
+        if (!confirm('¿Eliminar este gasto?')) return;
+        router.delete(`/utilidades/${ocId}/gastos/${gasto.id}`, { preserveScroll: true });
+    };
+
+    const inp = 'px-2 py-1 rounded-lg border border-slate-200 text-xs outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/10';
+
+    if (editing) {
+        return (
+            <tr className="bg-sky-50/60">
+                <td className="px-3 py-2">
+                    <select value={form.tipo_gasto} onChange={e => setForm(f => ({ ...f, tipo_gasto: e.target.value }))}
+                        className={`${inp} bg-white`}>
+                        {Object.entries(TIPO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                </td>
+                <td className="px-3 py-2">
+                    <input type="text" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+                        placeholder="Descripción" className={`${inp} w-full`} />
+                </td>
+                <td className="px-3 py-2">
+                    <input type="number" step="0.01" min="0" value={form.monto} onChange={e => setForm(f => ({ ...f, monto: e.target.value }))}
+                        className={`${inp} w-24`} />
+                </td>
+                <td className="px-3 py-2">
+                    <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
+                        className={inp} />
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                    <button onClick={save} disabled={saving} className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 mr-2 disabled:opacity-50">
+                        {saving ? '...' : 'Guardar'}
+                    </button>
+                    <button onClick={() => setEditing(false)} className="text-xs text-slate-400 hover:text-slate-600">Cancelar</button>
+                </td>
+            </tr>
+        );
+    }
+
+    return (
+        <tr className="hover:bg-slate-50/50">
+            <td className="px-3 py-1.5">
+                <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">{TIPO_LABELS[gasto.tipo_gasto] || gasto.tipo_gasto}</span>
+            </td>
+            <td className="px-3 py-1.5 text-xs text-slate-500">{gasto.descripcion || '—'}</td>
+            <td className="px-3 py-1.5 text-xs font-semibold text-slate-700">{formatMoney(gasto.monto, cur)}</td>
+            <td className="px-3 py-1.5 text-xs text-slate-400">{gasto.fecha ? new Date(gasto.fecha).toLocaleDateString('es-PE') : '—'}</td>
+            <td className="px-3 py-1.5 whitespace-nowrap">
+                <button onClick={() => setEditing(true)} className="text-xs text-sky-500 hover:text-sky-700 mr-2">Editar</button>
+                <button onClick={del} className="text-xs text-red-400 hover:text-red-600">Eliminar</button>
+            </td>
+        </tr>
+    );
+}
+
+// ─── Expanded gastos panel ────────────────────────────────────────────────────
+function GastosPanel({ oc }) {
+    const gastos = oc.gastos || [];
+    const cur    = oc.currency_code || 'PEN';
+    const [addForm, setAddForm] = useState({ tipo_gasto: 'compra_producto', descripcion: '', monto: '', fecha: new Date().toISOString().split('T')[0] });
+    const [adding, setAdding] = useState(false);
+
+    const submit = (e) => {
+        e.preventDefault();
+        setAdding(true);
+        router.post(`/utilidades/${oc.id}/gastos`, addForm, {
+            preserveScroll: true,
+            onFinish: () => { setAdding(false); setAddForm(f => ({ ...f, monto: '', descripcion: '' })); },
+        });
+    };
+
+    const inp = 'px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/10';
+
+    return (
+        <tr>
+            <td colSpan={12} className="bg-slate-50 px-6 py-4 border-b border-slate-100">
+                <div className="max-w-3xl">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                        Gastos de <span className="text-slate-700">{oc.numero_oc}</span>
+                    </p>
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-3">
+                        {gastos.length === 0 ? (
+                            <p className="py-4 text-center text-xs text-slate-400">Sin gastos registrados</p>
+                        ) : (
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-slate-100 bg-slate-50">
+                                        {['Tipo', 'Descripción', 'Monto', 'Fecha', ''].map(h => (
+                                            <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">{h}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {gastos.map(g => <GastoRow key={g.id} gasto={g} ocId={oc.id} cur={cur} />)}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="border-t border-slate-200">
+                                        <td colSpan={2} className="px-3 py-1.5 text-xs font-semibold text-slate-600">Total gastos</td>
+                                        <td className="px-3 py-1.5 text-xs font-bold text-amber-700">{formatMoney(oc.total_gastos, cur)}</td>
+                                        <td colSpan={2} />
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        )}
+                    </div>
+                    {/* Inline add form */}
+                    <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
+                        <select value={addForm.tipo_gasto} onChange={e => setAddForm(f => ({ ...f, tipo_gasto: e.target.value }))}
+                            className={`${inp} bg-white`}>
+                            {Object.entries(TIPO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                        <input type="text" placeholder="Descripción" value={addForm.descripcion}
+                            onChange={e => setAddForm(f => ({ ...f, descripcion: e.target.value }))}
+                            className={`${inp} flex-1 min-w-[120px]`} />
+                        <input type="number" step="0.01" min="0" placeholder="Monto *" value={addForm.monto}
+                            onChange={e => setAddForm(f => ({ ...f, monto: e.target.value }))}
+                            className={`${inp} w-24`} required />
+                        <input type="date" value={addForm.fecha} onChange={e => setAddForm(f => ({ ...f, fecha: e.target.value }))}
+                            className={inp} />
+                        <button type="submit" disabled={adding}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] disabled:opacity-50">
+                            {adding ? '...' : '+ Añadir'}
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+    );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function UtilidadesIndex({ ocs, resumen, filtros }) {
-    const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const [buscar, setBuscar]       = useState(filtros?.buscar || '');
+    const [expandedId, setExpanded] = useState(null);
+
+    const toggleExpand = (id) => setExpanded(prev => prev === id ? null : id);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -64,18 +225,18 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
 
                 {/* Resumen cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <StatCard label="Total Vendido"  value={formatMoney(resumen.total_vendido)}  color="slate"  />
-                    <StatCard label="Total Gastado"  value={formatMoney(resumen.total_gastado)}  color="amber"  />
-                    <StatCard label="Utilidad Total" value={formatMoney(resumen.total_utilidad)} color={resumen.total_utilidad >= 0 ? 'green' : 'red'} />
-                    <StatCard label="Deuda por Cobrar" value={formatMoney(resumen.total_deuda)} color="violet" />
-                    <StatCard label="Órdenes"        value={resumen.total_ocs}                  color="slate"  />
+                    <StatCard label="Total Vendido"    value={formatMoney(resumen.total_vendido)}  color="slate"  />
+                    <StatCard label="Total Gastado"    value={formatMoney(resumen.total_gastado)}  color="amber"  />
+                    <StatCard label="Utilidad Total"   value={formatMoney(resumen.total_utilidad)} color={resumen.total_utilidad >= 0 ? 'green' : 'red'} />
+                    <StatCard label="Deuda por Cobrar" value={formatMoney(resumen.total_deuda)}    color="violet" />
+                    <StatCard label="Órdenes"          value={resumen.total_ocs}                   color="slate"  />
                 </div>
 
                 {/* Filters */}
                 <div className="space-y-3">
                     <form onSubmit={handleSearch} className="flex gap-2">
                         <input type="text" value={buscar} onChange={e => setBuscar(e.target.value)}
-                            placeholder="Buscar por N° OC o cliente..."
+                            placeholder="Buscar por N° OC, cliente, empresa o entidad..."
                             className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all" />
                         <button className="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Buscar</button>
                     </form>
@@ -105,53 +266,70 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-100">
-                                        {['N° OC', 'Cliente', 'Fecha OC', 'Total OC', 'Gastos', 'Utilidad', '% Utilidad', 'Deuda', 'Estado', 'Acciones'].map(h => (
-                                            <th key={h} className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3 whitespace-nowrap">{h}</th>
+                                        {['N° OC', 'Empresa Factura', 'Entidad Recibe', 'Fecha OC', 'Total OC', 'Gastos', 'Utilidad', '% Util.', 'Por Cobrar', 'Estado', 'Acciones'].map(h => (
+                                            <th key={h} className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 py-3 whitespace-nowrap">{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody>
                                     {ocs.data.map((oc) => {
-                                        const est   = ESTADO_STYLES[oc.estado] || ESTADO_STYLES.pendiente;
-                                        const col   = COLOR_STYLES[oc.color_utilidad] || COLOR_STYLES.rojo;
-                                        const pct   = Number(oc.porcentaje_utilidad || 0);
-                                        const barW  = Math.min(Math.max(pct, 0), 100);
+                                        const est      = ESTADO_STYLES[oc.estado] || ESTADO_STYLES.pendiente;
+                                        const col      = COLOR_STYLES[oc.color_utilidad] || COLOR_STYLES.rojo;
+                                        const pct      = Number(oc.porcentaje_utilidad || 0);
+                                        const barW     = Math.min(Math.max(pct, 0), 100);
+                                        const expanded = expandedId === oc.id;
                                         return (
-                                            <tr key={oc.id} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-5 py-3.5">
-                                                    <Link href={`/utilidades/${oc.id}`} className="text-sm font-semibold text-slate-800 hover:text-[#0EA5E9]">{oc.numero_oc}</Link>
-                                                </td>
-                                                <td className="px-5 py-3.5 text-sm text-slate-600 max-w-[160px] truncate">{oc.cliente}</td>
-                                                <td className="px-5 py-3.5 text-sm text-slate-500 whitespace-nowrap">
-                                                    {oc.fecha_oc ? new Date(oc.fecha_oc).toLocaleDateString('es-PE') : '-'}
-                                                </td>
-                                                <td className="px-5 py-3.5 text-sm font-medium text-slate-800 whitespace-nowrap">{formatMoney(oc.total_oc, oc.currency_code)}</td>
-                                                <td className="px-5 py-3.5 text-sm text-slate-600 whitespace-nowrap">{formatMoney(oc.total_gastos, oc.currency_code)}</td>
-                                                <td className="px-5 py-3.5 whitespace-nowrap">
-                                                    <span className={`text-sm font-semibold ${col.text}`}>{formatMoney(oc.utilidad, oc.currency_code)}</span>
-                                                </td>
-                                                <td className="px-5 py-3.5">
-                                                    <div className="flex items-center gap-2 min-w-[90px]">
-                                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                            <div className={`h-full rounded-full ${col.bar}`} style={{ width: `${barW}%` }} />
+                                            <>
+                                                <tr key={oc.id} className={`transition-colors ${expanded ? 'bg-sky-50/30' : 'hover:bg-slate-50/50'} border-b border-slate-50`}>
+                                                    <td className="px-4 py-3">
+                                                        <Link href={`/utilidades/${oc.id}`} className="text-sm font-semibold text-slate-800 hover:text-[#0EA5E9]">{oc.numero_oc}</Link>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px] truncate" title={oc.empresa_factura || ''}>
+                                                        {oc.empresa_factura || <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px] truncate" title={oc.entidad_recibe || ''}>
+                                                        {oc.entidad_recibe || <span className="text-slate-300">—</span>}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
+                                                        {oc.fecha_oc ? new Date(oc.fecha_oc).toLocaleDateString('es-PE') : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm font-medium text-slate-800 whitespace-nowrap">{formatMoney(oc.total_oc, oc.currency_code)}</td>
+                                                    {/* Gastos — clic expande el panel */}
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <button onClick={() => toggleExpand(oc.id)}
+                                                            className={`text-sm font-medium underline-offset-2 transition-colors ${expanded ? 'text-[#0EA5E9]' : 'text-amber-700 hover:text-amber-900'}`}
+                                                            title="Clic para ver/editar gastos">
+                                                            {formatMoney(oc.total_gastos, oc.currency_code)}
+                                                            <span className={`ml-1 text-xs opacity-60 ${expanded ? 'rotate-180 inline-block' : ''}`}>▾</span>
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className={`text-sm font-semibold ${col.text}`}>{formatMoney(oc.utilidad, oc.currency_code)}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2 min-w-[80px]">
+                                                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                                <div className={`h-full rounded-full ${col.bar}`} style={{ width: `${barW}%` }} />
+                                                            </div>
+                                                            <span className={`text-xs font-semibold ${col.text}`}>{pct.toFixed(1)}%</span>
                                                         </div>
-                                                        <span className={`text-xs font-semibold ${col.text}`}>{pct.toFixed(1)}%</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-3.5 text-sm font-medium text-violet-700 whitespace-nowrap">{formatMoney(oc.deuda_pendiente, oc.currency_code)}</td>
-                                                <td className="px-5 py-3.5">
-                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${est.bg} ${est.text}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${est.dot}`} />
-                                                        {est.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-5 py-3.5">
-                                                    <div className="flex items-center gap-2 justify-end">
-                                                        <Link href={`/utilidades/${oc.id}`} className="text-xs text-slate-500 hover:text-[#0EA5E9] transition-colors">Ver</Link>
-                                                        <Link href={`/utilidades/${oc.id}/edit`} className="text-xs text-slate-500 hover:text-amber-600 transition-colors">Editar</Link>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm font-medium text-violet-700 whitespace-nowrap">{formatMoney(oc.deuda_pendiente, oc.currency_code)}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${est.bg} ${est.text}`}>
+                                                            <span className={`w-1.5 h-1.5 rounded-full ${est.dot}`} />
+                                                            {est.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex items-center gap-2 justify-end">
+                                                            <Link href={`/utilidades/${oc.id}`} className="text-xs text-slate-500 hover:text-[#0EA5E9] transition-colors">Ver</Link>
+                                                            <Link href={`/utilidades/${oc.id}/edit`} className="text-xs text-slate-500 hover:text-amber-600 transition-colors">Editar</Link>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {expanded && <GastosPanel key={`gastos-${oc.id}`} oc={oc} />}
+                                            </>
                                         );
                                     })}
                                 </tbody>
@@ -175,3 +353,4 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
         </Layout>
     );
 }
+

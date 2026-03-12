@@ -12,12 +12,14 @@ const ESTADO_DEUDA_LABELS = {
 
 export default function UtilidadesCreate({ deudas = [] }) {
     const { data, setData, post, processing, errors } = useForm({
-        deuda_id:      '',
-        numero_oc:     '',
-        fecha_oc:      new Date().toISOString().split('T')[0],
-        fecha_entrega: '',
-        estado:        'pendiente',
-        notas:         '',
+        deuda_id:        '',
+        numero_oc:       '',
+        empresa_factura: '',
+        entidad_recibe:  '',
+        fecha_oc:        new Date().toISOString().split('T')[0],
+        fecha_entrega:   '',
+        estado:          'pendiente',
+        notas:           '',
     });
 
     const selectedDeuda = useMemo(
@@ -103,6 +105,24 @@ export default function UtilidadesCreate({ deudas = [] }) {
                                 </div>
                             </div>
                         )}
+
+                        {/* ── Empresa / Entidad ───────────────────── */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Empresa que Factura</label>
+                                <input type="text" value={data.empresa_factura} onChange={e => setData('empresa_factura', e.target.value)}
+                                    placeholder="Razón social de la empresa"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10" />
+                                {errors.empresa_factura && <p className="mt-1 text-xs text-red-600">{errors.empresa_factura}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">Entidad que Recibe</label>
+                                <input type="text" value={data.entidad_recibe} onChange={e => setData('entidad_recibe', e.target.value)}
+                                    placeholder="Entidad o destinatario"
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10" />
+                                {errors.entidad_recibe && <p className="mt-1 text-xs text-red-600">{errors.entidad_recibe}</p>}
+                            </div>
+                        </div>
 
                         {/* ── N° OC + Fechas ────────────────────────── */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
