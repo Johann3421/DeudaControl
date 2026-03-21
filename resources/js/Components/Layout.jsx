@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 
 const NAVIGATION = [
@@ -163,8 +163,26 @@ export default function Layout({ children, title }) {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const currentPath = usePage().url;
 
+    // Refresca el token CSRF haciendo un reload ligero de Inertia
+    const refreshCsrf = () => router.reload({ only: [] });
+
+    // Mantiene la sesión viva: refresca al enfocar el tab y cada 90 minutos
+    useEffect(() => {
+        const onFocus = () => refreshCsrf();
+        window.addEventListener('focus', onFocus);
+
+        // 90 min = antes de que expiren los 480 min (o el mínimo que configure el servidor)
+        const keepAlive = setInterval(refreshCsrf, 90 * 60 * 1000);
+
+        return () => {
+            window.removeEventListener('focus', onFocus);
+            clearInterval(keepAlive);
+        };
+    }, []);
+
     const handleLogout = (e) => {
         e.preventDefault();
+        // /logout está exento de CSRF, así que funciona aunque el token haya expirado
         router.post('/logout');
     };
 
