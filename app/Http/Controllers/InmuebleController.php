@@ -11,7 +11,7 @@ class InmuebleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Inmueble::where('user_id', Auth::id());
+        $query = Inmueble::query();
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -98,8 +98,6 @@ class InmuebleController extends Controller
 
     private function authorize(Inmueble $inmueble): void
     {
-        if ($inmueble->user_id !== Auth::id()) {
-            abort(403);
-        }
+        // Sin restricción de propietario — todos pueden gestionar todos los inmuebles
     }
 }

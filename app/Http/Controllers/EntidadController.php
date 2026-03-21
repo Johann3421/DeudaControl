@@ -10,7 +10,7 @@ class EntidadController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Entidad::where('user_id', Auth::id());
+        $query = Entidad::query();
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -116,14 +116,7 @@ class EntidadController extends Controller
             abort(404, 'Entidad no encontrada');
         }
 
-        // Admin o propietario pueden eliminar
-        if (Auth::id() !== $entidad->user_id && Auth::user()->name !== 'Administrador') {
-            \Log::warning('Acceso denegado en destroy', [
-                'auth_id' => Auth::id(),
-                'entidad_user_id' => $entidad->user_id,
-            ]);
-            abort(403);
-        }
+        // Cualquier usuario autenticado puede eliminar entidades
 
         if ($entidad->deudaEntidades()->whereHas('deuda', fn($q) => $q->where('estado', 'activa'))->exists()) {
             return back()->with('error', 'No se puede eliminar una entidad con deudas activas.');
@@ -135,8 +128,6 @@ class EntidadController extends Controller
 
     private function authorize(Entidad $entidad): void
     {
-        if ($entidad->user_id !== Auth::id()) {
-            abort(403);
-        }
+        // Sin restricción de propietario — todos pueden gestionar todas las entidades
     }
 }

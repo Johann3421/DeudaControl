@@ -18,8 +18,7 @@ class DeudaParticularController extends Controller
 
     public function create()
     {
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
+        $clientes = Cliente::where('estado', 'activo')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'apellido']);
 
@@ -58,8 +57,7 @@ class DeudaParticularController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
+        $clientes = Cliente::where('estado', 'activo')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'apellido']);
 

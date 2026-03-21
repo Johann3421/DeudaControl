@@ -18,9 +18,7 @@ class DeudaEntidadService
     public function crear(array $datos): Deuda
     {
         return DB::transaction(function () use ($datos) {
-            $entidad = Entidad::where('id', $datos['entidad_id'])
-                ->where('user_id', Auth::id())
-                ->firstOrFail();
+            $entidad = Entidad::findOrFail($datos['entidad_id']);
 
             $deuda = Deuda::create([
                 'user_id' => Auth::id(),

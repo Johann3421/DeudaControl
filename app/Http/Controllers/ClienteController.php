@@ -14,10 +14,7 @@ class ClienteController extends Controller
         $user = Auth::user();
         $query = Cliente::withCount(['deudas', 'deudasActivas']);
 
-        // Superadmin ve todos los clientes; los demás solo los suyos
-        if ($user->rol !== 'superadmin') {
-            $query->where('user_id', $user->id);
-        }
+        // Todos los usuarios ven todos los clientes
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
@@ -125,9 +122,6 @@ class ClienteController extends Controller
 
     private function authorize(Cliente $cliente): void
     {
-        $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $cliente->user_id !== $user->id) {
-            abort(403);
-        }
+        // Sin restricción de propietario — todos pueden gestionar todos los clientes
     }
 }

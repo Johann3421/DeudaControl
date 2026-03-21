@@ -104,13 +104,13 @@ class DeudaController extends Controller
     public function edit(Deuda $deuda)
     {
         if ($deuda->esEntidad()) {
-            return redirect()->route('deudas.entidad.edit', $deuda);
+            return Inertia::location(route('deudas.entidad.edit', $deuda));
         }
         if ($deuda->esAlquiler()) {
-            return redirect()->route('deudas.alquiler.edit', $deuda);
+            return Inertia::location(route('deudas.alquiler.edit', $deuda));
         }
 
-        return redirect()->route('deudas.particular.edit', $deuda);
+        return Inertia::location(route('deudas.particular.edit', $deuda));
     }
 
     public function update(Request $request, Deuda $deuda)

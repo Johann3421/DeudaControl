@@ -19,13 +19,11 @@ class DeudaAlquilerController extends Controller
 
     public function create()
     {
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
+        $clientes = Cliente::where('estado', 'activo')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'apellido']);
 
-        $inmuebles = Inmueble::where('user_id', Auth::id())
-            ->whereIn('estado', ['disponible', 'alquilado'])
+        $inmuebles = Inmueble::whereIn('estado', ['disponible', 'alquilado'])
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'direccion', 'tipo', 'estado']);
 
@@ -81,13 +79,11 @@ class DeudaAlquilerController extends Controller
     {
         $deuda->load('deudaAlquiler');
 
-        $clientes = Cliente::where('user_id', Auth::id())
-            ->where('estado', 'activo')
+        $clientes = Cliente::where('estado', 'activo')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'apellido']);
 
-        $inmuebles = Inmueble::where('user_id', Auth::id())
-            ->orderBy('nombre')
+        $inmuebles = Inmueble::orderBy('nombre')
             ->get(['id', 'nombre', 'direccion', 'tipo', 'estado']);
 
         return Inertia::render('Deudas/Alquiler/Edit', [

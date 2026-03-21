@@ -18,8 +18,7 @@ class DeudaEntidadController extends Controller
 
     public function create()
     {
-        $entidades = Entidad::where('user_id', Auth::id())
-            ->where('estado', 'activa')
+        $entidades = Entidad::where('estado', 'activa')
             ->orderBy('razon_social')
             ->get(['id', 'razon_social', 'ruc', 'tipo']);
 
@@ -147,7 +146,8 @@ class DeudaEntidadController extends Controller
 
     public function cambiarSeguimiento(Request $request, DeudaEntidad $deudaEntidad)
     {
-        if ($deudaEntidad->deuda->user_id !== Auth::id()) {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $deudaEntidad->deuda->user_id !== $user->id) {
             abort(403);
         }
 
