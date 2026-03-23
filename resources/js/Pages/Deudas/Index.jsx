@@ -1,7 +1,8 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Layout from '../../Components/Layout';
 import { formatMoney } from '../../helpers/currencyHelper';
+import { exportDeudasPDF } from '../../helpers/exportPDF';
 
 // Función para formatear fecha
 const formatDate = (date) => {
@@ -40,7 +41,17 @@ const TIPO_STYLES = {
 };
 
 export default function DeudasIndex({ deudas, filtros }) {
+    const { auth } = usePage().props;
     const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const [exporting, setExporting] = useState(false);
+
+    const handleExport = () => {
+        setExporting(true);
+        setTimeout(() => {
+            exportDeudasPDF({ deudas, filtros, user: auth?.user });
+            setExporting(false);
+        }, 50);
+    };
 
     // Detectar si hay deudas de entidad para mostrar columnas SIAF dinámicamente
     const tieneDeudaEntidad = deudas.data.some(d => d.tipo_deuda === 'entidad');
@@ -67,11 +78,18 @@ export default function DeudasIndex({ deudas, filtros }) {
                         <h2 className="text-xl font-bold text-slate-900">Deudas</h2>
                         <p className="text-sm text-slate-500 mt-0.5">{deudas.total} deudas registradas</p>
                     </div>
-                    <Link href="/deudas/create"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Nueva Deuda
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleExport} disabled={exporting}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            {exporting ? 'Generando...' : 'Exportar PDF'}
+                        </button>
+                        <Link href="/deudas/create"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Nueva Deuda
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-3">

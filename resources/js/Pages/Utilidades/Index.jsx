@@ -1,7 +1,8 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Layout from '../../Components/Layout';
 import { formatMoney } from '../../helpers/currencyHelper';
+import { exportUtilidadesPDF } from '../../helpers/exportPDF';
 
 const TIPO_LABELS = {
     compra_producto: 'Compra',
@@ -192,8 +193,18 @@ function GastosPanel({ oc }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UtilidadesIndex({ ocs, resumen, filtros }) {
+    const { auth } = usePage().props;
     const [buscar, setBuscar]       = useState(filtros?.buscar || '');
     const [expandedId, setExpanded] = useState(null);
+    const [exporting, setExporting] = useState(false);
+
+    const handleExport = () => {
+        setExporting(true);
+        setTimeout(() => {
+            exportUtilidadesPDF({ ocs, resumen, filtros, user: auth?.user });
+            setExporting(false);
+        }, 50);
+    };
 
     const toggleExpand = (id) => setExpanded(prev => prev === id ? null : id);
 
@@ -216,11 +227,18 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
                         <h2 className="text-xl font-bold text-slate-900">Utilidades</h2>
                         <p className="text-sm text-slate-500 mt-0.5">{ocs.total} órdenes de compra</p>
                     </div>
-                    <Link href="/utilidades/create"
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Nueva OC
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleExport} disabled={exporting}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            {exporting ? 'Generando...' : 'Exportar PDF'}
+                        </button>
+                        <Link href="/utilidades/create"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Nueva OC
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Resumen cards */}
