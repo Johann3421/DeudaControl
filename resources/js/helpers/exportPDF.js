@@ -29,6 +29,45 @@ function cap(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Robust date parser that accepts Date objects, ISO strings, MySQL datetimes
+function parseDate(input) {
+    if (!input && input !== 0) return null;
+    if (input instanceof Date) return isNaN(input) ? null : input;
+    const s = String(input).trim();
+
+    // Numeric timestamps (seconds or milliseconds)
+    if (/^\d{10}$/.test(s)) {
+        const ts = Number(s) * 1000;
+        const d = new Date(ts);
+        return isNaN(d) ? null : d;
+    }
+    if (/^\d{13}$/.test(s)) {
+        const d = new Date(Number(s));
+        return isNaN(d) ? null : d;
+    }
+
+    // Try direct Date parse
+    const d1 = new Date(s);
+    if (!isNaN(d1)) return d1;
+
+    // MySQL 'YYYY-MM-DD HH:MM:SS' -> replace space with 'T'
+    const s2 = s.replace(' ', 'T');
+    const d2 = new Date(s2);
+    if (!isNaN(d2)) return d2;
+
+    // Plain date 'YYYY-MM-DD' -> append time
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const d3 = new Date(s + 'T00:00:00');
+        if (!isNaN(d3)) return d3;
+    }
+
+    return null;
+}
+
+function formatDateForPDF(input, locale = 'es-PE') {
+    const d = parseDate(input);
+    return d ? d.toLocaleDateString(locale) : '-';
+}
 // Draw a donut/pie chart using triangle-fan method
 function drawPie(doc, cx, cy, r, segments) {
     const total = segments.reduce((s, seg) => s + seg.value, 0);
@@ -279,7 +318,7 @@ export function exportDeudasPDF({ deudas, filtros, user }) {
             fmt(d.monto_pendiente, d.currency_code),
             prog,
             cap(d.estado),
-            d.fecha_vencimiento ? new Date(d.fecha_vencimiento + 'T00:00:00').toLocaleDateString('es-PE') : '-',
+            formatDateForPDF(d.fecha_vencimiento, 'es-PE'),
             d.user?.name || '-',
         ];
     });
@@ -468,7 +507,7 @@ export function exportUtilidadesPDF({ ocs, resumen, filtros, user }) {
             cliente,
             oc.empresa_factura || '-',
             oc.entidad_recibe || '-',
-            oc.fecha_oc ? new Date(oc.fecha_oc).toLocaleDateString('es-PE') : '-',
+            formatDateForPDF(oc.fecha_oc, 'es-PE'),
             fmt(oc.total_oc, oc.currency_code),
             fmt(oc.total_gastos, oc.currency_code),
             fmt(oc.utilidad, oc.currency_code),
