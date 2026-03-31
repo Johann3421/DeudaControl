@@ -1,5 +1,5 @@
 {
-  "name": "Alertas Deudas y Órdenes — Control Deudas v2",
+  "name": "Alertas Deudas y Órdenes — Control Deudas v3 (Evolution API)",
   "nodes": [
     {
       "parameters": {
@@ -23,34 +23,16 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "https://deudas.sekaitech.com.pe/api/alertas/vencimientos",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-Alertas-Token",
-              "value": "={{ $vars.ALERTAS_TOKEN }}"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 20000
-        }
+        "jsCode": "// CONSULTAR API ALERTAS v2.0\n// Credenciales hardcodeadas — compatible con n8n free plan.\nconst ALERTAS_TOKEN = 'REEMPLAZAR_CON_TU_TOKEN'; // genera con: openssl rand -base64 32\nconst API_URL       = 'https://deudas.sekaitech.com.pe';\n\nlet result;\ntry {\n  result = await this.helpers.httpRequest({\n    method: 'GET',\n    url: API_URL + '/api/alertas/vencimientos?dias=7',\n    headers: {\n      'X-Alertas-Token': ALERTAS_TOKEN,\n      'Accept': 'application/json'\n    },\n    timeout: 20000\n  });\n} catch(e) {\n  return [{ json: { error: true, message: e.message } }];\n}\n\nreturn [{ json: result }];\n"
       },
       "id": "node-fetch-api",
       "name": "🌐 Consultar API Alertas",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         380,
         340
-      ],
-      "onError": "continueErrorOutput"
+      ]
     },
     {
       "parameters": {
@@ -83,32 +65,12 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $vars.CHATWOOT_URL }}/api/v1/accounts/{{ $vars.CHATWOOT_ACCOUNT_ID }}/conversations/{{ $vars.CHATWOOT_CONV_GROUP_ID }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $vars.CHATWOOT_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "{\"content\": \"🚨 *ERROR: No se pudo consultar la API de alertas*\\n\\nEl servidor `deudas.sekaitech.com.pe` no respondió o devolvió un error.\\nRevisa que el servidor esté activo en Dokploy.\", \"message_type\": \"outgoing\", \"private\": false}",
-        "options": {
-          "timeout": 10000
-        }
+        "jsCode": "// NOTIFICAR ERROR VIA EVOLUTION API\n// ── EDITAR ESTOS VALORES ─────────────────────────────────\nconst EVOLUTION_URL      = 'https://evolution.TU_DOMINIO.com';\nconst EVOLUTION_API_KEY  = 'TU_API_KEY_SECRETA';\nconst EVOLUTION_INSTANCE = 'sekaitech';\nconst GROUP_JID          = '120363XXXXXXXXXX@g.us';\n// ─────────────────────────────────────────────────────────\n\nconst inp  = $input.item.json;\nconst errorMsg = inp.error || 'Error desconocido';\nconst ahora = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });\n\nconst texto = `⚠️ *ERROR — API Alertas Control Deudas*\\n🗓️ ${ahora}\\n────────────────────────────────────\\nNo se pudo consultar la API de vencimientos.\\n\\nError: ${errorMsg}\\n\\nRevisa los logs en Dokploy.`;\n\ntry {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: EVOLUTION_URL + '/message/sendText/' + EVOLUTION_INSTANCE,\n    headers: {\n      'apikey': EVOLUTION_API_KEY,\n      'Content-Type': 'application/json'\n    },\n    body: { number: GROUP_JID, text: texto },\n    json: true,\n    timeout: 10000\n  });\n} catch(e) {\n  // silenciar error secundario\n}\n\nreturn [{ json: { notified: true, error: errorMsg } }];\n"+ CHATWOOT_CONV_GROUP_ID + '/messages',\n    headers: {\n      'api_access_token': CHATWOOT_TOKEN,\n      'Content-Type': 'application/json'\n    },\n    body: {\n      content: '🚨 *ERROR: No se pudo consultar la API de alertas*\\n\\nEl servidor `deudas.sekaitech.com.pe` no respondió o devolvió un error.\\nRevisa que el servidor esté activo en Dokploy.',\n      message_type: 'outgoing',\n      private: false\n    },\n    json: true,\n    timeout: 10000\n  });\n} catch(e) {\n  console.error('[Alertas] Error notificando a Chatwoot:', e.message);\n}\n\nreturn [{ json: { notified: true } }];\n"
       },
       "id": "node-send-error-msg",
       "name": "🆘 Notificar Error API",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         860,
         200
@@ -189,49 +151,15 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $vars.CHATWOOT_URL }}/api/v1/accounts/{{ $vars.CHATWOOT_ACCOUNT_ID }}/conversations/{{ $vars.CHATWOOT_CONV_GROUP_ID }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "api_access_token",
-              "value": "={{ $vars.CHATWOOT_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"content\": {{ JSON.stringify($json.mensaje) }},\n  \"message_type\": \"outgoing\",\n  \"private\": false\n}",
-        "options": {
-          "timeout": 15000
-        }
+        "jsCode": "// ENVIAR VIA EVOLUTION API → GRUPO WHATSAPP\n// Credenciales hardcodeadas — compatible con n8n free plan.\n// ── EDITAR ESTOS VALORES ─────────────────────────────────\nconst EVOLUTION_URL      = 'https://evolution.TU_DOMINIO.com';  // URL de tu Evolution API\nconst EVOLUTION_API_KEY  = 'TU_API_KEY_SECRETA';                 // openssl rand -base64 32\nconst EVOLUTION_INSTANCE = 'sekaitech';                          // nombre de la instancia creada\nconst GROUP_JID          = '120363XXXXXXXXXX@g.us';              // JID del grupo (del curl /group/create)\n// ─────────────────────────────────────────────────────────\n\nconst inp     = $input.item.json;\nconst mensaje = inp.mensaje || '';\n\nlet result;\ntry {\n  const r = await this.helpers.httpRequest({\n    method: 'POST',\n    url: EVOLUTION_URL + '/message/sendText/' + EVOLUTION_INSTANCE,\n    headers: {\n      'apikey': EVOLUTION_API_KEY,\n      'Content-Type': 'application/json'\n    },\n    body: {\n      number: GROUP_JID,\n      text: mensaje\n    },\n    json: true,\n    timeout: 15000\n  });\n  result = { success: true, key: r.key };\n} catch(e) {\n  result = { success: false, error: e.message };\n}\n\nreturn [{ json: result }];\n"
       },
       "id": "node-send-chatwoot",
-      "name": "✉️ Enviar a Chatwoot",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1760,
-        320
-      ],
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const err = $input.first();\nconsole.error('[Alertas] Error al enviar a Chatwoot:', JSON.stringify(err.json));\nreturn [{ json: { logged: true, error: err.json } }];\n"
-      },
-      "id": "node-log-send-error",
-      "name": "📋 Log Error Envío",
+      "name": "📲 Enviar a WhatsApp (Evolution)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1980,
-        200
+        1760,
+        320
       ]
     },
     {
@@ -260,15 +188,6 @@
     },
     "🌐 Consultar API Alertas": {
       "main": [
-        [
-          {
-            "node": "🔍 ¿Error de API?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ],
-      "error": [
         [
           {
             "node": "🔍 ¿Error de API?",
@@ -340,24 +259,15 @@
       "main": [
         [
           {
-            "node": "✉️ Enviar a Chatwoot",
+            "node": "📲 Enviar a WhatsApp (Evolution)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "✉️ Enviar a Chatwoot": {
-      "main": [],
-      "error": [
-        [
-          {
-            "node": "📋 Log Error Envío",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "📲 Enviar a WhatsApp (Evolution)": {
+      "main": []
     }
   },
   "pinData": {},

@@ -1,6 +1,232 @@
-# Guía: n8n + Chatwoot — Alertas de Vencimientos
+# Guía: n8n + Chatwoot + Evolution API — Alertas de Vencimientos
 
-Sistema de notificaciones automáticas que consulta la API de `deudas.sekaitech.com.pe` cada mañana (lunes a sábado a las 08:00) y envía un resumen de deudas y órdenes que vencen en los próximos 7 días directamente a Chatwoot.
+Sistema de notificaciones automáticas que consulta la API de `deudas.sekaitech.com.pe` cada mañana (lunes a sábado a las 08:00) y envía un resumen de deudas y órdenes que vencen en los próximos 7 días a un **grupo de WhatsApp** real.
+
+---
+
+## ⚠️ Problema con la API Oficial de Meta
+
+La API de WhatsApp Business de Meta **no permite crear ni gestionar grupos**. Si intentas hacerlo desde Chatwoot con Meta como proveedor, el endpoint simplemente no existe o devuelve error.
+
+**La solución: Evolution API** — API No Oficial open-source que actúa como cliente WhatsApp Web. Funciona con cualquier número normal (no necesita aprobación de Meta), permite crear grupos, y tiene integración nativa con Chatwoot y n8n.
+
+### Arquitectura completa
+
+```
+⏰ n8n Scheduler
+        │
+        ▼
+🌐 API deudas.sekaitech.com.pe  ──►  📝 Construir mensajes
+                                              │
+                                              ▼
+                                    📲 Evolution API (WhatsApp)
+                                              │
+                                              ▼
+                                    👥 Grupo WhatsApp ◄──── también en ──► 💬 Chatwoot
+```
+
+---
+
+## PARTE 1 — Desplegar Evolution API en Dokploy
+
+### Paso 1.1 — Nueva aplicación en Dokploy
+
+1. En Dokploy → **Create Service → Docker Compose**
+2. Nombre: `evolution-api`
+3. En el campo **Docker Compose**, pega esto:
+
+```yaml
+services:
+  evolution:
+    image: atendai/evolution-api:v2.2.3
+    restart: always
+    volumes:
+      - evolution_data:/evolution/instances
+    environment:
+      SERVER_URL: https://evolution.TU_DOMINIO.com   # ← CAMBIAR
+      AUTHENTICATION_TYPE: apikey
+      AUTHENTICATION_API_KEY: TU_API_KEY_SECRETA     # ← genera con: openssl rand -base64 32
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: true
+      QRCODE_LIMIT: 30
+      DEL_INSTANCE: false
+      DATABASE_ENABLED: false
+      CACHE_REDIS_ENABLED: false
+      CHATWOOT_ENABLED: true
+      CHATWOOT_API_URL: https://chat.abadgroup.tech
+      CHATWOOT_TOKEN: TU_CHATWOOT_ACCESS_TOKEN       # ← el mismo de siempre
+      CHATWOOT_ACCOUNT_ID: "1"
+      CHATWOOT_SIGN_MSG: false
+      CHATWOOT_REOPEN_CONVERSATION: true
+      CHATWOOT_CONVERSATION_PENDING: false
+      LANGUAGE: es
+    ports: []
+
+volumes:
+  evolution_data:
+```
+
+4. En la pestaña **Domains**: apunta `evolution.TU_DOMINIO.com` → puerto `8080`
+5. Click **Deploy**
+
+---
+
+### Paso 1.2 — Crear instancia y conectar número
+
+Con Evolution API corriendo, crea la instancia de WhatsApp:
+
+```bash
+curl -X POST https://evolution.TU_DOMINIO.com/instance/create \
+  -H "apikey: TU_API_KEY_SECRETA" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "instanceName": "sekaitech",
+    "qrcode": true,
+    "integration": "WHATSAPP-BAILEYS"
+  }'
+```
+
+Respuesta devuelve un `base64` con el QR. Para verlo fácil:
+
+```bash
+curl -X GET https://evolution.TU_DOMINIO.com/instance/connect/sekaitech \
+  -H "apikey: TU_API_KEY_SECRETA"
+```
+
+Abre la URL del QR en tu navegador → escanéalo con el WhatsApp del número que usarás para enviar alertas.
+
+> **Tip**: Usa un número secundario o una línea específica para el bot. Una vez que escaneas el QR, ese número queda conectado a Evolution API.
+
+---
+
+### Paso 1.3 — Verificar conexión
+
+```bash
+curl https://evolution.TU_DOMINIO.com/instance/fetchInstances \
+  -H "apikey: TU_API_KEY_SECRETA"
+```
+
+Debes ver `"state": "open"` en la instancia `sekaitech`. Si ves `"state": "close"`, repite el QR.
+
+---
+
+### Paso 1.4 — Integrar Evolution API con Chatwoot
+
+Esto hace que los mensajes del grupo también aparezcan en Chatwoot:
+
+```bash
+curl -X POST https://evolution.TU_DOMINIO.com/chatwoot/set/sekaitech \
+  -H "apikey: TU_API_KEY_SECRETA" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enabled": true,
+    "account_id": "1",
+    "token": "TU_CHATWOOT_ACCESS_TOKEN",
+    "url": "https://chat.abadgroup.tech",
+    "sign_msg": false,
+    "reopen_conversation": true,
+    "conversation_pending": false
+  }'
+```
+
+---
+
+## PARTE 2 — Crear el Grupo de WhatsApp
+
+### Paso 2.1 — Crear el grupo
+
+```bash
+curl -X POST https://evolution.TU_DOMINIO.com/group/create/sekaitech \
+  -H "apikey: TU_API_KEY_SECRETA" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subject": "🔔 Alertas Deudas — Sekaitech",
+    "description": "Notificaciones automáticas de vencimientos",
+    "participants": [
+      "51987654321@s.whatsapp.net",
+      "51912345678@s.whatsapp.net"
+    ]
+  }'
+```
+
+> Los números van en formato `51XXXXXXXXX@s.whatsapp.net` (código de país sin `+`).
+
+La respuesta incluye el `groupJid` — **cópialo**, lo necesitas en el siguiente paso:
+
+```json
+{
+  "groupJid": "120363XXXXXXXXXX@g.us"
+}
+```
+
+### Paso 2.2 — Probar envío al grupo
+
+```bash
+curl -X POST https://evolution.TU_DOMINIO.com/message/sendText/sekaitech \
+  -H "apikey: TU_API_KEY_SECRETA" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "number": "120363XXXXXXXXXX@g.us",
+    "text": "✅ Bot de alertas conectado correctamente"
+  }'
+```
+
+Si llega el mensaje al grupo, todo está listo.
+
+---
+
+## PARTE 3 — Actualizar el Workflow de n8n
+
+### Paso 3.1 — Abrir nodo ✉️ Enviar a Chatwoot
+
+Después de importar `n8n-workflow-alertas-deudas.json`, abre el nodo **✉️ Enviar a Chatwoot** y actualiza estas constantes:
+
+```js
+// ── Credenciales — EDITAR ESTOS VALORES ──────────────────
+const EVOLUTION_URL      = 'https://evolution.TU_DOMINIO.com';
+const EVOLUTION_API_KEY  = 'TU_API_KEY_SECRETA';
+const EVOLUTION_INSTANCE = 'sekaitech';
+const GROUP_JID          = '120363XXXXXXXXXX@g.us';   // ← del paso 2.1
+```
+
+El nodo enviará directamente al grupo de WhatsApp vía Evolution API en lugar de Chatwoot.
+
+### Paso 3.2 — Actualizar nodo 🆘 Notificar Error API
+
+Igual — actualiza las mismas constantes para que los errores también lleguen al grupo.
+
+---
+
+## PARTE 4 — Configurar `ALERTAS_TOKEN` en Dokploy
+
+1. Dokploy → app **Control Deudas** → pestaña **Environment**
+2. Agrega:
+```
+ALERTAS_TOKEN=el_token_que_generaste
+```
+3. Redespliega
+
+---
+
+## PARTE 5 — Activar y Probar
+
+1. En n8n → abre el workflow → toggle **Activate**
+2. Para probar: click en **Test Workflow** (no esperes al cron)
+3. Verifica que llega al grupo de WhatsApp
+
+---
+
+## Resumen de variables a reemplazar
+
+| Variable | Dónde | Valor |
+|---|---|---|
+| `TU_DOMINIO.com` | docker-compose Evolution + curl | tu dominio real |
+| `TU_API_KEY_SECRETA` | docker-compose Evolution + todos los curl + n8n | `openssl rand -base64 32` |
+| `TU_CHATWOOT_ACCESS_TOKEN` | docker-compose Evolution + curl Chatwoot | Chatwoot → Profile → Access Token |
+| `ALERTAS_TOKEN` | Dokploy env + nodo n8n | `openssl rand -base64 32` (distinto del de Evolution) |
+| `GROUP_JID` | nodo n8n | respuesta del `curl /group/create` |
+| números `participants` | curl crear grupo | `51XXXXXXXXX@s.whatsapp.net` |
+
+---
 
 ---
 
@@ -40,17 +266,19 @@ El flujo genera **hasta 3 mensajes** separados:
 
 ---
 
-## Paso 2: Configurar las Variables de n8n
+## Paso 2: Editar las Constantes del Workflow
 
-Ve a **Settings → Variables** en n8n y crea las siguientes variables:
+El workflow usa `const` hardcodeadas dentro de los nodos de código — **no requiere n8n Enterprise ni la sección Variables**.
 
-| Variable | Descripción | Ejemplo |
+Después de importar, abre los 3 nodos de código que dicen `// Credenciales hardcodeadas` y actualiza estos valores:
+
+| Constante | Dónde encontrarla | Nodos que la usan |
 |---|---|---|
-| `ALERTAS_TOKEN` | Token secreto que autentica la API | `abc123xyz...` |
-| `CHATWOOT_URL` | URL base de tu Chatwoot (sin `/` al final) | `https://chat.sekaitech.com.pe` |
-| `CHATWOOT_TOKEN` | Access Token de agente o bot en Chatwoot | `xxxxxxxxxxxxxxxx` |
-| `CHATWOOT_ACCOUNT_ID` | Número de cuenta en Chatwoot | `1` |
-| `CHATWOOT_CONV_GROUP_ID` | ID de la conversación donde se enviarán los mensajes | `42` |
+| `ALERTAS_TOKEN` | La generas tú (ver abajo) | 🌐 Consultar API Alertas |
+| `CHATWOOT_URL` | Ya configurada: `https://chat.abadgroup.tech` | 🆘 Notificar Error API, ✉️ Enviar a Chatwoot |
+| `CHATWOOT_TOKEN` | Ya configurada desde kenya bot | 🆘 Notificar Error API, ✉️ Enviar a Chatwoot |
+| `CHATWOOT_ACCOUNT_ID` | En la URL de Chatwoot (ver abajo) | 🆘 Notificar Error API, ✉️ Enviar a Chatwoot |
+| `CHATWOOT_CONV_GROUP_ID` | ID de la conversación donde llegan las alertas | 🆘 Notificar Error API, ✉️ Enviar a Chatwoot |
 
 ### Cómo obtener cada valor
 
@@ -59,27 +287,17 @@ Genera un token seguro:
 ```bash
 openssl rand -base64 32
 ```
-Copia el resultado. Este mismo valor **debes agregarlo** en Dokploy como variable de entorno `ALERTAS_TOKEN`.
-
-#### `CHATWOOT_URL`
-La URL donde accedes a tu Chatwoot. Sin la barra final.
-
-#### `CHATWOOT_TOKEN`
-1. En Chatwoot, ve a tu perfil (ícono abajo a la izquierda)
-2. Selecciona **Profile Settings**
-3. Copia el **Access Token** al final de la página
-
-> Recomendado: crea un agente bot dedicado para estas notificaciones.
+Copia el resultado. Úsalo como valor de `ALERTAS_TOKEN` en los nodos **y** en Dokploy (ver Paso 3).
 
 #### `CHATWOOT_ACCOUNT_ID`
 Está en la URL cuando entras a Chatwoot:  
-`https://chat.tusitio.com/app/accounts/**1**/...`  
-El número después de `accounts/` es el ID.
+`https://chat.abadgroup.tech/app/accounts/**1**/...`  
+El número después de `accounts/` es el ID. Probablemente `1`.
 
 #### `CHATWOOT_CONV_GROUP_ID`
-1. Abre la conversación grupal en Chatwoot donde quieres recibir los avisos
+1. Abre en Chatwoot la conversación/grupo donde quieres recibir los avisos
 2. Mira la URL: `.../conversations/**42**`
-3. El número final es el ID de conversación
+3. El número final es el ID — actualiza `CHATWOOT_CONV_GROUP_ID` con ese valor
 
 ---
 
@@ -175,15 +393,14 @@ Para que el cron `0 8 * * 1-6` dispare a las 08:00 hora de Lima (Peru, UTC-5):
 | Nodo | Tipo | Descripción |
 |---|---|---|
 | ⏰ Lun-Sáb 08:00 | ScheduleTrigger | Cron `0 8 * * 1-6` |
-| 🌐 Consultar API Alertas | HTTP Request | GET con timeout 20s, si falla continúa al nodo error |
-| 🔍 ¿Error de API? | IF | Detecta errores de red o HTTP |
-| 🆘 Notificar Error API | HTTP Request | Envía alerta de fallo a Chatwoot |
+| 🌐 Consultar API Alertas | **Code** | GET con `this.helpers.httpRequest()`, maneja errores inline |
+| 🔍 ¿Error de API? | IF | Detecta `{ error: true }` devuelto por el nodo anterior |
+| 🆘 Notificar Error API | **Code** | Envía alerta de fallo a Chatwoot vía `httpRequest()` |
 | 📝 Procesar y Construir Mensajes | Code | Genera array de mensajes formateados |
 | ❓ ¿Hay Alertas? | IF | Comprueba si hay deudas u órdenes próximas |
 | ✂️ Dividir Mensajes | SplitOut | Divide el array `mensajes[]` en items individuales |
 | ⏳ Esperar 1.5s | Wait | Pausa entre mensajes para evitar rate limiting |
-| ✉️ Enviar a Chatwoot | HTTP Request | POST al endpoint de mensajes de Chatwoot |
-| 📋 Log Error Envío | Code | Registra en consola si falla el envío |
+| ✉️ Enviar a Chatwoot | **Code** | POST vía `httpRequest()`, maneja errores inline |
 | 🔕 Sin Alertas — OK | NoOp | Fin limpio cuando no hay alertas |
 
 ---
@@ -236,7 +453,7 @@ Ventana de alertas: **-1 día** (vencidas ayer) hasta **+7 días** (próximas es
 
 | Problema | Causa probable | Solución |
 |---|---|---|
-| API devuelve 401 | `ALERTAS_TOKEN` no coincide | Verifica que el token en n8n Variables y en Dokploy sean iguales |
+| API devuelve 401 | `ALERTAS_TOKEN` no coincide | Verifica que `ALERTAS_TOKEN` en el nodo de código coincida con la env var en Dokploy |
 | API devuelve 500 | App caída o error en DB | Revisar logs en Dokploy |
 | Chatwoot no recibe mensajes | `CHATWOOT_CONV_GROUP_ID` incorrecto | Verifica el ID en la URL de la conversación |
 | `api_access_token` inválido | Token de Chatwoot expirado o incorrecto | Regenerar en Chatwoot Profile Settings |
