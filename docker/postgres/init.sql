@@ -608,6 +608,9 @@ INSERT INTO "migrations" ("id", "migration", "batch") VALUES
     (24, '2026_02_10_add_foreign_key_constraints', 10),
     (25, '2026_02_10_full_cleanup_invalid_records', 10);
 
+-- Advance migrations sequence beyond the explicitly-inserted rows
+SELECT setval(pg_get_serial_sequence('"migrations"', 'id'), (SELECT MAX(id) FROM "migrations"), true);
+
 -- Missing migrations (repo migrations not recorded in dump)
 INSERT INTO "migrations" ("migration", "batch") VALUES
     ('2026_02_16_add_siaf_fields_to_deuda_entidades', 11),

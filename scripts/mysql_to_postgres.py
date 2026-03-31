@@ -715,10 +715,20 @@ def main():
 
     for table in TABLE_ORDER:
         if table == "migrations":
-            # Include dump data first, then append missing migrations
+            # Include dump data first (with explicit IDs), then append missing migrations.
+            # We MUST advance the SERIAL sequence before the auto-id inserts or we get
+            # "duplicate key value violates unique constraint" because SERIAL still starts
+            # at 1 even though we just inserted rows 1-N with explicit IDs.
             if "migrations" in inserts:
                 out.append(f"-- {table}")
                 out.append(inserts["migrations"])
+                out.append("")
+                # Advance sequence to MAX(id) so next auto-assigned id = MAX(id)+1
+                out.append("-- Advance migrations sequence beyond the explicitly-inserted rows")
+                out.append(
+                    "SELECT setval(pg_get_serial_sequence('\"migrations\"', 'id'), "
+                    "(SELECT MAX(id) FROM \"migrations\"), true);"
+                )
                 out.append("")
             missing_vals = ',\n'.join(
                 f"    ('{m}', 11)" for m in MISSING_MIGRATIONS

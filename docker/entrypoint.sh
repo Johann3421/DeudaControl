@@ -5,8 +5,18 @@ cd /var/www/html
 
 echo "==> Starting deployment..."
 
-# Generate APP_KEY if not set
-if [ -z "$APP_KEY" ]; then
+# Ensure .env exists — key:generate needs a writable file to update.
+# In Dokploy/Docker the real config comes from environment variables injected
+# by the container runtime; the .env file just needs to exist.
+if [ ! -f ".env" ]; then
+    echo "==> Creating .env from environment..."
+    printenv \
+        | grep -E '^(APP_|DB_|SESSION_|CACHE_|QUEUE_|MAIL_|SIAF_|LOG_|BROADCAST_)' \
+        | sort > .env
+fi
+
+# Generate APP_KEY only if it is truly absent from both env and .env
+if [ -z "$APP_KEY" ] && ! grep -q 'APP_KEY=' .env 2>/dev/null; then
     echo "==> Generating APP_KEY..."
     php artisan key:generate --force
 fi
