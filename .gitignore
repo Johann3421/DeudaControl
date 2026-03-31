@@ -46,9 +46,19 @@ __pycache__/
 *.pyc
 *.pyo
 
-# n8n workflows — track the main workflow, allow .example variants
-!n8n-workflow-alertas-deudas.json
+# n8n workflows — contienen credenciales hardcodeadas, nunca subir
+n8n-workflow-*.json
+# Permitir solo versiones .example sin credenciales reales
 !n8n-workflow-*.example.json
+
+# Guías operativas con credenciales reales
+GUIA_N8N_CHATWOOT.md
+
+# Kenya Bot y otros workflows externos con tokens
+"Kenya Bot*.json"
+Kenya*.json
+*Chatwoot*AI*.json
+*Full*Pipeline*.json
 
 # OS / editor noise
 Thumbs.db
