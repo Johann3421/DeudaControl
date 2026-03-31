@@ -1,8 +1,11 @@
 *.log
 .DS_Store
+
+# Environment files (never commit credentials)
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
+
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -26,8 +29,29 @@ Homestead.yaml
 !docker/postgres/init.sql
 !docker/postgres/seed_data.sql
 
-# Exported files / misc
-*.json.bak
-"Kenya Bot*.json"
+# Build output
+/public/build
 
+# Laravel cache / compiled files
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitkeep
+
+# Uploaded files (PDFs, etc.)
+/storage/app/public/ordenes/
+/storage/app/public/temp/
+
+# Python virtual environment & cache
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# n8n workflows with credentials — keep only the clean template
+n8n-workflow-alertas-deudas.json
+!n8n-workflow-*.example.json
+
+# OS / editor noise
 Thumbs.db
+*.swp
+*.swo
+.DS_Store
