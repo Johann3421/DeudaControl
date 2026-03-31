@@ -56,7 +56,7 @@ services:
       # SQLite NO está soportado en v2. Se incluye un postgres propio en este compose.
       DATABASE_ENABLED: "true"
       DATABASE_PROVIDER: postgresql
-      DATABASE_URL: postgresql://evolution_user:evolution_pass@postgres:5432/evolution
+      DATABASE_CONNECTION_URI: postgresql://evolution_user:evolution_pass@postgres:5432/evolution
       DATABASE_SAVE_DATA_INSTANCE: "true"
       DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
       DATABASE_SAVE_MESSAGE_UPDATE: "true"
