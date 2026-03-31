@@ -40,31 +40,60 @@ services:
   evolution:
     image: atendai/evolution-api:v2.2.3
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
-      - evolution_data:/evolution/instances
+      - evolution_instances:/evolution/instances
     environment:
-      SERVER_URL: https://evolution.TU_DOMINIO.com   # ← CAMBIAR
+      SERVER_URL: https://evolution.TU_DOMINIO.com        # ← CAMBIAR
       AUTHENTICATION_TYPE: apikey
-      AUTHENTICATION_API_KEY: TU_API_KEY_SECRETA     # ← genera con: openssl rand -base64 32
+      AUTHENTICATION_API_KEY: TU_API_KEY_SECRETA          # ← genera con: openssl rand -base64 32
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
       QRCODE_LIMIT: "30"
       DEL_INSTANCE: "false"
-      # ⚠️ En v2, DATABASE_PROVIDER es obligatorio aunque uses SQLite (sin DB externa)
+      # ⚠️ Evolution API v2 usa Prisma internamente — solo acepta postgresql o mongodb
+      # SQLite NO está soportado en v2. Se incluye un postgres propio en este compose.
       DATABASE_ENABLED: "true"
-      DATABASE_PROVIDER: sqlite
+      DATABASE_PROVIDER: postgresql
+      DATABASE_URL: postgresql://evolution_user:evolution_pass@postgres:5432/evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_LABELS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
       CACHE_REDIS_ENABLED: "false"
+      CACHE_LOCAL_ENABLED: "true"
       CHATWOOT_ENABLED: "true"
       CHATWOOT_API_URL: https://chat.abadgroup.tech
-      CHATWOOT_TOKEN: TU_CHATWOOT_ACCESS_TOKEN       # ← el mismo de siempre
-      CHATWOOT_ACCOUNT_ID: "1"                       # ← CAMBIAR si tu cuenta no es la 1
+      CHATWOOT_TOKEN: TU_CHATWOOT_ACCESS_TOKEN            # ← el mismo de siempre
+      CHATWOOT_ACCOUNT_ID: "1"                            # ← CAMBIAR si tu cuenta no es la 1
       CHATWOOT_SIGN_MSG: "false"
       CHATWOOT_REOPEN_CONVERSATION: "true"
       CHATWOOT_CONVERSATION_PENDING: "false"
       LANGUAGE: es
     ports: []
 
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution_user
+      POSTGRES_PASSWORD: evolution_pass
+    volumes:
+      - evolution_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution_user -d evolution"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
-  evolution_data:
+  evolution_instances:
+  evolution_postgres:
 ```
 
 4. En la pestaña **Domains**: apunta `evolution.TU_DOMINIO.com` → puerto `8080`
