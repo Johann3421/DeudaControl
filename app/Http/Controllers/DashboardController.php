@@ -52,9 +52,9 @@ class DashboardController extends Controller
 
         $metricasQuery = Deuda::select('tipo_deuda',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN estado = "activa" THEN 1 ELSE 0 END) as activas'),
+                DB::raw("SUM(CASE WHEN estado = 'activa' THEN 1 ELSE 0 END) as activas"),
                 DB::raw('SUM(monto_total) as monto_total'),
-                DB::raw('SUM(CASE WHEN estado = "activa" THEN monto_pendiente ELSE 0 END) as monto_pendiente')
+                DB::raw("SUM(CASE WHEN estado = 'activa' THEN monto_pendiente ELSE 0 END) as monto_pendiente")
             );
         if (!$isSuperAdmin) $metricasQuery->where('user_id', $userId);
         $metricasPorTipo = $metricasQuery->groupBy('tipo_deuda')
@@ -102,8 +102,8 @@ class DashboardController extends Controller
         if ($isSuperAdmin) {
             $pagosPorMes = Pago::where('fecha_pago', '>=', now()->subMonths(6))
                 ->select(
-                    DB::raw('MONTH(fecha_pago) as mes'),
-                    DB::raw('YEAR(fecha_pago) as anio'),
+                    DB::raw('EXTRACT(MONTH FROM fecha_pago) as mes'),
+                    DB::raw('EXTRACT(YEAR FROM fecha_pago) as anio'),
                     DB::raw('SUM(monto) as total')
                 )
                 ->groupBy('mes', 'anio')
@@ -116,8 +116,8 @@ class DashboardController extends Controller
             })
             ->where('fecha_pago', '>=', now()->subMonths(6))
             ->select(
-                DB::raw('MONTH(fecha_pago) as mes'),
-                DB::raw('YEAR(fecha_pago) as anio'),
+                DB::raw('EXTRACT(MONTH FROM fecha_pago) as mes'),
+                DB::raw('EXTRACT(YEAR FROM fecha_pago) as anio'),
                 DB::raw('SUM(monto) as total')
             )
             ->groupBy('mes', 'anio')
