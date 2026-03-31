@@ -46,8 +46,8 @@ __pycache__/
 *.pyc
 *.pyo
 
-# n8n workflows with credentials — keep only the clean template
-n8n-workflow-alertas-deudas.json
+# n8n workflows — track the main workflow, allow .example variants
+!n8n-workflow-alertas-deudas.json
 !n8n-workflow-*.example.json
 
 # OS / editor noise

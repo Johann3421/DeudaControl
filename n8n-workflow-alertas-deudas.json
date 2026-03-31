@@ -1,0 +1,388 @@
+{
+  "name": "Alertas Deudas y Órdenes — Control Deudas v2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "⏰ Lun-Sáb 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://deudas.sekaitech.com.pe/api/alertas/vencimientos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Alertas-Token",
+              "value": "={{ $vars.ALERTAS_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "node-fetch-api",
+      "name": "🌐 Consultar API Alertas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        340
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "cond-api-ok",
+              "leftValue": "={{ $json.error !== undefined }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-api-error",
+      "name": "🔍 ¿Error de API?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        620,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.CHATWOOT_URL }}/api/v1/accounts/{{ $vars.CHATWOOT_ACCOUNT_ID }}/conversations/{{ $vars.CHATWOOT_CONV_GROUP_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $vars.CHATWOOT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"content\": \"🚨 *ERROR: No se pudo consultar la API de alertas*\\n\\nEl servidor `deudas.sekaitech.com.pe` no respondió o devolvió un error.\\nRevisa que el servidor esté activo en Dokploy.\", \"message_type\": \"outgoing\", \"private\": false}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-send-error-msg",
+      "name": "🆘 Notificar Error API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =================================================================\n//  PROCESAR DATOS Y PREPARAR MENSAJES\n//  Genera hasta 3 mensajes separados:\n//    1. Header resumen   2. Bloque deudas   3. Bloque ordenes\n// =================================================================\nconst data = $input.first().json;\n\nconst deudas  = Array.isArray(data.deudas)  ? data.deudas  : [];\nconst ordenes = Array.isArray(data.ordenes) ? data.ordenes : [];\n\nif (deudas.length === 0 && ordenes.length === 0) {\n  return [{ json: { hayAlertas: false, mensajes: [], total: 0 } }];\n}\n\nconst urgIcon = (d) => {\n  if (d <= 0) return '🔴';  // red circle\n  if (d <= 3) return '🟠';  // orange circle\n  return '🟡';              // yellow circle\n};\n\nconst labelDias = (d) => {\n  if (d < 0)   return '⚠️ VENCIDO hace ' + Math.abs(d) + ' dia(s)';\n  if (d === 0) return '⚠️ *VENCE HOY*';\n  if (d === 1) return '📌 Vence *mañana*';\n  return '📅 Vence en *' + d + ' dias*';\n};\n\nconst sep = '─'.repeat(36);\nconst mensajes = [];\n\n// --- Mensaje 1: Encabezado ---\nconst vencHoy  = [...deudas, ...ordenes].filter(x => x.dias_restantes <= 0).length;\nconst criticas = [...deudas, ...ordenes].filter(x => x.dias_restantes > 0 && x.dias_restantes <= 3).length;\n\nlet header = [\n  '📋 *ALERTAS DE VENCIMIENTO*',\n  '🗓️ ' + data.generado + '  |  deudas.sekaitech.com.pe',\n  sep,\n  '📊 *Resumen:*',\n  '   • Total alertas: *' + data.total_alertas + '*'\n];\nif (vencHoy > 0)    header.push('   • 🔴 Vencidas/Hoy: *' + vencHoy + '*');\nif (criticas > 0)   header.push('   • 🟠 Criticas (≤3d): *' + criticas + '*');\nif (deudas.length)  header.push('   • 💳 Deudas: ' + deudas.length);\nif (ordenes.length) header.push('   • 📦 Ordenes: ' + ordenes.length);\nmensajes.push(header.join('\\n'));\n\n// --- Mensaje 2: Deudas ---\nif (deudas.length > 0) {\n  let bloque = ['💳 *DEUDAS POR COBRAR (' + deudas.length + ')*', sep];\n  deudas.forEach((d, i) => {\n    bloque.push('');\n    bloque.push(urgIcon(d.dias_restantes) + ' *' + (i + 1) + '. ' + d.cliente + '*');\n    bloque.push('   📌 ' + d.descripcion);\n    bloque.push('   💰 Pendiente: *' + d.monto + '*');\n    bloque.push('   ' + labelDias(d.dias_restantes) + ' (' + d.fecha_vencimiento + ')');\n    bloque.push('   👤 Responsable: ' + d.responsable);\n  });\n  mensajes.push(bloque.join('\\n'));\n}\n\n// --- Mensaje 3: Ordenes ---\nif (ordenes.length > 0) {\n  let bloque = ['📦 *ORDENES DE COMPRA (' + ordenes.length + ')*', sep];\n  ordenes.forEach((o, i) => {\n    bloque.push('');\n    bloque.push(urgIcon(o.dias_restantes) + ' *' + (i + 1) + '. OC #' + o.orden_compra + '*');\n    bloque.push('   🏢 ' + o.entidad);\n    bloque.push('   🔧 ' + o.producto_servicio);\n    if (o.empresa_factura) bloque.push('   🧾 Empresa: ' + o.empresa_factura);\n    bloque.push('   💰 Monto: *' + o.monto + '*');\n    bloque.push('   ' + labelDias(o.dias_restantes) + ' (' + o.fecha_limite_pago + ')');\n    bloque.push('   📊 Estado: ' + o.estado_seguimiento);\n    bloque.push('   👤 Resp: ' + o.responsable);\n  });\n  mensajes.push(bloque.join('\\n'));\n}\n\nreturn [{ json: { hayAlertas: true, mensajes, total: data.total_alertas } }];\n"
+      },
+      "id": "node-build-msg",
+      "name": "📝 Procesar y Construir Mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "cond-hay-alertas",
+              "leftValue": "={{ $json.hayAlertas }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-alertas",
+      "name": "❓ ¿Hay Alertas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "mensajes",
+        "options": {
+          "destinationFieldName": "mensaje"
+        }
+      },
+      "id": "node-split",
+      "name": "✂️ Dividir Mensajes",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1500,
+        "unit": "milliseconds"
+      },
+      "id": "node-wait",
+      "name": "⏳ Esperar 1.5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        320
+      ],
+      "webhookId": "wait-between-messages"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.CHATWOOT_URL }}/api/v1/accounts/{{ $vars.CHATWOOT_ACCOUNT_ID }}/conversations/{{ $vars.CHATWOOT_CONV_GROUP_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $vars.CHATWOOT_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": {{ JSON.stringify($json.mensaje) }},\n  \"message_type\": \"outgoing\",\n  \"private\": false\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-send-chatwoot",
+      "name": "✉️ Enviar a Chatwoot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const err = $input.first();\nconsole.error('[Alertas] Error al enviar a Chatwoot:', JSON.stringify(err.json));\nreturn [{ json: { logged: true, error: err.json } }];\n"
+      },
+      "id": "node-log-send-error",
+      "name": "📋 Log Error Envío",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "node-no-alertas",
+      "name": "🔕 Sin Alertas — OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "⏰ Lun-Sáb 08:00": {
+      "main": [
+        [
+          {
+            "node": "🌐 Consultar API Alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🌐 Consultar API Alertas": {
+      "main": [
+        [
+          {
+            "node": "🔍 ¿Error de API?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "🔍 ¿Error de API?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 ¿Error de API?": {
+      "main": [
+        [
+          {
+            "node": "🆘 Notificar Error API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Procesar y Construir Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Procesar y Construir Mensajes": {
+      "main": [
+        [
+          {
+            "node": "❓ ¿Hay Alertas?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "❓ ¿Hay Alertas?": {
+      "main": [
+        [
+          {
+            "node": "✂️ Dividir Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "🔕 Sin Alertas — OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✂️ Dividir Mensajes": {
+      "main": [
+        [
+          {
+            "node": "⏳ Esperar 1.5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⏳ Esperar 1.5s": {
+      "main": [
+        [
+          {
+            "node": "✉️ Enviar a Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✉️ Enviar a Chatwoot": {
+      "main": [],
+      "error": [
+        [
+          {
+            "node": "📋 Log Error Envío",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "alertas"
+    },
+    {
+      "name": "chatwoot"
+    },
+    {
+      "name": "deudas"
+    },
+    {
+      "name": "produccion"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-31T00:00:00.000Z",
+  "versionId": "2"
+}
