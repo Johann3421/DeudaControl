@@ -55,7 +55,7 @@ services:
       # POSTGRES_PASSWORD siempre igual que DB_PASSWORD → nunca desincronizados
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_v2:/var/lib/postgresql/data
       - ./docker/postgres:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     healthcheck:
@@ -66,4 +66,4 @@ services:
       start_period: 30s
 
 volumes:
-  postgres_data:
+  postgres_data_v2:
