@@ -46,18 +46,20 @@ services:
       SERVER_URL: https://evolution.TU_DOMINIO.com   # ← CAMBIAR
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: TU_API_KEY_SECRETA     # ← genera con: openssl rand -base64 32
-      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: true
-      QRCODE_LIMIT: 30
-      DEL_INSTANCE: false
-      DATABASE_ENABLED: false
-      CACHE_REDIS_ENABLED: false
-      CHATWOOT_ENABLED: true
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      QRCODE_LIMIT: "30"
+      DEL_INSTANCE: "false"
+      # ⚠️ En v2, DATABASE_PROVIDER es obligatorio aunque uses SQLite (sin DB externa)
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: sqlite
+      CACHE_REDIS_ENABLED: "false"
+      CHATWOOT_ENABLED: "true"
       CHATWOOT_API_URL: https://chat.abadgroup.tech
       CHATWOOT_TOKEN: TU_CHATWOOT_ACCESS_TOKEN       # ← el mismo de siempre
-      CHATWOOT_ACCOUNT_ID: "1"
-      CHATWOOT_SIGN_MSG: false
-      CHATWOOT_REOPEN_CONVERSATION: true
-      CHATWOOT_CONVERSATION_PENDING: false
+      CHATWOOT_ACCOUNT_ID: "1"                       # ← CAMBIAR si tu cuenta no es la 1
+      CHATWOOT_SIGN_MSG: "false"
+      CHATWOOT_REOPEN_CONVERSATION: "true"
+      CHATWOOT_CONVERSATION_PENDING: "false"
       LANGUAGE: es
     ports: []
 
