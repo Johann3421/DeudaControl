@@ -20,4 +20,13 @@
 /vendor
 Homestead.json
 Homestead.yaml
+
+# Database dumps (contain production data / credentials)
+*.sql
+!docker/postgres/init.sql
+
+# Exported files / misc
+*.json.bak
+"Kenya Bot*.json"
+
 Thumbs.db
