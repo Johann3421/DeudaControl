@@ -17,12 +17,14 @@ use App\Http\Controllers\EntidadController;
 use App\Http\Controllers\InmuebleController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MovimientoController;
+use App\Http\Controllers\OrdenController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SiafController;
 use App\Http\Controllers\SiafIntegrationController;
 use App\Http\Controllers\SiafScraperController;
 use App\Http\Controllers\ExcelSiafController;
+use App\Http\Controllers\Api\AlertasController;
 use App\Http\Controllers\UtilidadController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +51,11 @@ Route::prefix('maintenance')->group(function () {
     Route::get('/cleanup', [MaintenanceController::class, 'cleanup'])->name('maintenance.cleanup');
     Route::get('/status', [MaintenanceController::class, 'status'])->name('maintenance.status');
     Route::get('/test-siaf', [MaintenanceController::class, 'testSiafProxy'])->name('maintenance.test-siaf');
+});
+
+// Alertas API - para n8n/automatizaciones (sin autenticación, protegido por token)
+Route::prefix('api')->group(function () {
+    Route::get('/alertas/vencimientos', [AlertasController::class, 'vencimientos']);
 });
 
 // SIAF API Routes - Test endpoint (para debugging)
@@ -124,6 +131,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
+
+    // Órdenes de compra (vista dedicada PeruCompras / DeudaEntidad)
+    Route::get('/ordenes', [OrdenController::class, 'index'])->name('ordenes.index');
+    Route::post('/ordenes/{orden}/pdf', [OrdenController::class, 'uploadPdf'])->name('ordenes.uploadPdf');
+    Route::delete('/ordenes/{orden}/pdf', [OrdenController::class, 'deletePdf'])->name('ordenes.deletePdf');
 
     // Utilidades (Órdenes de Compra)
     // Force the singular parameter name to `utilidad` (resource() may guess incorrectly)

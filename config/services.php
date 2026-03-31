@@ -48,4 +48,8 @@ return [
         'connect_timeout' => env('SIAF_CONNECT_TIMEOUT', 25),
     ],
 
+    'alertas' => [
+        'token' => env('ALERTAS_TOKEN', ''),
+    ],
+
 ];

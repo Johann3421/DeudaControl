@@ -28,6 +28,7 @@ class DeudaEntidad extends Model
         'fase_siaf',
         'estado_expediente',
         'fecha_proceso',
+        'pdf_oc',
     ];
 
     protected function casts(): array
