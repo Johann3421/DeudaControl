@@ -1,13 +1,13 @@
-# docker-compose.yml — Solo para pruebas locales.
-# En Dokploy NO necesitas este archivo; Dokploy usa el Dockerfile directamente.
+# docker-compose.yml
+# Dokploy usa este archivo con su proxy Traefik interno.
+# NO se exponen puertos al host — Dokploy enruta internamente por dominio.
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
+    # Sin "ports": Dokploy/Traefik conecta directamente al contenedor en el puerto 80
     environment:
       APP_NAME: "Control de Deudas"
       APP_ENV: production
