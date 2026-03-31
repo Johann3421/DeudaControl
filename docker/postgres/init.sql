@@ -414,14 +414,16 @@ INSERT INTO "users" ("id", "name", "email", "email_verified_at", "password", "ro
     (4, 'prueba1', 'asd@gmail.com', NULL, '$2y$12$c4CpvHHAYJb7HjoELoDJ3OSMgVn6nnmbZJvgoZd3DSpAsAJC2rzVy', 'user', NULL, true, 'superadmin', true, NULL, '2026-02-11 01:34:49', '2026-02-11 04:01:02'),
     (5, 'GIANFRANCO', 'Franco4@gmail.com', NULL, '$2y$12$StDHI/0t7p6F5Ix2Gek2sutQPIr7r1.78xmRh12OSski6eZXPHTh2', 'user', NULL, true, 'superadmin', true, NULL, '2026-02-11 02:28:30', '2026-02-11 03:59:56'),
     (6, 'ESTALIN HUAMALI', 'soporte@sekaitech.com.pe', NULL, '$2y$12$aS/GU2XJRND/mU3DqggfHONlgygs22.RRjb2RNSo7KXG3/lXgqIA2', 'user', NULL, true, 'superadmin', true, 'xSQkGabYkpLTJBVtyEPMOYJNNMfhQIxvGVOvjuJmUPo5LV1SJe7qytdYT0YX', '2026-02-25 03:22:33', '2026-02-25 03:23:04'),
-    (7, 'yanet', 'yanet@kenya.com.pe', '2026-03-21 17:19:38', '$2y$12$3UYkrp6kpbWXQaM8Yt4AqeciVUly88o9q52h2iTfN41AuUDNKzi/q', 'admin', '2026-03-21 17:19:38', true, 'superadmin', true, NULL, '2026-03-21 17:19:38', '2026-03-21 22:32:48');
+    (7, 'yanet', 'yanet@kenya.com.pe', '2026-03-21 17:19:38', '$2y$12$3UYkrp6kpbWXQaM8Yt4AqeciVUly88o9q52h2iTfN41AuUDNKzi/q', 'admin', '2026-03-21 17:19:38', true, 'superadmin', true, NULL, '2026-03-21 17:19:38', '2026-03-21 22:32:48')
+ON CONFLICT DO NOTHING;
 
 
 -- clientes
 INSERT INTO "clientes" ("id", "user_id", "nombre", "apellido", "cedula", "telefono", "email", "direccion", "notas", "estado", "created_at", "updated_at") VALUES
     (7, 2, 'WILSON', 'PARDAVE ALARCON', '22482218', '987654321', 'ejemplo@gmail.com', 'no hay', 'el cliente no tiene numero ni correo, tampoco sabemos su direccion', 'activo', '2026-02-10 23:39:37', '2026-02-10 23:39:37'),
     (8, 5, 'EDGAR GUILLEN', 'SILVA CARRANZA', '07477644', '00000000', NULL, 'AV. 14 DE AGOSTO 350', 'ALQUILER DE INMBUEBLE TIENDA DE ROPAS', 'activo', '2026-02-13 02:28:06', '2026-02-13 02:28:06'),
-    (9, 5, 'JOSE LUIS', 'VARGAS TELLO', '40725469', '0000000', NULL, 'JR. HUALLAYCO Nº 1141', 'TIENDA DE INFORMATICA', 'activo', '2026-02-13 02:55:09', '2026-02-13 02:55:09');
+    (9, 5, 'JOSE LUIS', 'VARGAS TELLO', '40725469', '0000000', NULL, 'JR. HUALLAYCO Nº 1141', 'TIENDA DE INFORMATICA', 'activo', '2026-02-13 02:55:09', '2026-02-13 02:55:09')
+ON CONFLICT DO NOTHING;
 
 -- entidades
 INSERT INTO "entidades" ("id", "user_id", "razon_social", "ruc", "tipo", "contacto_nombre", "contacto_telefono", "contacto_email", "direccion", "notas", "estado", "created_at", "updated_at") VALUES
@@ -430,11 +432,13 @@ INSERT INTO "entidades" ("id", "user_id", "razon_social", "ruc", "tipo", "contac
     (4, 5, 'HOSPITAL REGIONAL HERMILIO VALDIZAN', '20146038329', 'publica', NULL, NULL, NULL, 'JR. HERMILIO VALDIZAN NRO. 950 HUANUCO - HUANUCO - HUANUCO', 'E001-198', 'activa', '2026-02-19 03:50:38', '2026-02-19 03:50:38'),
     (5, 5, 'RED DE SALUD YAROWILCA', '20608951106', 'publica', 'RED DE SALUD YAROWILCA', NULL, NULL, E'JR. SAN JUAN S/N HUANUCOYAROWILCA-\nCHAVINILLO', NULL, 'activa', '2026-03-22 02:45:59', '2026-03-22 02:45:59'),
     (6, 5, 'UNIDAD EJECUTORA 403 SALUD LEONCIO PRADO', '20489252601', 'publica', 'UNIDAD EJECUTORA 403 SALUD LEONCIO PRADO', NULL, NULL, NULL, NULL, 'activa', '2026-03-22 03:06:06', '2026-03-22 03:06:06'),
-    (7, 5, 'UNIVERSIDAD NACIONAL AGRARIA DE LA SELVA', '20172356720', 'publica', NULL, NULL, NULL, 'CAR.CENTRAL KM. 1.21 (CERRETERA CENTRAL TINGO MARIA A HUANUCO) HUANUCO - LEONCIO PRADO - RUPA-RUPA', NULL, 'activa', '2026-03-22 03:52:40', '2026-03-22 03:52:40');
+    (7, 5, 'UNIVERSIDAD NACIONAL AGRARIA DE LA SELVA', '20172356720', 'publica', NULL, NULL, NULL, 'CAR.CENTRAL KM. 1.21 (CERRETERA CENTRAL TINGO MARIA A HUANUCO) HUANUCO - LEONCIO PRADO - RUPA-RUPA', NULL, 'activa', '2026-03-22 03:52:40', '2026-03-22 03:52:40')
+ON CONFLICT DO NOTHING;
 
 -- inmuebles
 INSERT INTO "inmuebles" ("id", "user_id", "nombre", "direccion", "tipo", "descripcion", "estado", "created_at", "updated_at") VALUES
-    (1, 5, 'TIENDA GRUPO ALMERCO', 'JR. HUALLAYCO 1133 , 1145', 'casa', 'TIENDA DEL GRUPO ALMERCO', 'disponible', '2026-02-13 02:29:04', '2026-02-13 02:29:04');
+    (1, 5, 'TIENDA GRUPO ALMERCO', 'JR. HUALLAYCO 1133 , 1145', 'casa', 'TIENDA DEL GRUPO ALMERCO', 'disponible', '2026-02-13 02:29:04', '2026-02-13 02:29:04')
+ON CONFLICT DO NOTHING;
 
 -- deudas
 INSERT INTO "deudas" ("id", "tipo_deuda", "user_id", "cliente_id", "descripcion", "monto_total", "monto_pendiente", "currency_code", "tasa_interes", "fecha_inicio", "fecha_vencimiento", "estado", "frecuencia_pago", "numero_cuotas", "notas", "created_at", "updated_at") VALUES
@@ -454,12 +458,14 @@ INSERT INTO "deudas" ("id", "tipo_deuda", "user_id", "cliente_id", "descripcion"
     (32, 'entidad', 5, NULL, 'E001-74', 380.00, 0.00, 'PEN', 0.00, '2025-12-11', '2026-02-10', 'pagada', 'unico', NULL, NULL, '2026-03-22 03:29:14', '2026-03-22 03:29:38'),
     (33, 'entidad', 5, NULL, 'E001-79', 135.00, 135.00, 'PEN', 0.00, '2026-03-17', '2026-04-10', 'activa', 'unico', NULL, NULL, '2026-03-22 03:36:08', '2026-03-22 03:36:08'),
     (34, 'entidad', 5, NULL, 'E001-80', 675.00, 675.00, 'PEN', 0.00, '2026-03-17', '2026-04-10', 'activa', 'unico', NULL, NULL, '2026-03-22 03:45:57', '2026-03-22 03:45:57'),
-    (35, 'entidad', 5, NULL, 'E001-78', 22100.00, 22100.00, 'PEN', 0.00, '2026-03-05', '2026-04-10', 'activa', 'unico', NULL, NULL, '2026-03-22 03:54:23', '2026-03-22 03:54:23');
+    (35, 'entidad', 5, NULL, 'E001-78', 22100.00, 22100.00, 'PEN', 0.00, '2026-03-05', '2026-04-10', 'activa', 'unico', NULL, NULL, '2026-03-22 03:54:23', '2026-03-22 03:54:23')
+ON CONFLICT DO NOTHING;
 
 -- deuda_alquileres
 INSERT INTO "deuda_alquileres" ("id", "deuda_id", "inmueble_id", "monto_mensual", "periodicidad", "fecha_inicio_contrato", "fecha_corte", "servicios_incluidos", "created_at", "updated_at") VALUES
     (2, 15, 1, 9600.00, 'mensual', '2026-01-01', '2026-06-30', '[]', '2026-02-13 02:38:08', '2026-02-13 02:38:08'),
-    (3, 17, 1, 9600.00, 'mensual', '2026-01-01', '2026-06-30', '[]', '2026-02-13 02:55:54', '2026-02-13 02:55:54');
+    (3, 17, 1, 9600.00, 'mensual', '2026-01-01', '2026-06-30', '[]', '2026-02-13 02:55:54', '2026-02-13 02:55:54')
+ON CONFLICT DO NOTHING;
 
 -- deuda_entidades
 INSERT INTO "deuda_entidades" ("id", "deuda_id", "entidad_id", "orden_compra", "fecha_emision", "producto_servicio", "codigo_siaf", "estado_siaf", "fase_siaf", "estado_expediente", "fecha_proceso", "fecha_limite_pago", "estado_seguimiento", "empresa_factura", "unidad_ejecutora", "cerrado", "created_at", "updated_at") VALUES
@@ -475,7 +481,8 @@ INSERT INTO "deuda_entidades" ("id", "deuda_id", "entidad_id", "orden_compra", "
     (17, 32, 6, 'O/C 450', '2025-12-11', 'DISCO SOLIDO MARCA KINGSTON Y MOUSE OPTICO', '4670', 'G', 'G', 'F', '2026-01-19 00:00:00', '2026-02-10', 'pagado', 'SEKAI TECH S.C.R.L.', '1110', true, '2026-03-22 03:29:14', '2026-03-22 03:29:38'),
     (18, 33, 4, 'O/C 264', '2026-03-17', 'TINTA DE IMPRESION PARA EPSON 544 NEGRO', '1023', 'C', 'C', 'A', '2026-03-17 00:00:00', '2026-04-10', 'emitido', 'SEKAI TECH S.C.R.L.', '812', false, '2026-03-22 03:36:08', '2026-03-22 03:36:08'),
     (19, 34, 4, 'O/C 265', '2026-03-17', 'TINTAS PARA IMPRESORA EPSON 544 CYAN, MAGENTA Y AMARILLO', '1024', 'C', 'C', 'A', '2026-03-17 00:00:00', '2026-04-10', 'emitido', 'SEKAI TECH S.C.R.L.', '812', false, '2026-03-22 03:45:57', '2026-03-22 03:45:57'),
-    (20, 35, 7, 'O/C 21', '2026-03-05', 'PUNTERO LASER INALAMBRICO PRESENTADOR DE DIAPOSITIVAS', '673', 'C', 'C', 'A', '2026-03-05 00:00:00', '2026-04-10', 'emitido', 'GRUPO ALMERCO EIRL', '104', false, '2026-03-22 03:54:23', '2026-03-22 03:54:23');
+    (20, 35, 7, 'O/C 21', '2026-03-05', 'PUNTERO LASER INALAMBRICO PRESENTADOR DE DIAPOSITIVAS', '673', 'C', 'C', 'A', '2026-03-05 00:00:00', '2026-04-10', 'emitido', 'GRUPO ALMERCO EIRL', '104', false, '2026-03-22 03:54:23', '2026-03-22 03:54:23')
+ON CONFLICT DO NOTHING;
 
 -- deuda_historial
 INSERT INTO "deuda_historial" ("id", "deuda_id", "user_id", "evento", "datos_anteriores", "datos_nuevos", "descripcion", "created_at", "updated_at") VALUES
@@ -509,7 +516,8 @@ INSERT INTO "deuda_historial" ("id", "deuda_id", "user_id", "evento", "datos_ant
     (44, 35, 5, 'creacion', NULL, '{"user_id":5,"tipo_deuda":"entidad","cliente_id":null,"descripcion":"E001-78","monto_total":"22100.00","monto_pendiente":"22100.00","tasa_interes":"0.00","fecha_inicio":"2026-03-05T00:00:00.000000Z","fecha_vencimiento":"2026-04-10T00:00:00.000000Z","frecuencia_pago":"unico","notas":null,"currency_code":"PEN","updated_at":"2026-03-21T22:54:23.000000Z","created_at":"2026-03-21T22:54:23.000000Z","id":35}', 'Deuda creada: E001-78', '2026-03-22 03:54:23', '2026-03-22 03:54:23'),
     (45, 28, 5, 'actualizacion', '[]', '[]', 'Deuda actualizada: E001-199', '2026-03-23 20:09:09', '2026-03-23 20:09:09'),
     (46, 26, 5, 'actualizacion', '[]', '[]', 'Deuda actualizada: E001-76', '2026-03-24 21:25:27', '2026-03-24 21:25:27'),
-    (47, 28, 5, 'actualizacion', '[]', '[]', 'Deuda actualizada: E001-199', '2026-03-24 21:42:36', '2026-03-24 21:42:36');
+    (47, 28, 5, 'actualizacion', '[]', '[]', 'Deuda actualizada: E001-199', '2026-03-24 21:42:36', '2026-03-24 21:42:36')
+ON CONFLICT DO NOTHING;
 
 -- movimientos
 INSERT INTO "movimientos" ("id", "user_id", "tipo", "referencia_tipo", "referencia_id", "monto", "descripcion", "created_at", "updated_at") VALUES
@@ -538,12 +546,14 @@ INSERT INTO "movimientos" ("id", "user_id", "tipo", "referencia_tipo", "referenc
     (57, 5, 'prestamo_otorgado', 'deuda', 32, 380.00, 'Deuda con entidad UNIDAD EJECUTORA 403 SALUD LEONCIO PRADO: DISCO SOLIDO MARCA KINGSTON Y MOUSE OPTICO', '2026-03-22 03:29:14', '2026-03-22 03:29:14'),
     (58, 5, 'prestamo_otorgado', 'deuda', 33, 135.00, 'Deuda con entidad HOSPITAL REGIONAL HERMILIO VALDIZAN: TINTA DE IMPRESION PARA EPSON 544 NEGRO', '2026-03-22 03:36:08', '2026-03-22 03:36:08'),
     (59, 5, 'prestamo_otorgado', 'deuda', 34, 675.00, 'Deuda con entidad HOSPITAL REGIONAL HERMILIO VALDIZAN: TINTAS PARA IMPRESORA EPSON 544 CYAN, MAGENTA Y AMARILLO', '2026-03-22 03:45:57', '2026-03-22 03:45:57'),
-    (60, 5, 'prestamo_otorgado', 'deuda', 35, 22100.00, 'Deuda con entidad UNIVERSIDAD NACIONAL AGRARIA DE LA SELVA: PUNTERO LASER INALAMBRICO PRESENTADOR DE DIAPOSITIVAS', '2026-03-22 03:54:23', '2026-03-22 03:54:23');
+    (60, 5, 'prestamo_otorgado', 'deuda', 35, 22100.00, 'Deuda con entidad UNIVERSIDAD NACIONAL AGRARIA DE LA SELVA: PUNTERO LASER INALAMBRICO PRESENTADOR DE DIAPOSITIVAS', '2026-03-22 03:54:23', '2026-03-22 03:54:23')
+ON CONFLICT DO NOTHING;
 
 
 -- ordenes_compra
 INSERT INTO "ordenes_compra" ("id", "user_id", "deuda_id", "numero_oc", "cliente", "empresa_factura", "entidad_recibe", "fecha_oc", "fecha_entrega", "estado", "total_oc", "currency_code", "notas", "created_at", "updated_at") VALUES
-    (4, 7, 28, 'OC-02', 'E001-199', 'Jorge Luis Rojas Villanueva', 'Red Salud Yarowilca', '2026-02-26', '2026-03-12', 'entregado', 38079.92, 'PEN', NULL, '2026-03-28 19:50:44', '2026-03-28 19:50:44');
+    (4, 7, 28, 'OC-02', 'E001-199', 'Jorge Luis Rojas Villanueva', 'Red Salud Yarowilca', '2026-02-26', '2026-03-12', 'entregado', 38079.92, 'PEN', NULL, '2026-03-28 19:50:44', '2026-03-28 19:50:44')
+ON CONFLICT DO NOTHING;
 
 -- gastos_oc
 INSERT INTO "gastos_oc" ("id", "orden_compra_id", "tipo_gasto", "descripcion", "monto", "fecha", "created_at", "updated_at") VALUES
@@ -557,7 +567,8 @@ INSERT INTO "gastos_oc" ("id", "orden_compra_id", "tipo_gasto", "descripcion", "
     (12, 4, 'compra_producto', 'MEMORIA RAM - KINGSTON - KVR32N22D8/16WP - 16GB DDR4-3200MT/S, UDIMM, CL22, 1.2V, 2RX8, 288-PIN, NON-ECC, WHITE PCB - KVR32N22D8/16WP', 1589.20, '2026-03-09', '2026-03-28 20:37:04', '2026-03-28 20:37:04'),
     (13, 4, 'compra_producto', 'PROCESADOR - INTEL - CORE I7-14700 - PROCESADOR 8+12 NÚCLEOS (20C/28H), 2.1 GHZ (TURBO 5.4 GHZ), 33 MB SMART CACHE, SOCKET LGA1700, 65W/219W TDP - SIN N/P', 9179.73, '2026-03-09', '2026-03-28 21:06:02', '2026-03-28 21:06:02'),
     (14, 4, 'compra_producto', 'DISCO SOLIDO NVME KINGSTON NV3 1TB SSD M.2 2280 PCIE 4.0 X4 NVME, VELOCIDAD LECTURA HASTA 6000 MB/S, ESCRITURA HASTA 4000 MB/S, 3D (SNV3S/1000G)', 3941.00, '2026-03-09', '2026-03-28 21:10:35', '2026-03-28 21:10:35'),
-    (15, 4, 'compra_producto', 'PLACA MADRE - MSI - PRO H610M-G DDR4 - MICRO-ATX, CHIPSET INTEL H610, SOCKET LGA1700, DDR4, HDMI, VGA, USB 3.2 - PRO H610M-G DDR4', 1848.00, '2026-03-09', '2026-03-28 21:18:11', '2026-03-28 21:18:11');
+    (15, 4, 'compra_producto', 'PLACA MADRE - MSI - PRO H610M-G DDR4 - MICRO-ATX, CHIPSET INTEL H610, SOCKET LGA1700, DDR4, HDMI, VGA, USB 3.2 - PRO H610M-G DDR4', 1848.00, '2026-03-09', '2026-03-28 21:18:11', '2026-03-28 21:18:11')
+ON CONFLICT DO NOTHING;
 
 -- pagos
 INSERT INTO "pagos" ("id", "deuda_id", "monto", "currency_code", "fecha_pago", "metodo_pago", "referencia", "notas", "created_at", "updated_at") VALUES
@@ -568,18 +579,21 @@ INSERT INTO "pagos" ("id", "deuda_id", "monto", "currency_code", "fecha_pago", "
     (20, 15, 1200.00, 'PEN', '2026-03-06', 'efectivo', 'ALQUILER', NULL, '2026-03-10 02:52:07', '2026-03-10 02:52:07'),
     (21, 15, 400.00, 'PEN', '2026-03-09', 'efectivo', 'TICKET 0001-143', 'PAGO DE ALQUILER LOCAL', '2026-03-21 20:20:43', '2026-03-21 20:20:43'),
     (22, 11, 300.00, 'PEN', '2026-03-21', 'efectivo', 'TICKET - 153', 'TERCERA CUOTA LAPTOP', '2026-03-22 01:15:06', '2026-03-22 01:15:06'),
-    (23, 16, 50.00, 'PEN', '2026-03-20', 'efectivo', NULL, E'TICKET\t0001-000152', '2026-03-22 01:19:04', '2026-03-22 01:19:04');
+    (23, 16, 50.00, 'PEN', '2026-03-20', 'efectivo', NULL, E'TICKET\t0001-000152', '2026-03-22 01:19:04', '2026-03-22 01:19:04')
+ON CONFLICT DO NOTHING;
 
 
 -- recibos_alquiler
 INSERT INTO "recibos_alquiler" ("id", "deuda_alquiler_id", "numero_recibo", "monto", "periodo_inicio", "periodo_fin", "estado", "fecha_pago", "notas", "created_at", "updated_at") VALUES
     (3, 2, 'REC-0002-0001', 9600.00, '2026-01-01', '2026-01-31', 'pendiente', NULL, NULL, '2026-02-13 02:38:08', '2026-02-13 02:38:08'),
     (4, 3, 'REC-0003-0001', 9600.00, '2026-01-01', '2026-01-31', 'pendiente', NULL, NULL, '2026-02-13 02:55:55', '2026-02-13 02:55:55'),
-    (5, 3, 'REC-0003-0002', 9600.00, '2026-02-01', '2026-02-28', 'pendiente', NULL, NULL, '2026-02-26 01:37:36', '2026-02-26 01:37:36');
+    (5, 3, 'REC-0003-0002', 9600.00, '2026-02-01', '2026-02-28', 'pendiente', NULL, NULL, '2026-02-26 01:37:36', '2026-02-26 01:37:36')
+ON CONFLICT DO NOTHING;
 
 -- sessions
 INSERT INTO "sessions" ("id", "user_id", "ip_address", "user_agent", "payload", "last_activity") VALUES
-    ('TEH0YipTGlM23zid8NGLcBX1YT13c2NCLOll7jdI', 7, '38.250.159.18', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieUJtZHpmSEhlOU04NUZObm5iZGlrWkMxMWpOY2ZTd3hDd2kwQzNxZSI7czo5OiJfcHJldmlvdXMiO2E6Mjp7czozOiJ1cmwiO3M6Mzc6Imh0dHBzOi8vZGV1ZGFzLnNla2FpdGVjaC5jb20ucGUvbG9naW4iO3M6NToicm91dGUiO3M6NToibG9naW4iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aTo3O30=', 1774714692);
+    ('TEH0YipTGlM23zid8NGLcBX1YT13c2NCLOll7jdI', 7, '38.250.159.18', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', 'YTo0OntzOjY6Il90b2tlbiI7czo0MDoieUJtZHpmSEhlOU04NUZObm5iZGlrWkMxMWpOY2ZTd3hDd2kwQzNxZSI7czo5OiJfcHJldmlvdXMiO2E6Mjp7czozOiJ1cmwiO3M6Mzc6Imh0dHBzOi8vZGV1ZGFzLnNla2FpdGVjaC5jb20ucGUvbG9naW4iO3M6NToicm91dGUiO3M6NToibG9naW4iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aTo3O30=', 1774714692)
+ON CONFLICT DO NOTHING;
 
 -- migrations
 INSERT INTO "migrations" ("id", "migration", "batch") VALUES
@@ -606,7 +620,8 @@ INSERT INTO "migrations" ("id", "migration", "batch") VALUES
     (21, '2026_02_10_fix_rol_column_type', 8),
     (22, '2026_02_10_cleanup_orphaned_records', 9),
     (24, '2026_02_10_add_foreign_key_constraints', 10),
-    (25, '2026_02_10_full_cleanup_invalid_records', 10);
+    (25, '2026_02_10_full_cleanup_invalid_records', 10)
+ON CONFLICT DO NOTHING;
 
 -- Advance migrations sequence beyond the explicitly-inserted rows
 SELECT setval(pg_get_serial_sequence('"migrations"', 'id'), (SELECT MAX(id) FROM "migrations"), true);
@@ -619,7 +634,8 @@ INSERT INTO "migrations" ("migration", "batch") VALUES
     ('2026_03_10_100001_create_gastos_oc_table', 11),
     ('2026_03_10_100002_create_pagos_oc_table', 11),
     ('2026_03_11_000000_add_deuda_id_to_ordenes_compra', 11),
-    ('2026_03_12_000000_add_empresa_fields_to_ordenes_compra', 11);
+    ('2026_03_12_000000_add_empresa_fields_to_ordenes_compra', 11)
+ON CONFLICT DO NOTHING;
 
 
 

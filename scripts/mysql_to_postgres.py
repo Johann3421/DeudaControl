@@ -667,7 +667,7 @@ def collect_inserts(sql_text: str) -> dict:
                     insert_sql = (
                         f'INSERT INTO "{table}" ({col_list}) VALUES\n'
                         + ',\n'.join(pg_rows)
-                        + ";"
+                        + "\nON CONFLICT DO NOTHING;"
                     )
                     inserts[table] = insert_sql
 
@@ -736,7 +736,7 @@ def main():
             out.append("-- Missing migrations (repo migrations not recorded in dump)")
             out.append(
                 f'INSERT INTO "migrations" ("migration", "batch") VALUES\n'
-                + missing_vals + ";"
+                + missing_vals + "\nON CONFLICT DO NOTHING;"
             )
         elif table in inserts:
             out.append(f"-- {table}")

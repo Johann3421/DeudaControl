@@ -10,15 +10,22 @@ echo "==> Starting deployment..."
 # by the container runtime; the .env file just needs to exist.
 if [ ! -f ".env" ]; then
     echo "==> Creating .env from environment..."
-    printenv \
-        | grep -E '^(APP_|DB_|SESSION_|CACHE_|QUEUE_|MAIL_|SIAF_|LOG_|BROADCAST_)' \
-        | sort > .env
+    # Use PHP to write properly quoted values so Laravel dotenv parser
+    # never chokes on values containing spaces (e.g. APP_NAME="Control de Deudas")
+    php -r '
+foreach ($_SERVER as $k => $v) {
+    if (preg_match("/^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST)_/", $k)) {
+        $v = str_replace(["\\", "\"", "\n", "\r"], ["\\\\", "\\\"", "\\n", "\\r"], (string)$v);
+        echo $k . "=\"" . $v . "\"\n";
+    }
+}' > .env
 fi
 
-# Generate APP_KEY only if it is truly absent from both env and .env
-if [ -z "$APP_KEY" ] && ! grep -q 'APP_KEY=' .env 2>/dev/null; then
-    echo "==> Generating APP_KEY..."
-    php artisan key:generate --force
+# Skip key:generate — APP_KEY is already injected by Dokploy as a Docker env var.
+# key:generate requires writing to .env which is unnecessary when the key
+# is already available in the process environment.
+if [ -z "$APP_KEY" ]; then
+    echo "==> WARNING: APP_KEY is not set. Set it in Dokploy environment variables."
 fi
 
 # Create storage link
