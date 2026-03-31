@@ -24,6 +24,7 @@ Homestead.yaml
 # Database dumps (contain production data / credentials)
 *.sql
 !docker/postgres/init.sql
+!docker/postgres/seed_data.sql
 
 # Exported files / misc
 *.json.bak

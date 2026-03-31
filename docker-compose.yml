@@ -1,34 +1,41 @@
 # docker-compose.yml
 # Dokploy usa este archivo con su proxy Traefik interno.
 # NO se exponen puertos al host — Dokploy enruta internamente por dominio.
+#
+# Todas las variables sensibles (APP_KEY, DB_PASSWORD, APP_URL, etc.)
+# deben configurarse en la pestaña "Environment" de Dokploy.
+# docker-compose lee los valores mediante ${VAR:-default}.
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    # Sin "ports": Dokploy/Traefik conecta directamente al contenedor en el puerto 80
     environment:
       APP_NAME: "Control de Deudas"
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: http://localhost
-      APP_KEY: "" # Se genera automáticamente en el primer arranque
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_KEY: ${APP_KEY:-}
 
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: "5432"
-      DB_DATABASE: control_deudas
-      DB_USERNAME: deudas_user
-      DB_PASSWORD: SecurePassword123!
+      DB_DATABASE: ${DB_DATABASE:-control_deudas}
+      DB_USERNAME: ${DB_USERNAME:-deudas_user}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
 
       SESSION_DRIVER: database
-      SESSION_LIFETIME: "120"
+      SESSION_LIFETIME: "480"
       CACHE_STORE: database
       QUEUE_CONNECTION: database
 
-      SIAF_PROXY_URL: ""
-      SIAF_PROXY_SECRET: ""
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-noreply@example.com}
+      MAIL_FROM_NAME: "Control de Deudas"
+
+      SIAF_PROXY_URL: ${SIAF_PROXY_URL:-}
+      SIAF_PROXY_SECRET: ${SIAF_PROXY_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
@@ -43,15 +50,16 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: control_deudas
-      POSTGRES_USER: deudas_user
-      POSTGRES_PASSWORD: SecurePassword123!
+      POSTGRES_DB: ${DB_DATABASE:-control_deudas}
+      POSTGRES_USER: ${DB_USERNAME:-deudas_user}
+      # POSTGRES_PASSWORD siempre igual que DB_PASSWORD → nunca desincronizados
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U deudas_user -d control_deudas"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-deudas_user} -d ${DB_DATABASE:-control_deudas}"]
       interval: 10s
       timeout: 5s
       retries: 5
