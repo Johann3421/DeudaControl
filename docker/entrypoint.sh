@@ -7,11 +7,7 @@ echo "==> Starting deployment..."
 
 # ── 1. Write .env from Docker environment variables ────────────────────────────
 echo "==> Creating .env from environment..."
-env | grep -E '^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST|ALERTAS)_' | while IFS='=' read -r key value; do
-    # Escape double quotes in value
-    value=$(echo "$value" | sed 's/"/\\"/g')
-    echo "${key}=\"${value}\""
-done > .env
+printenv | grep -E '^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST|ALERTAS)_' | sed 's/=\(.*\)/="\1"/' > .env
 
 # ── 2. Auto-generate APP_KEY if missing or empty ───────────────────────────────
 APP_KEY_VALUE=$(grep -E "^APP_KEY=" .env | cut -d= -f2- | tr -d '"' | tr -d "'")
