@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
     // Órdenes de compra (vista dedicada PeruCompras / DeudaEntidad)
     Route::get('/ordenes', [OrdenController::class, 'index'])->name('ordenes.index');
     Route::post('/ordenes/{orden}/pdf', [OrdenController::class, 'uploadPdf'])->name('ordenes.uploadPdf');
+    Route::get('/ordenes/{orden}/pdf/view', [OrdenController::class, 'viewPdf'])->name('ordenes.viewPdf');
     Route::delete('/ordenes/{orden}/pdf', [OrdenController::class, 'deletePdf'])->name('ordenes.deletePdf');
 
     // Utilidades (Órdenes de Compra)

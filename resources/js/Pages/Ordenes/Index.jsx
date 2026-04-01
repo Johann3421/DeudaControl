@@ -45,6 +45,10 @@ function DiasBadge({ dias, cerrado }) {
     return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{dias}d</span>;
 }
 
+function isOrdenCerrada(o) {
+    return o.cerrado || o.estado_seguimiento === 'pagado' || o.deuda?.estado === 'pagada';
+}
+
 function StatusBadge({ map, value }) {
     const s = map[value];
     if (!s) return <span className="text-slate-400 text-xs">—</span>;
@@ -81,7 +85,7 @@ function PdfCell({ orden }) {
         return (
             <div className="flex items-center gap-1.5">
                 <a
-                    href={`/storage/${orden.pdf_oc}`}
+                    href={`/ordenes/${orden.id}/pdf/view`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
@@ -143,8 +147,8 @@ export default function OrdenesIndex({ ordenes }) {
     const [filtroSeg, setFiltroSeg]         = useState('');
     const [soloProximas, setSoloProximas]   = useState(false);
 
-    const proximas7  = ordenes.filter(o => { const d = calcDias(o.fecha_limite_pago); return d !== null && d >= 0 && d <= 7 && !o.cerrado; }).length;
-    const vencidas   = ordenes.filter(o => { const d = calcDias(o.fecha_limite_pago); return d !== null && d < 0 && !o.cerrado; }).length;
+    const proximas7  = ordenes.filter(o => { const d = calcDias(o.fecha_limite_pago); return d !== null && d >= 0 && d <= 7 && !isOrdenCerrada(o); }).length;
+    const vencidas   = ordenes.filter(o => { const d = calcDias(o.fecha_limite_pago); return d !== null && d < 0 && !isOrdenCerrada(o); }).length;
     const compromiso = ordenes.filter(o => !o.estado_siaf || o.estado_siaf === 'C').length;
 
     const filtered = ordenes.filter(o => {
@@ -154,7 +158,7 @@ export default function OrdenesIndex({ ordenes }) {
         if (filtroSeg && o.estado_seguimiento !== filtroSeg) return false;
         if (soloProximas) {
             const d = calcDias(o.fecha_limite_pago);
-            if (d === null || d > 7 || o.cerrado) return false;
+            if (d === null || d > 7 || isOrdenCerrada(o)) return false;
         }
         return true;
     });
@@ -240,7 +244,8 @@ export default function OrdenesIndex({ ordenes }) {
                                     </tr>
                                 ) : filtered.map(orden => {
                                     const dias = calcDias(orden.fecha_limite_pago);
-                                    const rowBg = orden.cerrado ? 'opacity-60'
+                                    const ocCerrada = isOrdenCerrada(orden);
+                                    const rowBg = ocCerrada ? 'opacity-60'
                                         : dias !== null && dias < 0 ? 'bg-red-50/40'
                                         : dias !== null && dias <= 3 ? 'bg-amber-50/30' : '';
                                     return (
@@ -266,7 +271,7 @@ export default function OrdenesIndex({ ordenes }) {
                                             </td>
                                             <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{formatFecha(orden.fecha_limite_pago)}</td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <DiasBadge dias={dias} cerrado={orden.cerrado} />
+                                                <DiasBadge dias={dias} cerrado={ocCerrada} />
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <StatusBadge map={SIAF_MAP} value={orden.estado_siaf} />

@@ -60,6 +60,21 @@ class OrdenController extends Controller
         return back()->with('success', 'PDF de la orden subido correctamente.');
     }
 
+    public function viewPdf(DeudaEntidad $orden)
+    {
+        $user = Auth::user();
+
+        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if (!$orden->pdf_oc || !Storage::disk('public')->exists($orden->pdf_oc)) {
+            abort(404, 'El archivo PDF no existe o fue eliminado.');
+        }
+
+        return response()->file(Storage::disk('public')->path($orden->pdf_oc));
+    }
+
     public function deletePdf(DeudaEntidad $orden)
     {
         $user = Auth::user();
