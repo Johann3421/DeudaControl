@@ -29,6 +29,8 @@ class Deuda extends Model
         'frecuencia_pago',
         'numero_cuotas',
         'notas',
+        'factura_pdf',
+        'guia_pdf',
     ];
 
     protected function casts(): array

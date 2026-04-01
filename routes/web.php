@@ -120,6 +120,9 @@ Route::middleware('auth')->group(function () {
 
     // Resource general debe ir al final
     Route::resource('deudas', DeudaController::class);
+    Route::post('/deudas/{deuda}/documentos/{tipo}', [DeudaController::class, 'uploadDocument'])->name('deudas.uploadDocument');
+    Route::get('/deudas/{deuda}/documentos/{tipo}/view', [DeudaController::class, 'viewDocument'])->name('deudas.viewDocument');
+    Route::delete('/deudas/{deuda}/documentos/{tipo}', [DeudaController::class, 'deleteDocument'])->name('deudas.deleteDocument');
 
     // Entidades (institutional)
     Route::resource('entidades', EntidadController::class);

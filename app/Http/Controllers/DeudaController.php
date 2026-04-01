@@ -157,4 +157,58 @@ class DeudaController extends Controller
             abort(403);
         }
     }
+
+    // ─── Documentos (Factura / Guía) ─────────────────────────────────────────
+
+    public function uploadDocument(Request $request, Deuda $deuda, $tipo)
+    {
+        $this->authorize($deuda);
+        if (!in_array($tipo, ['factura', 'guia'])) abort(404);
+
+        $request->validate([
+            'documento' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // max 5MB
+        ]);
+
+        $file = $request->file('documento');
+        $fileName = "{$tipo}_{$deuda->id}_" . time() . '.' . $file->extension();
+        $path = $file->storeAs("deudas/docs/{$deuda->id}", $fileName, 'public');
+
+        $campo = "{$tipo}_pdf";
+        
+        if ($deuda->$campo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($deuda->$campo);
+        }
+
+        $deuda->update([$campo => $path]);
+
+        return back()->with('success', ucfirst($tipo) . ' subida correctamente.');
+    }
+
+    public function viewDocument(Deuda $deuda, $tipo)
+    {
+        $this->authorize($deuda);
+        if (!in_array($tipo, ['factura', 'guia'])) abort(404);
+
+        $campo = "{$tipo}_pdf";
+        if (!$deuda->$campo || !\Illuminate\Support\Facades\Storage::disk('public')->exists($deuda->$campo)) {
+            abort(404, 'Documento no encontrado.');
+        }
+
+        $path = \Illuminate\Support\Facades\Storage::disk('public')->path($deuda->$campo);
+        return response()->file($path);
+    }
+
+    public function deleteDocument(Deuda $deuda, $tipo)
+    {
+        $this->authorize($deuda);
+        if (!in_array($tipo, ['factura', 'guia'])) abort(404);
+
+        $campo = "{$tipo}_pdf";
+        if ($deuda->$campo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($deuda->$campo);
+            $deuda->update([$campo => null]);
+        }
+
+        return back()->with('success', ucfirst($tipo) . ' eliminada correctamente.');
+    }
 }
