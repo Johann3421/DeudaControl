@@ -9,7 +9,7 @@ echo "==> Starting deployment..."
 echo "==> Creating .env from environment..."
 php -r '
 foreach ($_SERVER as $k => $v) {
-    if (preg_match("/^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST)_/", $k)) {
+    if (preg_match("/^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST|ALERTAS)_/", $k)) {
         $v = str_replace(["\\", "\"", "\n", "\r"], ["\\\\", "\\\"", "\\n", "\\r"], (string)$v);
         echo $k . "=\"" . $v . "\"\n";
     }
