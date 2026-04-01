@@ -160,105 +160,99 @@ export default function DeudasIndex({ deudas, filtros }) {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full">
+                            <table className="w-full text-xs">
                                 <thead>
-                                    <tr className="border-b border-slate-100">
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Descripcion</th>
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Cliente / Entidad</th>
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Creado</th>
-                                        <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Última Edición</th>
-                                        <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Tipo</th>
-                                        <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Monto Total</th>
-                                        <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Pendiente</th>
+                                    <tr className="border-b border-slate-100 bg-slate-50">
+                                        <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Descripción</th>
+                                        <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Cliente / Entidad</th>
+                                        <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Creado</th>
+                                        <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Tipo</th>
+                                        <th className="text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Monto</th>
+                                        <th className="text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Pendiente</th>
                                         {tieneDeudaEntidad && (
                                             <>
-                                                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Unidad Ejecutora</th>
-                                                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Expediente</th>
-                                                <th className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Empresa Factura</th>
-                                                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado SIAF</th>
-                                                <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Fase SIAF</th>
+                                                <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">UE / Emp. Fact.</th>
+                                                <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Expediente</th>
+                                                <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">SIAF</th>
+                                                <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Fase</th>
                                             </>
                                         )}
-                                        <th className="text-center text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Estado</th>
-                                        <th className="text-right text-xs font-semibold text-slate-500 uppercase tracking-wider px-5 py-3">Acciones</th>
+                                        <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Estado</th>
+                                        <th className="text-right text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5"></th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {deudas.data.map((deuda) => {
                                         const estilos = ESTADO_STYLES[deuda.estado] || ESTADO_STYLES.activa;
                                         const tipoStyle = TIPO_STYLES[deuda.tipo_deuda] || TIPO_STYLES.particular;
+                                        const prog = calcProgreso(deuda);
                                         return (
                                             <tr key={deuda.id} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-5 py-3.5">
-                                                    <Link href={`/deudas/${deuda.id}`} className="text-sm font-medium text-slate-800 hover:text-[#0EA5E9] transition-colors">
+                                                {/* Descripción + barra progreso */}
+                                                <td className="px-3 py-2 max-w-[150px]">
+                                                    <Link href={`/deudas/${deuda.id}`} className="text-xs font-medium text-slate-800 hover:text-[#0EA5E9] transition-colors truncate block">
                                                         {deuda.descripcion}
                                                     </Link>
-                                                    {(() => {
-                                                        const prog = calcProgreso(deuda);
-                                                        return (
-                                                            <div className="flex items-center gap-2 mt-1.5">
-                                                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[120px]">
-                                                                    <div className={`h-full ${prog.color} rounded-full transition-all`} style={{ width: `${prog.pct}%` }} />
-                                                                </div>
-                                                                <span className="text-[10px] text-slate-400" title={prog.label}>{prog.label}</span>
-                                                            </div>
-                                                        );
-                                                    })()}
+                                                    <div className="flex items-center gap-1.5 mt-1">
+                                                        <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
+                                                            <div className={`h-full ${prog.color} rounded-full transition-all`} style={{ width: `${prog.pct}%` }} />
+                                                        </div>
+                                                        <span className="text-[10px] text-slate-400 whitespace-nowrap">{Math.round(prog.pct)}%</span>
+                                                    </div>
                                                 </td>
-                                                <td className="px-5 py-3.5">
+                                                {/* Cliente */}
+                                                <td className="px-3 py-2 max-w-[140px]">
                                                     {deuda.cliente ? (
-                                                        <Link href={`/clientes/${deuda.cliente.id}`} className="text-sm text-slate-600 hover:text-[#0EA5E9]">
+                                                        <Link href={`/clientes/${deuda.cliente.id}`} className="text-xs text-slate-600 hover:text-[#0EA5E9] truncate block">
                                                             {deuda.cliente.nombre} {deuda.cliente.apellido}
                                                         </Link>
                                                     ) : deuda.deuda_entidad?.entidad ? (
-                                                        <span className="text-sm text-slate-600">
-                                                            {deuda.deuda_entidad.entidad.razon_social}
-                                                        </span>
-                                                    ) : <span className="text-sm text-slate-400">-</span>}
+                                                        <span className="text-xs text-slate-600 truncate block">{deuda.deuda_entidad.entidad.razon_social}</span>
+                                                    ) : <span className="text-xs text-slate-400">-</span>}
                                                 </td>
-                                                <td className="px-5 py-3.5">
-                                                    <div className="text-sm space-y-1">
-                                                        <p className="text-slate-700 font-medium">{formatDate(deuda.created_at)}</p>
-                                                        <p className="text-xs text-slate-400">por {deuda.user?.name}</p>
-                                                    </div>
+                                                {/* Creado */}
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    <p className="text-xs text-slate-600">{formatRelativeTime(deuda.updated_at)}</p>
+                                                    <p className="text-[10px] text-slate-400">{formatDate(deuda.created_at)}</p>
                                                 </td>
-                                                <td className="px-5 py-3.5">
-                                                    <div className="text-sm space-y-1">
-                                                        <p className="text-slate-600">{formatRelativeTime(deuda.updated_at)}</p>
-                                                        <p className="text-xs text-slate-400">{formatDate(deuda.updated_at)}</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-5 py-3.5 text-center">
-                                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle.bg} ${tipoStyle.text}`}>
+                                                {/* Tipo */}
+                                                <td className="px-3 py-2 text-center">
+                                                    <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-medium ${tipoStyle.bg} ${tipoStyle.text}`}>
                                                         {tipoStyle.label}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3.5 text-right">
-                                                    <span className="text-sm font-medium text-slate-800">{formatMoney(deuda.monto_total, deuda.currency_code)}</span>
+                                                {/* Monto */}
+                                                <td className="px-3 py-2 text-right whitespace-nowrap">
+                                                    <span className="text-xs font-medium text-slate-800">{formatMoney(deuda.monto_total, deuda.currency_code)}</span>
                                                 </td>
-                                                <td className="px-5 py-3.5 text-right">
-                                                    <span className="text-sm font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</span>
+                                                {/* Pendiente */}
+                                                <td className="px-3 py-2 text-right whitespace-nowrap">
+                                                    <span className="text-xs font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</span>
                                                 </td>
+                                                {/* Columnas de entidad */}
                                                 {tieneDeudaEntidad && (
                                                     <>
-                                                        <td className="px-5 py-3.5">
+                                                        {/* UE + Empresa Factura (merged) */}
+                                                        <td className="px-3 py-2 max-w-[120px]">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.unidad_ejecutora ? (
-                                                                <span className="text-xs text-slate-700">{deuda.deuda_entidad.unidad_ejecutora}</span>
+                                                                <div>
+                                                                    <span className="text-xs text-slate-700 truncate block">{deuda.deuda_entidad.unidad_ejecutora}</span>
+                                                                    {deuda.deuda_entidad.empresa_factura && (
+                                                                        <span className="text-[10px] text-slate-400 truncate block">{deuda.deuda_entidad.empresa_factura}</span>
+                                                                    )}
+                                                                </div>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
-                                                        <td className="px-5 py-3.5 text-center">
+                                                        {/* Expediente */}
+                                                        <td className="px-3 py-2 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.codigo_siaf ? (
                                                                 <span className="text-xs font-mono font-semibold text-slate-700">{deuda.deuda_entidad.codigo_siaf}</span>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
-                                                        <td className="px-5 py-3.5">
-                                                            {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.empresa_factura ? (
-                                                                <span className="text-xs text-slate-700">{deuda.deuda_entidad.empresa_factura}</span>
-                                                            ) : <span className="text-xs text-slate-300">-</span>}
-                                                        </td>
-                                                        <td className="px-5 py-3.5 text-center">
+                                                        {/* Estado SIAF */}
+                                                        <td className="px-3 py-2 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.estado_siaf ? (
-                                                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold whitespace-nowrap
+                                                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap
                                                                     ${deuda.deuda_entidad.estado_siaf === 'C' ? 'bg-blue-100 text-blue-800' : ''}
                                                                     ${deuda.deuda_entidad.estado_siaf === 'D' ? 'bg-amber-100 text-amber-800' : ''}
                                                                     ${deuda.deuda_entidad.estado_siaf === 'G' ? 'bg-green-100 text-green-800' : ''}
@@ -269,32 +263,31 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                                     {deuda.deuda_entidad.estado_siaf === 'G' && 'GIRADO'}
                                                                     {deuda.deuda_entidad.estado_siaf === 'R' && 'RECHAZADA'}
                                                                 </span>
-                                                            ) : (
-                                                                <span className="text-xs text-slate-300">-</span>
-                                                            )}
+                                                            ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
-                                                        <td className="px-5 py-3.5 text-center">
+                                                        {/* Fase SIAF */}
+                                                        <td className="px-3 py-2 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.fase_siaf ? (
                                                                 <span className="text-xs text-slate-600 font-medium">{deuda.deuda_entidad.fase_siaf}</span>
-                                                            ) : (
-                                                                <span className="text-xs text-slate-300">-</span>
-                                                            )}
+                                                            ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
                                                     </>
                                                 )}
-                                                <td className="px-5 py-3.5 text-center">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${estilos.bg} ${estilos.text}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${estilos.dot}`} />
+                                                {/* Estado */}
+                                                <td className="px-3 py-2 text-center">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${estilos.bg} ${estilos.text}`}>
+                                                        <span className={`w-1 h-1 rounded-full ${estilos.dot}`} />
                                                         {deuda.estado.charAt(0).toUpperCase() + deuda.estado.slice(1)}
                                                     </span>
                                                 </td>
-                                                <td className="px-5 py-3.5 text-right">
-                                                    <div className="flex items-center justify-end gap-1">
-                                                        <Link href={`/deudas/${deuda.id}`} className="p-2 text-slate-400 hover:text-[#0EA5E9] rounded-lg hover:bg-slate-100 transition-colors">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                {/* Acciones */}
+                                                <td className="px-3 py-2 text-right">
+                                                    <div className="flex items-center justify-end gap-0.5">
+                                                        <Link href={`/deudas/${deuda.id}`} className="p-1.5 text-slate-400 hover:text-[#0EA5E9] rounded-lg hover:bg-slate-100 transition-colors">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                                                         </Link>
-                                                        <Link href={`/deudas/${deuda.id}/edit`} className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-100 transition-colors">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                        <Link href={`/deudas/${deuda.id}/edit`} className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-100 transition-colors">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                                         </Link>
                                                     </div>
                                                 </td>
@@ -307,12 +300,12 @@ export default function DeudasIndex({ deudas, filtros }) {
                     )}
 
                     {deudas.last_page > 1 && (
-                        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-                            <p className="text-xs text-slate-400">Mostrando {deudas.from} a {deudas.to} de {deudas.total}</p>
+                        <div className="flex items-center justify-between px-3 py-2.5 border-t border-slate-100">
+                            <p className="text-[10px] text-slate-400">Mostrando {deudas.from} a {deudas.to} de {deudas.total}</p>
                             <div className="flex gap-1">
                                 {deudas.links.map((link, i) => (
                                     <Link key={i} href={link.url || '#'}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                                             link.active ? 'bg-[#0EA5E9] text-white' : link.url ? 'text-slate-500 hover:bg-slate-100' : 'text-slate-300 cursor-not-allowed'
                                         }`} dangerouslySetInnerHTML={{ __html: link.label }} />
                                 ))}
