@@ -65,8 +65,11 @@ class UtilidadController extends Controller
     {
         $user  = Auth::user();
         $query = OrdenCompra::with(['gastos', 'pagos', 'deuda.cliente'])
-            ->where('user_id', $user->id)
             ->orderBy('fecha_oc', 'desc');
+
+        if ($user->rol !== 'superadmin') {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('buscar')) {
             $q = $request->buscar;
@@ -101,8 +104,12 @@ class UtilidadController extends Controller
 
         $ocs->getCollection()->transform(fn ($oc) => $this->withUtilidad($oc));
 
-        // Resumen global (solo del usuario)
-        $all   = OrdenCompra::with(['gastos', 'pagos', 'deuda'])->where('user_id', $user->id)->get();
+        // Resumen global
+        $allQuery = OrdenCompra::with(['gastos', 'pagos', 'deuda']);
+        if ($user->rol !== 'superadmin') {
+            $allQuery->where('user_id', $user->id);
+        }
+        $all = $allQuery->get();
         $resumen = [
             'total_vendido'  => $all->sum('total_oc'),
             'total_gastado'  => $all->sum(fn ($o) => $o->total_gastos),
@@ -158,6 +165,11 @@ class UtilidadController extends Controller
 
     public function show(OrdenCompra $utilidad)
     {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+            abort(403);
+        }
+
         $utilidad->load([
             'deuda.cliente',
             'gastos' => fn ($q) => $q->orderBy('created_at', 'asc'),
@@ -173,6 +185,11 @@ class UtilidadController extends Controller
 
     public function edit(OrdenCompra $utilidad)
     {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+            abort(403);
+        }
+
         $utilidad->load('deuda.cliente');
 
         // Also include the currently linked deuda (even if already used) in the options
@@ -200,6 +217,11 @@ class UtilidadController extends Controller
 
     public function update(Request $request, OrdenCompra $utilidad)
     {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'deuda_id'        => ['nullable', 'integer', 'exists:deudas,id'],
             'numero_oc'       => ['required', 'string', 'max:50', "unique:ordenes_compra,numero_oc,{$utilidad->id}"],
@@ -227,6 +249,11 @@ class UtilidadController extends Controller
 
     public function destroy(OrdenCompra $utilidad)
     {
+        $user = Auth::user();
+        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+            abort(403);
+        }
+
         $utilidad->delete();
         return redirect()->route('utilidades.index')->with('success', 'Orden eliminada.');
     }

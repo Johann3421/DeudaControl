@@ -27,12 +27,17 @@ const COLOR_STYLES = {
 
 const METODO_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia', tarjeta: 'Tarjeta', cheque: 'Cheque', otro: 'Otro' };
 
+const getLocalToday = () => {
+    const tzOffset = new Date().getTimezoneOffset() * 60000;
+    return new Date(Date.now() - tzOffset).toISOString().split('T')[0];
+};
+
 function AddGastoForm({ ocId }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         tipo_gasto:  'compra_producto',
         descripcion: '',
         monto:       '',
-        fecha:       new Date().toISOString().split('T')[0],
+        fecha:       getLocalToday(),
     });
 
     const handleSubmit = (e) => {
@@ -77,7 +82,7 @@ function AddGastoForm({ ocId }) {
 function AddPagoForm({ ocId }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         monto:       '',
-        fecha_pago:  new Date().toISOString().split('T')[0],
+        fecha_pago:  getLocalToday(),
         metodo_pago: 'transferencia',
         referencia:  '',
         notas:       '',
