@@ -19,9 +19,8 @@ class DeudaAlquilerService
     public function crear(array $datos): Deuda
     {
         return DB::transaction(function () use ($datos) {
-            Inmueble::where('id', $datos['inmueble_id'])
-                ->where('user_id', Auth::id())
-                ->firstOrFail();
+            // Permitimos cualquier inmueble ya que los selectores son globales
+            Inmueble::findOrFail($datos['inmueble_id']);
 
             $deuda = Deuda::create([
                 'user_id' => Auth::id(),

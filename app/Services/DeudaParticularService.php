@@ -17,9 +17,8 @@ class DeudaParticularService
     public function crear(array $datos): Deuda
     {
         return DB::transaction(function () use ($datos) {
-            $cliente = Cliente::where('id', $datos['cliente_id'])
-                ->where('user_id', Auth::id())
-                ->firstOrFail();
+            // Encontramos al cliente. Si implementas multi-tenant más estricto, valida el user_id o el rol.
+            $cliente = Cliente::findOrFail($datos['cliente_id']);
 
             $deuda = Deuda::create([
                 'user_id' => Auth::id(),
