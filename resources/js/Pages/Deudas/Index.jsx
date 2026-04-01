@@ -40,6 +40,39 @@ const TIPO_STYLES = {
     alquiler: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Alquiler' },
 };
 
+// Progreso basado en fases SIAF + seguimiento para entidades,
+// y en pagos para particular/alquiler
+function calcProgreso(deuda) {
+    if (deuda.estado === 'pagada') return { pct: 100, color: 'bg-emerald-500', label: 'Pagada' };
+    if (deuda.estado === 'cancelada') return { pct: 0, color: 'bg-slate-300', label: 'Cancelada' };
+
+    if (deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad) {
+        const de = deuda.deuda_entidad;
+        const seg = de.estado_seguimiento;
+        const siaf = de.estado_siaf;
+
+        if (seg === 'pagado') return { pct: 100, color: 'bg-emerald-500', label: 'Pagado' };
+
+        // Fase SIAF: R=Rechazada(rojo), C=Compromiso, D=Devengado, G=Girado
+        if (siaf === 'G') return { pct: 85, color: 'bg-emerald-500', label: 'Girado 85%' };
+        if (siaf === 'D') return { pct: 60, color: 'bg-sky-500', label: 'Devengado 60%' };
+        if (siaf === 'R') return { pct: 15, color: 'bg-red-500', label: 'Rechazada' };
+        if (siaf === 'C') return { pct: 35, color: 'bg-blue-500', label: 'Compromiso 35%' };
+
+        // Seguimiento sin SIAF
+        if (seg === 'enviado') return { pct: 25, color: 'bg-sky-400', label: 'Enviado SIAF 25%' };
+        if (seg === 'en_proceso') return { pct: 15, color: 'bg-amber-400', label: 'En proceso 15%' };
+        if (seg === 'observado') return { pct: 10, color: 'bg-orange-400', label: 'Observado 10%' };
+        if (seg === 'emitido') return { pct: 5, color: 'bg-slate-400', label: 'Emitido 5%' };
+
+        return { pct: 0, color: 'bg-slate-300', label: 'Sin estado' };
+    }
+
+    // Particular / Alquiler: progreso por pagos
+    const pct = deuda.monto_total > 0 ? ((deuda.monto_total - deuda.monto_pendiente) / deuda.monto_total) * 100 : 0;
+    return { pct, color: 'bg-[#0EA5E9]', label: `${pct.toFixed(0)}%` };
+}
+
 export default function DeudasIndex({ deudas, filtros }) {
     const { auth } = usePage().props;
     const [buscar, setBuscar] = useState(filtros?.buscar || '');
@@ -154,19 +187,23 @@ export default function DeudasIndex({ deudas, filtros }) {
                                     {deudas.data.map((deuda) => {
                                         const estilos = ESTADO_STYLES[deuda.estado] || ESTADO_STYLES.activa;
                                         const tipoStyle = TIPO_STYLES[deuda.tipo_deuda] || TIPO_STYLES.particular;
-                                        const progreso = deuda.monto_total > 0 ? (((deuda.monto_total - deuda.monto_pendiente) / deuda.monto_total) * 100) : 0;
                                         return (
                                             <tr key={deuda.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-5 py-3.5">
                                                     <Link href={`/deudas/${deuda.id}`} className="text-sm font-medium text-slate-800 hover:text-[#0EA5E9] transition-colors">
                                                         {deuda.descripcion}
                                                     </Link>
-                                                    <div className="flex items-center gap-2 mt-1.5">
-                                                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[120px]">
-                                                            <div className="h-full bg-[#0EA5E9] rounded-full" style={{ width: `${progreso}%` }} />
-                                                        </div>
-                                                        <span className="text-xs text-slate-400">{progreso.toFixed(0)}%</span>
-                                                    </div>
+                                                    {(() => {
+                                                        const prog = calcProgreso(deuda);
+                                                        return (
+                                                            <div className="flex items-center gap-2 mt-1.5">
+                                                                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[120px]">
+                                                                    <div className={`h-full ${prog.color} rounded-full transition-all`} style={{ width: `${prog.pct}%` }} />
+                                                                </div>
+                                                                <span className="text-[10px] text-slate-400" title={prog.label}>{prog.label}</span>
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="px-5 py-3.5">
                                                     {deuda.cliente ? (
