@@ -55,7 +55,7 @@ function StatusBadge({ map, value }) {
     return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>;
 }
 
-// ─── Editable Cell ───────────────────────────────────────────────────────────────
+// ─── Editable Cell (inline) ──────────────────────────────────────────────────
 function EditableCell({ ordenId, field, value, placeholder = '—' }) {
     const [editing, setEditing] = useState(false);
     const [val, setVal] = useState(value || '');
@@ -145,12 +145,10 @@ function PdfCell({ orden }) {
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                     </svg>
-                    Ver PDF
+                    PDF
                 </a>
                 <button onClick={handleDelete} title="Eliminar PDF" className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
         );
@@ -162,13 +160,9 @@ function PdfCell({ orden }) {
             <button
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors disabled:opacity-50"
             >
-                {uploading
-                    ? <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
-                    : <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                }
-                {uploading ? 'Subiendo…' : 'Subir PDF'}
+                {uploading ? '...' : '↑ PDF'}
             </button>
         </>
     );
@@ -183,9 +177,9 @@ function StatCard({ label, value, color = 'slate' }) {
         blue:  'bg-blue-50 border-blue-200 text-blue-800',
     };
     return (
-        <div className={`rounded-2xl border p-5 ${cls[color]}`}>
-            <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-1">{label}</p>
-            <p className="text-2xl font-bold">{value}</p>
+        <div className={`rounded-2xl border p-4 ${cls[color]}`}>
+            <p className="text-xs font-semibold uppercase tracking-wider opacity-60 mb-0.5">{label}</p>
+            <p className="text-xl font-bold">{value}</p>
         </div>
     );
 }
@@ -250,11 +244,11 @@ export default function OrdenesIndex({ ordenes }) {
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap gap-3 items-center">
                     <input type="text" placeholder="Buscar N° OC, entidad, producto…"
                         value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                        className="flex-1 min-w-[220px] rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                        className="flex-1 min-w-[200px] rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
                     />
                     <select value={filtroSiaf} onChange={e => setFiltroSiaf(e.target.value)}
                         className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
-                        <option value="">Estado SIAF (todos)</option>
+                        <option value="">SIAF (todos)</option>
                         <option value="C">Compromiso</option>
                         <option value="D">Devengado</option>
                         <option value="G">Girado</option>
@@ -272,90 +266,113 @@ export default function OrdenesIndex({ ordenes }) {
                     <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
                         <input type="checkbox" checked={soloProximas} onChange={e => setSoloProximas(e.target.checked)}
                             className="rounded border-slate-300 text-sky-500 focus:ring-sky-300" />
-                        Solo próximas a vencer
+                        Solo próximas
                     </label>
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50">
-                                    {['N° OC', 'Entidad', 'Unidad Ejecutora', 'Producto / Servicio', 'Monto', 'F. Límite', 'Días', 'Estado SIAF', 'Seguimiento', 'Expediente', 'PDF OC', 'Acciones'].map(h => (
-                                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filtered.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={12} className="text-center py-14 text-slate-400">
-                                            No se encontraron órdenes con los filtros seleccionados.
-                                        </td>
-                                    </tr>
-                                ) : filtered.map(orden => {
-                                    const dias = calcDias(orden.fecha_limite_pago);
-                                    const ocCerrada = isOrdenCerrada(orden);
-                                    const rowBg = ocCerrada ? 'opacity-60'
-                                        : dias !== null && dias < 0 ? 'bg-red-50/40'
-                                        : dias !== null && dias <= 3 ? 'bg-amber-50/30' : '';
-                                    return (
-                                        <tr key={orden.id} className={`transition-colors hover:bg-slate-50 ${rowBg}`}>
-                                            <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
-                                                <EditableCell ordenId={orden.id} field="orden_compra" value={orden.orden_compra} placeholder="Sin N° OC" />
-                                                {orden.codigo_siaf && <div className="text-xs text-slate-400 mt-0.5">SIAF: {orden.codigo_siaf}</div>}
-                                            </td>
-                                            <td className="px-4 py-3 max-w-[180px]">
-                                                <div className="truncate font-medium text-slate-800">{orden.entidad?.razon_social ?? '—'}</div>
-                                                {orden.entidad?.ruc && <div className="text-xs text-slate-400">RUC {orden.entidad.ruc}</div>}
-                                            </td>
-                                            <td className="px-4 py-3 max-w-[160px]">
-                                                <div className="truncate text-xs text-slate-600">{orden.unidad_ejecutora || '—'}</div>
-                                                {orden.empresa_factura && <div className="truncate text-xs text-slate-400 mt-0.5">{orden.empresa_factura}</div>}
-                                            </td>
-                                            <td className="px-4 py-3 max-w-[200px]">
-                                                <div className="truncate text-slate-700">{orden.producto_servicio || '—'}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-semibold text-slate-900 whitespace-nowrap">
-                                                {orden.deuda ? formatMoney(orden.deuda.monto_total, orden.deuda.currency_code) : '—'}
-                                                {orden.deuda?.estado === 'pagada' && <div className="text-xs text-emerald-600 font-normal">Pagada</div>}
-                                            </td>
-                                            <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{formatFecha(orden.fecha_limite_pago)}</td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <DiasBadge dias={dias} cerrado={ocCerrada} />
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <StatusBadge map={SIAF_MAP} value={orden.estado_siaf} />
-                                                {orden.fase_siaf && <div className="text-xs text-slate-400 mt-0.5">{orden.fase_siaf}</div>}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <StatusBadge map={SEGUIMIENTO_MAP} value={orden.estado_seguimiento} />
-                                            </td>
-                                            <td className="px-4 py-3 min-w-[140px]">
-                                                <EditableCell ordenId={orden.id} field="estado_expediente" value={orden.estado_expediente} placeholder="Sin expediente" />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <PdfCell orden={orden} />
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <Link href={`/deudas/${orden.deuda_id}/entidad/show`} className="text-xs font-medium text-sky-600 hover:text-sky-800 transition-colors">Ver</Link>
-                                                    <Link href={`/deudas/${orden.deuda_id}/entidad/edit`} className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors">Editar</Link>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                {/* Cards */}
+                {filtered.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-slate-200 py-16 text-center">
+                        <p className="text-sm text-slate-400">No se encontraron órdenes con los filtros seleccionados.</p>
                     </div>
-                    {filtered.length > 0 && (
-                        <div className="px-4 py-3 border-t border-slate-100 text-xs text-slate-500">
-                            Mostrando {filtered.length} de {ordenes.length} órdenes
-                        </div>
-                    )}
-                </div>
+                ) : (
+                    <div className="space-y-3">
+                        {filtered.map(orden => {
+                            const dias = calcDias(orden.fecha_limite_pago);
+                            const ocCerrada = isOrdenCerrada(orden);
+                            const borderColor = ocCerrada ? 'border-slate-200'
+                                : dias !== null && dias < 0 ? 'border-red-300'
+                                : dias !== null && dias <= 3 ? 'border-amber-300' : 'border-slate-200';
+                            const bgColor = ocCerrada ? 'bg-slate-50 opacity-70'
+                                : dias !== null && dias < 0 ? 'bg-red-50/30'
+                                : dias !== null && dias <= 3 ? 'bg-amber-50/20' : 'bg-white';
+
+                            return (
+                                <div key={orden.id} className={`rounded-2xl border ${borderColor} ${bgColor} p-4 transition-all hover:shadow-md`}>
+                                    {/* Row 1: Header */}
+                                    <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            {/* N° OC editable */}
+                                            <div className="min-w-[120px]">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">N° OC</p>
+                                                <EditableCell ordenId={orden.id} field="orden_compra" value={orden.orden_compra} placeholder="Sin N° OC" />
+                                            </div>
+                                            {/* Entidad */}
+                                            <div className="max-w-[220px]">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Entidad</p>
+                                                <p className="text-sm font-medium text-slate-800 truncate">{orden.entidad?.razon_social ?? '—'}</p>
+                                                {orden.entidad?.ruc && <p className="text-[10px] text-slate-400">RUC {orden.entidad.ruc}</p>}
+                                            </div>
+                                            {/* Producto */}
+                                            <div className="max-w-[280px]">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Producto / Servicio</p>
+                                                <p className="text-sm text-slate-700 truncate">{orden.producto_servicio || '—'}</p>
+                                            </div>
+                                        </div>
+                                        {/* Right side: Monto + Días */}
+                                        <div className="flex items-center gap-4">
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Monto</p>
+                                                <p className="text-sm font-bold text-slate-900">
+                                                    {orden.deuda ? formatMoney(orden.deuda.monto_total, orden.deuda.currency_code) : '—'}
+                                                </p>
+                                                {orden.deuda?.estado === 'pagada' && <p className="text-[10px] text-emerald-600">Pagada</p>}
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Días</p>
+                                                <DiasBadge dias={dias} cerrado={ocCerrada} />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 2: Details grid */}
+                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+                                        {/* Fecha límite */}
+                                        <div>
+                                            <span className="text-slate-400 font-semibold">F. Límite:</span>{' '}
+                                            <span className="text-slate-600">{formatFecha(orden.fecha_limite_pago)}</span>
+                                        </div>
+                                        {/* Unidad Ejecutora + Empresa */}
+                                        {orden.unidad_ejecutora && (
+                                            <div>
+                                                <span className="text-slate-400 font-semibold">UE:</span>{' '}
+                                                <span className="text-slate-600">{orden.unidad_ejecutora}</span>
+                                            </div>
+                                        )}
+                                        {orden.empresa_factura && (
+                                            <div>
+                                                <span className="text-slate-400 font-semibold">Emp. Factura:</span>{' '}
+                                                <span className="text-slate-600">{orden.empresa_factura}</span>
+                                            </div>
+                                        )}
+                                        {/* Expediente = codigo_siaf de la DeudaEntidad */}
+                                        {orden.codigo_siaf && (
+                                            <div>
+                                                <span className="text-slate-400 font-semibold">Expediente:</span>{' '}
+                                                <span className="text-slate-700 font-mono font-semibold">{orden.codigo_siaf}</span>
+                                            </div>
+                                        )}
+                                        {/* Badges */}
+                                        <div className="flex items-center gap-2 ml-auto">
+                                            <StatusBadge map={SIAF_MAP} value={orden.estado_siaf} />
+                                            {orden.fase_siaf && <span className="text-slate-400">{orden.fase_siaf}</span>}
+                                            <StatusBadge map={SEGUIMIENTO_MAP} value={orden.estado_seguimiento} />
+                                            <PdfCell orden={orden} />
+                                            <Link href={`/deudas/${orden.deuda_id}/entidad/show`} className="px-2 py-1 rounded text-xs font-medium text-sky-600 hover:bg-sky-50 transition-colors">Ver</Link>
+                                            <Link href={`/deudas/${orden.deuda_id}/entidad/edit`} className="px-2 py-1 rounded text-xs font-medium text-slate-500 hover:bg-slate-100 transition-colors">Editar</Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {filtered.length > 0 && (
+                    <div className="text-xs text-slate-400 text-center">
+                        Mostrando {filtered.length} de {ordenes.length} órdenes
+                    </div>
+                )}
             </div>
         </Layout>
     );

@@ -110,7 +110,7 @@ class OrdenController extends Controller
         }
 
         $validated = $request->validate([
-            'field' => ['required', 'string', 'in:orden_compra,estado_expediente'],
+            'field' => ['required', 'string', 'in:orden_compra,codigo_siaf'],
             'value' => ['nullable', 'string', 'max:255'],
         ]);
 
