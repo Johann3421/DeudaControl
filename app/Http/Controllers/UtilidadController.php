@@ -129,8 +129,14 @@ class UtilidadController extends Controller
 
     public function create()
     {
+        $empresas = \App\Models\OrdenCompra::whereNotNull('empresa_factura')
+            ->distinct()->pluck('empresa_factura');
+        $entidades = \App\Models\Entidad::pluck('razon_social');
+
         return Inertia::render('Utilidades/Create', [
             'deudas' => $this->deudasDisponibles(Auth::id()),
+            'empresas' => $empresas,
+            'entidades' => $entidades,
         ]);
     }
 
@@ -207,9 +213,15 @@ class UtilidadController extends Controller
             ]);
         }
 
+        $empresas = \App\Models\OrdenCompra::whereNotNull('empresa_factura')
+            ->distinct()->pluck('empresa_factura');
+        $entidades = \App\Models\Entidad::pluck('razon_social');
+
         return Inertia::render('Utilidades/Edit', [
             'oc'     => $utilidad,
             'deudas' => $deudas,
+            'empresas' => $empresas,
+            'entidades' => $entidades,
         ]);
     }
 
