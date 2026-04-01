@@ -17,7 +17,16 @@ class AlertasController extends Controller
         $expected = config('services.alertas.token');
 
         if (!$expected || $token !== $expected) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return response()->json([
+                'error' => 'Unauthorized',
+                'debug' => [
+                    'received_length' => strlen($token ?? ''),
+                    'expected_length' => strlen($expected ?? ''),
+                    'received_first5' => substr($token ?? '', 0, 5),
+                    'expected_first5' => substr($expected ?? '', 0, 5),
+                    'expected_empty'  => empty($expected),
+                ],
+            ], 401);
         }
 
         $hoy  = Carbon::today();
