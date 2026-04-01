@@ -4,8 +4,22 @@ import { formatMoney } from '../../helpers/currencyHelper';
 
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    try {
+        if (typeof dateStr === 'string' && dateStr.includes('-')) {
+            const [year, month, day] = dateStr.split('T')[0].split('-');
+            const d = new Date(year, month - 1, day);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+        }
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        return '-';
+    } catch (e) {
+        return '-';
+    }
 }
 
 const ESTADO_STYLES = {

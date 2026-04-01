@@ -91,7 +91,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('clientes', ClienteController::class);
-    Route::resource('deudas', DeudaController::class);
 
     // Type-specific debt routes
     Route::prefix('deudas')->name('deudas.')->group(function () {
@@ -118,6 +117,9 @@ Route::middleware('auth')->group(function () {
         Route::post('{deuda}/alquiler/recibo', [DeudaAlquilerController::class, 'generarRecibo'])->name('alquiler.generar-recibo');
         Route::patch('alquiler/recibo/{recibo}/pagar', [DeudaAlquilerController::class, 'pagarRecibo'])->name('alquiler.pagar-recibo');
     });
+
+    // Resource general debe ir al final
+    Route::resource('deudas', DeudaController::class);
 
     // Entidades (institutional)
     Route::resource('entidades', EntidadController::class);
