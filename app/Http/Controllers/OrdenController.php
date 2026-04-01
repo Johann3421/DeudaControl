@@ -26,6 +26,15 @@ class OrdenController extends Controller
 
         $ordenes = $query->orderByRaw('fecha_limite_pago IS NULL, fecha_limite_pago ASC')->get();
 
+        // Limpiar PDFs fantasmas (registrados en DB pero eliminados por Docker)
+        $ordenes->transform(function ($orden) {
+            if ($orden->pdf_oc && !Storage::disk('public')->exists($orden->pdf_oc)) {
+                $orden->update(['pdf_oc' => null]);
+                $orden->pdf_oc = null;
+            }
+            return $orden;
+        });
+
         return Inertia::render('Ordenes/Index', [
             'ordenes' => $ordenes,
         ]);

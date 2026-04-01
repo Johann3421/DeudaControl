@@ -36,6 +36,8 @@ services:
 
       SIAF_PROXY_URL: ${SIAF_PROXY_URL:-}
       SIAF_PROXY_SECRET: ${SIAF_PROXY_SECRET:-}
+    volumes:
+      - app_storage:/var/www/html/storage
     depends_on:
       db:
         condition: service_healthy
@@ -67,3 +69,4 @@ services:
 
 volumes:
   postgres_data_v2:
+  app_storage:
