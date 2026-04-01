@@ -7,13 +7,11 @@ echo "==> Starting deployment..."
 
 # ── 1. Write .env from Docker environment variables ────────────────────────────
 echo "==> Creating .env from environment..."
-php -r '
-foreach ($_SERVER as $k => $v) {
-    if (preg_match("/^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST|ALERTAS)_/", $k)) {
-        $v = str_replace(["\\", "\"", "\n", "\r"], ["\\\\", "\\\"", "\\n", "\\r"], (string)$v);
-        echo $k . "=\"" . $v . "\"\n";
-    }
-}' > .env
+env | grep -E '^(APP|DB|SESSION|CACHE|QUEUE|MAIL|SIAF|LOG|BROADCAST|ALERTAS)_' | while IFS='=' read -r key value; do
+    # Escape double quotes in value
+    value=$(echo "$value" | sed 's/"/\\"/g')
+    echo "${key}=\"${value}\""
+done > .env
 
 # ── 2. Auto-generate APP_KEY if missing or empty ───────────────────────────────
 APP_KEY_VALUE=$(grep -E "^APP_KEY=" .env | cut -d= -f2- | tr -d '"' | tr -d "'")
