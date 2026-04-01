@@ -95,26 +95,24 @@ export default function UtilidadesEdit({ oc, deudas = [], empresas = [], entidad
                             </div>
                         )}
 
-                        {/* ── Empresa / Entidad ───────────────────── */}
+                        {/* ── Empresa / Entidad (Select) ───────────── */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Empresa que Factura</label>
-                                <input type="text" list="empresas-list-edit" value={data.empresa_factura} onChange={e => setData('empresa_factura', e.target.value)}
-                                    placeholder="Selecciona o escribe..."
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10" />
-                                <datalist id="empresas-list-edit">
-                                    {empresas.map((emp, i) => <option key={i} value={emp} />)}
-                                </datalist>
+                                <select value={data.empresa_factura} onChange={e => setData('empresa_factura', e.target.value)}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm bg-white outline-none transition-all cursor-pointer ${errors.empresa_factura ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}>
+                                    <option value="">— Seleccionar Empresa —</option>
+                                    {empresas.map((emp, i) => <option key={i} value={emp}>{emp}</option>)}
+                                </select>
                                 {errors.empresa_factura && <p className="mt-1 text-xs text-red-600">{errors.empresa_factura}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Entidad que Recibe</label>
-                                <input type="text" list="entidades-list-edit" value={data.entidad_recibe} onChange={e => setData('entidad_recibe', e.target.value)}
-                                    placeholder="Selecciona o escribe..."
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10" />
-                                <datalist id="entidades-list-edit">
-                                    {entidades.map((ent, i) => <option key={i} value={ent} />)}
-                                </datalist>
+                                <select value={data.entidad_recibe} onChange={e => setData('entidad_recibe', e.target.value)}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm bg-white outline-none transition-all cursor-pointer ${errors.entidad_recibe ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}>
+                                    <option value="">— Seleccionar Entidad —</option>
+                                    {entidades.map((ent, i) => <option key={i} value={ent}>{ent}</option>)}
+                                </select>
                                 {errors.entidad_recibe && <p className="mt-1 text-xs text-red-600">{errors.entidad_recibe}</p>}
                             </div>
                         </div>
