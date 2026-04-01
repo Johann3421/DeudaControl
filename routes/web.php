@@ -139,6 +139,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/ordenes/{orden}/pdf', [OrdenController::class, 'uploadPdf'])->name('ordenes.uploadPdf');
     Route::get('/ordenes/{orden}/pdf/view', [OrdenController::class, 'viewPdf'])->name('ordenes.viewPdf');
     Route::delete('/ordenes/{orden}/pdf', [OrdenController::class, 'deletePdf'])->name('ordenes.deletePdf');
+    Route::patch('/ordenes/{orden}/field', [OrdenController::class, 'updateField'])->name('ordenes.updateField');
 
     // Utilidades (Órdenes de Compra)
     // Force the singular parameter name to `utilidad` (resource() may guess incorrectly)

@@ -100,4 +100,22 @@ class OrdenController extends Controller
 
         return back()->with('success', 'PDF eliminado.');
     }
+
+    public function updateField(Request $request, DeudaEntidad $orden)
+    {
+        $user = Auth::user();
+
+        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'field' => ['required', 'string', 'in:orden_compra,estado_expediente'],
+            'value' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $orden->update([$validated['field'] => $validated['value']]);
+
+        return back()->with('success', 'Orden actualizada.');
+    }
 }

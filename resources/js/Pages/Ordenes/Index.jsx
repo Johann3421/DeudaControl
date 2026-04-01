@@ -55,6 +55,58 @@ function StatusBadge({ map, value }) {
     return <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${s.bg} ${s.text}`}>{s.label}</span>;
 }
 
+// ─── Editable Cell ───────────────────────────────────────────────────────────────
+function EditableCell({ ordenId, field, value, placeholder = '—' }) {
+    const [editing, setEditing] = useState(false);
+    const [val, setVal] = useState(value || '');
+    const inputRef = useRef(null);
+
+    const save = () => {
+        setEditing(false);
+        if (val !== (value || '')) {
+            router.patch(`/ordenes/${ordenId}/field`, { field, value: val || null }, {
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    };
+
+    const startEdit = () => {
+        setEditing(true);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    if (editing) {
+        return (
+            <input
+                ref={inputRef}
+                type="text"
+                value={val}
+                onChange={e => setVal(e.target.value)}
+                onBlur={save}
+                onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setVal(value || ''); setEditing(false); } }}
+                className="w-full px-2 py-1 rounded border border-sky-300 text-sm outline-none focus:ring-2 focus:ring-sky-200 bg-white"
+            />
+        );
+    }
+
+    return (
+        <button
+            onClick={startEdit}
+            title="Clic para editar"
+            className="group text-left w-full px-1 py-0.5 rounded hover:bg-sky-50 transition-colors cursor-pointer"
+        >
+            <span className={value ? 'text-slate-900 font-medium' : 'text-slate-400 italic'}>
+                {value || placeholder}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="inline w-3 h-3 ml-1 text-slate-300 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+        </button>
+    );
+}
+
 // ─── PDF Cell ─────────────────────────────────────────────────────────────────
 function PdfCell({ orden }) {
     const [uploading, setUploading] = useState(false);
@@ -230,7 +282,7 @@ export default function OrdenesIndex({ ordenes }) {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50">
-                                    {['N° OC', 'Entidad', 'Unidad Ejecutora', 'Producto / Servicio', 'Monto', 'F. Límite', 'Días', 'Estado SIAF', 'Seguimiento', 'PDF OC', 'Acciones'].map(h => (
+                                    {['N° OC', 'Entidad', 'Unidad Ejecutora', 'Producto / Servicio', 'Monto', 'F. Límite', 'Días', 'Estado SIAF', 'Seguimiento', 'Expediente', 'PDF OC', 'Acciones'].map(h => (
                                         <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                                     ))}
                                 </tr>
@@ -238,7 +290,7 @@ export default function OrdenesIndex({ ordenes }) {
                             <tbody className="divide-y divide-slate-100">
                                 {filtered.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="text-center py-14 text-slate-400">
+                                        <td colSpan={12} className="text-center py-14 text-slate-400">
                                             No se encontraron órdenes con los filtros seleccionados.
                                         </td>
                                     </tr>
@@ -251,7 +303,7 @@ export default function OrdenesIndex({ ordenes }) {
                                     return (
                                         <tr key={orden.id} className={`transition-colors hover:bg-slate-50 ${rowBg}`}>
                                             <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
-                                                {orden.orden_compra || '—'}
+                                                <EditableCell ordenId={orden.id} field="orden_compra" value={orden.orden_compra} placeholder="Sin N° OC" />
                                                 {orden.codigo_siaf && <div className="text-xs text-slate-400 mt-0.5">SIAF: {orden.codigo_siaf}</div>}
                                             </td>
                                             <td className="px-4 py-3 max-w-[180px]">
@@ -279,6 +331,9 @@ export default function OrdenesIndex({ ordenes }) {
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <StatusBadge map={SEGUIMIENTO_MAP} value={orden.estado_seguimiento} />
+                                            </td>
+                                            <td className="px-4 py-3 min-w-[140px]">
+                                                <EditableCell ordenId={orden.id} field="estado_expediente" value={orden.estado_expediente} placeholder="Sin expediente" />
                                             </td>
                                             <td className="px-4 py-3">
                                                 <PdfCell orden={orden} />
