@@ -49,7 +49,7 @@ return [
     ],
 
     'alertas' => [
-        'token' => env('ALERTAS_TOKEN', ''),
+        'token' => env('ALERTAS_TOKEN', 'Rd2GcVzGM3Bh8j0V+2XCriMqsdWqSSWv8mmdPyL8eMY='),
     ],
 
 ];
