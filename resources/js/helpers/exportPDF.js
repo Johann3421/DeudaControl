@@ -306,20 +306,42 @@ export function exportDeudasPDF({ deudas, filtros, user }) {
     y += 5;
 
     const rows = all.map(d => {
-        const prog = d.monto_total > 0 ? ((d.monto_total - d.monto_pendiente) / d.monto_total * 100).toFixed(0) + '%' : '0%';
+        // Progreso o Fase
+        let progStr = '0%';
+        let progColor = C.slate;
+        if (d.estado === 'pagada') { progStr = 'Pagada'; progColor = C.success; }
+        else if (d.estado === 'cancelada') { progStr = 'Cancelada'; progColor = C.slate; }
+        else if (d.tipo_deuda === 'entidad' && d.deuda_entidad) {
+            const siaf = d.deuda_entidad?.estado_siaf;
+            if (siaf === 'G') { progStr = 'Girado'; progColor = C.success; }
+            else if (siaf === 'D') { progStr = 'Devengado'; progColor = C.primary; }
+            else if (siaf === 'R') { progStr = 'Rechazada'; progColor = C.danger; }
+            else if (siaf === 'C') { progStr = 'Compromiso'; progColor = C.violet; }
+            else if (d.deuda_entidad?.estado_seguimiento === 'pendiente_firma') { progStr = 'Pend. Firma'; progColor = C.warning; }
+            else if (d.deuda_entidad?.estado_seguimiento === 'entregado') { progStr = 'Entregado'; progColor = C.primary; }
+            else { progStr = 'Pendiente'; progColor = C.warning; }
+        } else {
+            progStr = d.monto_total > 0 ? ((d.monto_total - d.monto_pendiente) / d.monto_total * 100).toFixed(0) + '%' : '0%';
+        }
+        
         const cliente = d.cliente
             ? `${d.cliente.nombre || ''} ${d.cliente.apellido || ''}`.trim()
             : d.deuda_entidad?.entidad?.razon_social || '-';
+        
+        let desc = d.descripcion || '-';
+        if (d.tipo_deuda === 'entidad' && d.deuda_entidad?.codigo_siaf) {
+            desc += `\nExp SIAF: ${d.deuda_entidad.codigo_siaf}`;
+        }
+
         return [
-            d.descripcion || '-',
+            desc,
             cliente,
             cap(d.tipo_deuda),
             fmt(d.monto_total, d.currency_code),
             fmt(d.monto_pendiente, d.currency_code),
-            prog,
+            { content: progStr, color: progColor },
             cap(d.estado),
             formatDateForPDF(d.fecha_vencimiento, 'es-PE'),
-            d.user?.name || '-',
         ];
     });
 
@@ -332,28 +354,31 @@ export function exportDeudasPDF({ deudas, filtros, user }) {
 
     autoTable(doc, {
         startY: y,
-        head: [['Descripción', 'Cliente / Entidad', 'Tipo', 'Monto Total', 'Pendiente', 'Progreso', 'Estado', 'Vencimiento', 'Creado por']],
-        body: rows,
+        head: [['Detalle / N° SIAF', 'Cliente / Entidad', 'Tipo', 'Monto Total', 'Pendiente', 'Fase / Avance', 'Estado', 'Vencimiento']],
+        body: rows.map(r => r.map(cell => typeof cell === 'object' ? cell.content : cell)),
         theme: 'grid',
-        styles: { fontSize: 7, cellPadding: 2.5, textColor: C.text, lineColor: C.light, lineWidth: 0.2 },
-        headStyles: { fillColor: C.dark, textColor: C.white, fontStyle: 'bold', fontSize: 7 },
+        styles: { fontSize: 7, cellPadding: 2.5, textColor: C.text, lineColor: C.light, lineWidth: 0.2, valign: 'middle' },
+        headStyles: { fillColor: C.dark, textColor: C.white, fontStyle: 'bold', fontSize: 7, valign: 'middle' },
         alternateRowStyles: { fillColor: C.card },
         columnStyles: {
-            0: { cellWidth: 44 },
-            1: { cellWidth: 38 },
-            2: { cellWidth: 22 },
-            3: { cellWidth: 27, halign: 'right' },
-            4: { cellWidth: 27, halign: 'right' },
-            5: { cellWidth: 16, halign: 'center' },
+            0: { cellWidth: 60 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 25, halign: 'right' },
+            4: { cellWidth: 25, halign: 'right' },
+            5: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
             6: { cellWidth: 20, halign: 'center' },
-            7: { cellWidth: 22, halign: 'center' },
-            8: { cellWidth: 'auto' },
+            7: { cellWidth: 20, halign: 'center' },
         },
         didParseCell(data) {
             if (data.section === 'body' && data.column.index === 6) {
                 const estado = (all[data.row.index]?.estado || '').toLowerCase();
                 data.cell.styles.textColor = estadoColors[estado] || C.slate;
                 data.cell.styles.fontStyle = 'bold';
+            }
+            if (data.section === 'body' && data.column.index === 5) {
+                const color = rows[data.row.index][5]?.color || C.slate;
+                data.cell.styles.textColor = color;
             }
         },
         margin: { left: 14, right: 14 },
