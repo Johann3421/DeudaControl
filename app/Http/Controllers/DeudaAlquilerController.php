@@ -6,6 +6,7 @@ use App\Models\Cliente;
 use App\Models\Deuda;
 use App\Models\Inmueble;
 use App\Models\ReciboAlquiler;
+use App\Models\ActividadLog;
 use App\Services\DeudaAlquilerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -101,7 +102,7 @@ class DeudaAlquilerController extends Controller
             'periodicidad' => ['required', 'in:mensual,bimestral,trimestral'],
             'fecha_corte' => ['nullable', 'date'],
             'servicios_incluidos' => ['nullable', 'array'],
-            'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
+            'estado' => ['required', 'in:activa,pagada,pagado_banco,vencida,cancelada'],
             'notas' => ['nullable', 'string'],
             'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
         ], [
@@ -110,6 +111,8 @@ class DeudaAlquilerController extends Controller
         ]);
 
         $this->service->actualizar($deuda, $validated);
+
+        ActividadLog::registrar('editado', 'deuda', $deuda->id, "Deuda de alquiler '{$deuda->descripcion}' actualizada");
 
         return redirect()->route('deudas.index')->with('success', 'Deuda de alquiler actualizada.');
     }

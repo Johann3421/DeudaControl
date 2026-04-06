@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActividadLog;
 use App\Models\Deuda;
 use App\Models\GastoOC;
 use App\Models\OrdenCompra;
@@ -295,6 +296,8 @@ class UtilidadController extends Controller
 
         GastoOC::create($validated);
 
+        ActividadLog::registrar('creado', 'gasto', $utilidad->id, "Gasto '{$validated['descripcion']}' agregado a OC #{$utilidad->id}");
+
         return back()->with('success', 'Gasto añadido.');
     }
 
@@ -310,6 +313,7 @@ class UtilidadController extends Controller
         ]);
         $validated['cantidad'] = $validated['cantidad'] ?? 1;
         $gasto->update($validated);
+        ActividadLog::registrar('editado', 'gasto', $gasto->id, "Gasto '{$gasto->descripcion}' actualizado en OC #{$utilidad->id}");
         return back()->with('success', 'Gasto actualizado.');
     }
 
@@ -319,7 +323,9 @@ class UtilidadController extends Controller
         if ($gasto->boleta_path) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($gasto->boleta_path);
         }
+        $desc = $gasto->descripcion;
         $gasto->delete();
+        ActividadLog::registrar('eliminado', 'gasto', null, "Gasto '{$desc}' eliminado de OC #{$utilidad->id}");
         return back()->with('success', 'Gasto eliminado.');
     }
 

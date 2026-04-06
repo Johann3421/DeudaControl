@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Deuda;
-use App\Models\DeudaEntidad;
-use App\Models\Entidad;
+use App\Models\ActividadLog;
 use App\Services\DeudaEntidadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,7 +60,7 @@ class DeudaEntidadController extends Controller
             'fecha_limite_pago.after_or_equal' => 'La fecha límite de pago debe ser igual o posterior a la fecha de emisión.',
             'currency_code.required' => 'Selecciona una moneda.',
             'currency_code.in' => 'La moneda seleccionada no es válida.',
-            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G o R.',
+            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G, R o B.',
             'fecha_proceso.date_format' => 'La fecha de proceso debe estar en formato válido (dd/mm/yyyy).',
         ]);
 
@@ -88,10 +86,6 @@ class DeudaEntidadController extends Controller
     {
         $deuda->load('deudaEntidad');
 
-        if ($deuda->deudaEntidad && !$deuda->deudaEntidad->estaEditable()) {
-            return back()->with('error', 'Esta deuda esta cerrada y no puede editarse.');
-        }
-
         // Cargar entidades del dueño real de la deuda (importante para superadmin)
         $entidades = Entidad::where('user_id', $deuda->user_id)
             ->where('estado', 'activa')
@@ -111,12 +105,12 @@ class DeudaEntidadController extends Controller
             'producto_servicio' => ['required', 'string', 'max:255'],
             'codigo_siaf' => ['nullable', 'string', 'max:50'],
             'fecha_limite_pago' => ['required', 'date_format:Y-m-d'],
-            'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
+            'estado' => ['required', 'in:activa,pagada,vencida,cancelada,pagado_banco'],
             'notas' => ['nullable', 'string'],
             'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
             // Nuevos campos del SIAF
-            'estado_siaf' => ['nullable', 'in:C,D,G,R'],
-            'fase_siaf' => ['nullable', 'string', 'max:10'],
+            'estado_siaf' => ['nullable', 'in:C,D,G,R,B'],
+            'fase_siaf' => ['nullable', 'in:A,F,R,V,B'],
             'estado_expediente' => ['nullable', 'string', 'max:50'],
             'fecha_proceso' => ['nullable', 'date_format:Y-m-d'],
             'empresa_factura' => ['nullable', 'string', 'max:200'],
@@ -130,16 +124,19 @@ class DeudaEntidadController extends Controller
             'estado.in' => 'El estado seleccionado no es válido.',
             'currency_code.required' => 'Selecciona una moneda.',
             'currency_code.in' => 'La moneda seleccionada no es válida.',
-            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G o R.',
+            'estado_siaf.in' => 'El estado SIAF debe ser C, D, G, R o B.',
+            'fase_siaf.in' => 'La fase SIAF debe ser A, F, R, V o B.',
             'fecha_proceso.date_format' => 'La fecha de proceso debe estar en formato válido (dd/mm/yyyy).',
         ]);
 
-        // Si la deuda se marca como pagada, asegurar que el monto pendiente sea 0
-        if (isset($validated['estado']) && $validated['estado'] === 'pagada') {
+        // Si la deuda se marca como pagada o pagado_banco, asegurar que el monto pendiente sea 0
+        if (isset($validated['estado']) && in_array($validated['estado'], ['pagada', 'pagado_banco'])) {
             $validated['monto_pendiente'] = 0;
         }
 
         $this->service->actualizar($deuda, $validated);
+
+        ActividadLog::registrar('editado', 'deuda', $deuda->id, "Deuda entidad '{$deuda->descripcion}' actualizada");
 
         return redirect()->route('deudas.index')->with('success', 'Deuda con entidad actualizada correctamente.');
     }

@@ -25,6 +25,7 @@ function formatDate(dateStr) {
 const ESTADO_STYLES = {
     activa: 'bg-sky-50 text-sky-700',
     pagada: 'bg-emerald-50 text-emerald-700',
+    pagado_banco: 'bg-violet-50 text-violet-700',
     vencida: 'bg-red-50 text-red-700',
     cancelada: 'bg-slate-100 text-slate-600',
 };
@@ -64,7 +65,7 @@ export default function DeudasShow({ deuda }) {
                             <div className="flex items-center gap-3 mb-1">
                                 <h2 className="text-xl font-bold text-slate-900">{deuda.descripcion}</h2>
                                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${ESTADO_STYLES[deuda.estado] || ''}`}>
-                                    {deuda.estado.charAt(0).toUpperCase() + deuda.estado.slice(1)}
+                                    {deuda.estado === 'pagado_banco' ? 'Pagado - Banco' : deuda.estado.charAt(0).toUpperCase() + deuda.estado.slice(1)}
                                 </span>
                             </div>
                             {deuda.cliente && (

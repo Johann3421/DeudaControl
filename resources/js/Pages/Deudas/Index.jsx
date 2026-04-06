@@ -30,6 +30,7 @@ const formatRelativeTime = (date) => {
 const ESTADO_STYLES = {
     activa: { bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500' },
     pagada: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+    pagado_banco: { bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500' },
     vencida: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
     cancelada: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
 };
@@ -44,6 +45,7 @@ const TIPO_STYLES = {
 // y en pagos para particular/alquiler
 function calcProgreso(deuda) {
     if (deuda.estado === 'pagada') return { pct: 100, color: 'bg-emerald-500', label: 'Pagada' };
+    if (deuda.estado === 'pagado_banco') return { pct: 100, color: 'bg-violet-500', label: 'Pagado - Banco' };
     if (deuda.estado === 'cancelada') return { pct: 0, color: 'bg-slate-300', label: 'Cancelada' };
 
     if (deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad) {
@@ -147,7 +149,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                 }`}>{label}</button>
                         ))}
                         <span className="text-xs text-slate-400 self-center ml-3 mr-1">Estado:</span>
-                        {[['', 'Todas'], ['activa', 'Activas'], ['pagada', 'Pagadas'], ['vencida', 'Vencidas']].map(([val, label]) => (
+                        {[['', 'Todas'], ['activa', 'Activas'], ['pagada', 'Pagadas'], ['pagado_banco', 'Pag. Banco'], ['vencida', 'Vencidas']].map(([val, label]) => (
                             <button key={`est-${val}`} onClick={() => handleFilterEstado(val)}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                                     (filtros?.estado || '') === val ? 'bg-[#0EA5E9] text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
@@ -281,7 +283,14 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                         {/* Fase SIAF */}
                                                         <td className="px-3 py-2 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.fase_siaf ? (
-                                                                <span className="text-xs text-slate-600 font-medium">{deuda.deuda_entidad.fase_siaf}</span>
+                                                                <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                                                    {deuda.deuda_entidad.fase_siaf === 'A' ? 'APROBADO' :
+                                                                     deuda.deuda_entidad.fase_siaf === 'F' ? 'VERIF.' :
+                                                                     deuda.deuda_entidad.fase_siaf === 'R' ? 'RECHAZ.' :
+                                                                     deuda.deuda_entidad.fase_siaf === 'V' ? 'VALID.' :
+                                                                     deuda.deuda_entidad.fase_siaf === 'B' ? 'BUENO' :
+                                                                     deuda.deuda_entidad.fase_siaf}
+                                                                </span>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
                                                     </>
@@ -290,7 +299,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                 <td className="px-3 py-2 text-center">
                                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${estilos.bg} ${estilos.text}`}>
                                                         <span className={`w-1 h-1 rounded-full ${estilos.dot}`} />
-                                                        {deuda.estado.charAt(0).toUpperCase() + deuda.estado.slice(1)}
+                                                        {deuda.estado === 'pagado_banco' ? 'Pag. Banco' : deuda.estado.charAt(0).toUpperCase() + deuda.estado.slice(1)}
                                                     </span>
                                                 </td>
                                                 {/* Acciones */}

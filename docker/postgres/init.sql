@@ -369,6 +369,21 @@ CREATE TABLE IF NOT EXISTS "migrations" (
     PRIMARY KEY ("id")
 );
 
+CREATE TABLE IF NOT EXISTS "actividad_logs" (
+    "id"           BIGSERIAL     NOT NULL,
+    "user_id"      BIGINT,
+    "accion"       VARCHAR(50)   NOT NULL,
+    "entidad_tipo" VARCHAR(50)   NOT NULL,
+    "entidad_id"   BIGINT,
+    "descripcion"  VARCHAR(500)  NOT NULL,
+    "created_at"   TIMESTAMP,
+    "updated_at"   TIMESTAMP,
+    PRIMARY KEY ("id"),
+    CONSTRAINT actividad_logs_user_id_foreign FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS actividad_logs_entidad_tipo_entidad_id_index ON "actividad_logs" ("entidad_tipo", "entidad_id");
+CREATE INDEX IF NOT EXISTS actividad_logs_created_at_index              ON "actividad_logs" ("created_at");
+
 CREATE TABLE IF NOT EXISTS "jobs" (
     "id"           BIGSERIAL    NOT NULL,
     "queue"        VARCHAR(255) NOT NULL,
@@ -635,6 +650,7 @@ INSERT INTO "migrations" ("migration", "batch") VALUES
     ('2026_03_10_100000_create_ordenes_compra_table', 11),
     ('2026_03_10_100001_create_gastos_oc_table', 11),
     ('2026_04_06_000001_add_cantidad_and_boleta_to_gastos_oc', 12),
+    ('2026_04_06_200000_add_pagado_banco_estado_and_create_actividad_logs', 13),
     ('2026_03_10_100002_create_pagos_oc_table', 11),
     ('2026_03_11_000000_add_deuda_id_to_ordenes_compra', 11),
     ('2026_03_12_000000_add_empresa_fields_to_ordenes_compra', 11)
@@ -661,6 +677,7 @@ SELECT setval(pg_get_serial_sequence('"gastos_oc"', 'id'), 16, false);
 SELECT setval(pg_get_serial_sequence('"inmuebles"', 'id'), 2, false);
 SELECT setval(pg_get_serial_sequence('"jobs"', 'id'), 1, false);
 SELECT setval(pg_get_serial_sequence('"migrations"', 'id'), 33, false);
+SELECT setval(pg_get_serial_sequence('"actividad_logs"', 'id'), 1, false);
 SELECT setval(pg_get_serial_sequence('"movimientos"', 'id'), 61, false);
 SELECT setval(pg_get_serial_sequence('"notificaciones"', 'id'), 1, false);
 SELECT setval(pg_get_serial_sequence('"ordenes_compra"', 'id'), 5, false);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActividadLog;
 use App\Models\Cliente;
 use App\Models\Deuda;
 use App\Models\Movimiento;
@@ -121,16 +122,18 @@ class DeudaController extends Controller
             'fecha_vencimiento' => ['nullable', 'date'],
             'frecuencia_pago' => ['required', 'in:semanal,quincenal,mensual,unico'],
             'numero_cuotas' => ['nullable', 'integer', 'min:1'],
-            'estado' => ['required', 'in:activa,pagada,vencida,cancelada'],
+            'estado' => ['required', 'in:activa,pagada,vencida,cancelada,pagado_banco'],
             'notas' => ['nullable', 'string'],
         ]);
 
-        // Si la deuda se marca como pagada, asegurarnos que el pendiente sea 0
-        if (isset($validated['estado']) && $validated['estado'] === 'pagada') {
+        // Si la deuda se marca como pagada o pagado_banco, asegurarnos que el pendiente sea 0
+        if (isset($validated['estado']) && in_array($validated['estado'], ['pagada', 'pagado_banco'])) {
             $validated['monto_pendiente'] = 0;
         }
 
         $deuda->update($validated);
+
+        ActividadLog::registrar('editado', 'deuda', $deuda->id, "Deuda '{$deuda->descripcion}' actualizada");
 
         return redirect()->route('deudas.index')->with('success', 'Deuda actualizada correctamente.');
     }
@@ -145,7 +148,10 @@ class DeudaController extends Controller
             ->where('referencia_id', $deuda->id)
             ->delete();
 
+        $descripcion = $deuda->descripcion;
         $deuda->delete();
+
+        ActividadLog::registrar('eliminado', 'deuda', null, "Deuda '{$descripcion}' eliminada");
 
         return redirect()->route('deudas.index')->with('success', 'Deuda eliminada correctamente.');
     }

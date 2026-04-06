@@ -3,7 +3,7 @@ import Layout from '../../../Components/Layout';
 
 export default function EntidadDeudaEdit({ deuda, entidades }) {
     const deudaEntidad = deuda.deuda_entidad || {};
-    const cerrado = !!deudaEntidad.cerrado;
+    const cerradoInfo = !!deudaEntidad.cerrado; // solo informativo, ya no bloquea la edición
 
     const EMPRESAS_FACTURA = [
         'GRUPO LARIOS & ASOCIADOS S.A.C.S',
@@ -35,7 +35,6 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (cerrado) return;
         put(`/deudas/${deuda.id}/entidad`);
     };
 
@@ -58,15 +57,15 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                         <h2 className="text-lg font-semibold text-slate-900">Editar Deuda</h2>
                     </div>
 
-                    {/* Aviso de deuda cerrada */}
-                    {cerrado && (
+                    {/* Aviso de deuda cerrada (solo informativo) */}
+                    {cerradoInfo && (
                         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm mb-6">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                                 <line x1="12" y1="9" x2="12" y2="13" />
                                 <line x1="12" y1="17" x2="12.01" y2="17" />
                             </svg>
-                            Esta deuda esta cerrada y no puede ser editada. Contacte al administrador si necesita realizar cambios.
+                            Esta deuda figura como cerrada, pero aún puedes editarla.
                         </div>
                     )}
 
@@ -147,8 +146,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 type="text"
                                 value={data.descripcion}
                                 onChange={(e) => setData('descripcion', e.target.value)}
-                                disabled={cerrado}
-                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.descripcion ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.descripcion ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                             />
                             {errors.descripcion && <p className="mt-1 text-sm text-red-600">{errors.descripcion}</p>}
                         </div>
@@ -160,8 +158,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 type="text"
                                 value={data.producto_servicio}
                                 onChange={(e) => setData('producto_servicio', e.target.value)}
-                                disabled={cerrado}
-                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.producto_servicio ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.producto_servicio ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 placeholder="Descripcion del producto o servicio"
                             />
                             {errors.producto_servicio && <p className="mt-1 text-sm text-red-600">{errors.producto_servicio}</p>}
@@ -175,8 +172,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                     type="text"
                                     value={data.codigo_siaf}
                                     onChange={(e) => setData('codigo_siaf', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.codigo_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.codigo_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                     placeholder="Codigo SIAF"
                                 />
                                 {errors.codigo_siaf && <p className="mt-1 text-sm text-red-600">{errors.codigo_siaf}</p>}
@@ -187,8 +183,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                     type="date"
                                     value={data.fecha_limite_pago}
                                     onChange={(e) => setData('fecha_limite_pago', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.fecha_limite_pago ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.fecha_limite_pago ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 />
                                 {errors.fecha_limite_pago && <p className="mt-1 text-sm text-red-600">{errors.fecha_limite_pago}</p>}
                             </div>
@@ -201,8 +196,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 <select
                                     value={data.currency_code}
                                     onChange={(e) => setData('currency_code', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.currency_code ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.currency_code ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 >
                                     <option value="PEN">Soles (PEN)</option>
                                     <option value="USD">Dolares (USD)</option>
@@ -218,11 +212,11 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 <select
                                     value={data.estado}
                                     onChange={(e) => setData('estado', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.estado ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 >
                                     <option value="activa">Activa</option>
                                     <option value="pagada">Pagada</option>
+                                    <option value="pagado_banco">Pagado - Banco</option>
                                     <option value="vencida">Vencida</option>
                                     <option value="cancelada">Cancelada</option>
                                 </select>
@@ -244,8 +238,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                     <select
                                         value={data.estado_siaf}
                                         onChange={(e) => setData('estado_siaf', e.target.value)}
-                                        disabled={cerrado}
-                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.estado_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                     >
                                         <option value="">-- Seleccionar --</option>
                                         <option value="C">Compromiso (C)</option>
@@ -258,14 +251,18 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase SIAF</label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={data.fase_siaf}
                                         onChange={(e) => setData('fase_siaf', e.target.value)}
-                                        disabled={cerrado}
-                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
-                                        placeholder="Fase del proceso SIAF"
-                                    />
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    >
+                                        <option value="">-- Sin fase --</option>
+                                        <option value="A">A – APROBADO</option>
+                                        <option value="F">F – VERIFICACION</option>
+                                        <option value="R">R – RECHAZADO</option>
+                                        <option value="V">V – VALIDACION</option>
+                                        <option value="B">B – BUENO</option>
+                                    </select>
                                     {errors.fase_siaf && <p className="mt-1 text-sm text-red-600">{errors.fase_siaf}</p>}
                                 </div>
                             </div>
@@ -278,8 +275,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                         type="text"
                                         value={data.estado_expediente}
                                         onChange={(e) => setData('estado_expediente', e.target.value)}
-                                        disabled={cerrado}
-                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.estado_expediente ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.estado_expediente ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                         placeholder="Estado del expediente"
                                     />
                                     {errors.estado_expediente && <p className="mt-1 text-sm text-red-600">{errors.estado_expediente}</p>}
@@ -290,8 +286,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                         type="date"
                                         value={data.fecha_proceso}
                                         onChange={(e) => setData('fecha_proceso', e.target.value)}
-                                        disabled={cerrado}
-                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.fecha_proceso ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.fecha_proceso ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                     />
                                     {errors.fecha_proceso && <p className="mt-1 text-sm text-red-600">{errors.fecha_proceso}</p>}
                                 </div>
@@ -304,9 +299,8 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                             <textarea
                                 value={data.notas}
                                 onChange={(e) => setData('notas', e.target.value)}
-                                disabled={cerrado}
                                 rows={3}
-                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all resize-none focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10"
                                 placeholder="Notas adicionales..."
                             />
                         </div>
@@ -318,8 +312,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 <select
                                     value={data.empresa_factura}
                                     onChange={(e) => setData('empresa_factura', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.empresa_factura ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.empresa_factura ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                 >
                                     <option value="">-- Seleccionar empresa --</option>
                                     {EMPRESAS_FACTURA.map((e) => (
@@ -334,8 +327,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                     type="text"
                                     value={data.unidad_ejecutora}
                                     onChange={(e) => setData('unidad_ejecutora', e.target.value)}
-                                    disabled={cerrado}
-                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${cerrado ? 'bg-slate-50 text-slate-400 cursor-not-allowed' : ''} ${errors.unidad_ejecutora ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.unidad_ejecutora ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                     placeholder="Ej: UE-001 Gestión Administrativa"
                                 />
                                 {errors.unidad_ejecutora && <p className="mt-1 text-sm text-red-600">{errors.unidad_ejecutora}</p>}
@@ -344,17 +336,15 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
 
                         {/* Actions */}
                         <div className="flex items-center gap-3 pt-2">
-                            {!cerrado && (
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25 disabled:opacity-50"
-                                >
-                                    {processing ? 'Guardando...' : 'Actualizar Deuda'}
-                                </button>
-                            )}
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] transition-colors shadow-lg shadow-[#0EA5E9]/25 disabled:opacity-50"
+                            >
+                                {processing ? 'Guardando...' : 'Actualizar Deuda'}
+                            </button>
                             <Link href={`/deudas/${deuda.id}`} className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-                                {cerrado ? 'Volver' : 'Cancelar'}
+                                Cancelar
                             </Link>
                         </div>
                     </form>

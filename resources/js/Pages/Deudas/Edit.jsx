@@ -69,6 +69,7 @@ export default function DeudasEdit({ deuda, clientes }) {
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 bg-white">
                                     <option value="activa">Activa</option>
                                     <option value="pagada">Pagada</option>
+                                    <option value="pagado_banco">Pagado - Banco</option>
                                     <option value="vencida">Vencida</option>
                                     <option value="cancelada">Cancelada</option>
                                 </select>

@@ -36,6 +36,7 @@ function StatCard({ title, value, subtitle, icon, color, href }) {
 const ESTADO_COLORS = {
     activa: { bg: 'bg-sky-100', text: 'text-sky-700', dot: 'bg-sky-500' },
     pagada: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+    pagado_banco: { bg: 'bg-violet-100', text: 'text-violet-700', dot: 'bg-violet-500' },
     vencida: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
     cancelada: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' },
 };

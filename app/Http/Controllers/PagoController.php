@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActividadLog;
 use App\Models\Deuda;
 use App\Models\Movimiento;
 use App\Models\Pago;
@@ -123,6 +124,8 @@ class PagoController extends Controller
             'descripcion' => "Pago recibido de {$deuda->cliente->nombre_completo} - {$deuda->descripcion}",
         ]);
 
+        ActividadLog::registrar('pago', 'pago', $pago->id, "Pago de S/ {$pago->monto} registrado para deuda '{$deuda->descripcion}'");
+
         return redirect()->route('pagos.index')->with('success', 'Pago registrado correctamente.');
     }
 
@@ -146,6 +149,8 @@ class PagoController extends Controller
             ->delete();
 
         $pago->delete();
+
+        ActividadLog::registrar('eliminado', 'pago', null, "Pago de S/ {$pago->monto} eliminado");
 
         return redirect()->route('pagos.index')->with('success', 'Pago eliminado correctamente.');
     }

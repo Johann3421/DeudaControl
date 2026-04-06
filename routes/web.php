@@ -27,6 +27,7 @@ use App\Http\Controllers\ExcelSiafController;
 use App\Http\Controllers\Api\AlertasController;
 use App\Http\Controllers\Api\ChatbotQueryController;
 use App\Http\Controllers\UtilidadController;
+use App\Http\Controllers\HistorialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -138,6 +139,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');
 
     Route::get('/movimientos', [MovimientoController::class, 'index'])->name('movimientos.index');
+
+    Route::get('/historial', [HistorialController::class, 'index'])->name('historial.index');
 
     // Órdenes de compra (vista dedicada PeruCompras / DeudaEntidad)
     Route::get('/ordenes', [OrdenController::class, 'index'])->name('ordenes.index');

@@ -13,6 +13,7 @@ const SERVICIOS_OPCIONES = [
 const ESTADOS = [
     { value: 'activa', label: 'Activa' },
     { value: 'pagada', label: 'Pagada' },
+    { value: 'pagado_banco', label: 'Pagado - Banco' },
     { value: 'vencida', label: 'Vencida' },
     { value: 'cancelada', label: 'Cancelada' },
 ];
@@ -52,6 +53,7 @@ export default function Edit({ deuda, clientes, inmuebles }) {
         const colores = {
             activa: 'bg-sky-100 text-sky-800',
             pagada: 'bg-green-100 text-green-800',
+            pagado_banco: 'bg-violet-100 text-violet-800',
             vencida: 'bg-red-100 text-red-800',
             cancelada: 'bg-gray-100 text-gray-800',
         };

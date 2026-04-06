@@ -11,6 +11,7 @@ const NAVIGATION = [
     { name: 'Pagos', href: '/pagos', icon: 'payments' },
     { name: 'Movimientos', href: '/movimientos', icon: 'history' },
     { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
+    { name: 'Historial', href: '/historial', icon: 'historial' },
 ];
 
 const ADMIN_NAVIGATION = [
@@ -155,6 +156,15 @@ function MaintenanceIcon() {
     );
 }
 
+function HistorialIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+    );
+}
+
 function BellIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -178,6 +188,7 @@ const ICONS = {
     stats: StatsIcon,
     settings: SettingsIcon,
     maintenance: MaintenanceIcon,
+    historial: HistorialIcon,
 };
 
 export default function Layout({ children, title }) {
