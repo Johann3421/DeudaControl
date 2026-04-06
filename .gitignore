@@ -48,6 +48,8 @@ __pycache__/
 
 # n8n workflows — contienen credenciales hardcodeadas, nunca subir
 n8n-workflow-*.json
+temp_test.json
+temp_*.json
 # Permitir solo versiones .example sin credenciales reales
 !n8n-workflow-*.example.json
 

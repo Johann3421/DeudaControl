@@ -54,6 +54,7 @@ function calcProgreso(deuda) {
         if (seg === 'pagado') return { pct: 100, color: 'bg-emerald-500', label: 'Pagado' };
 
         // Fase SIAF: R=Rechazada(rojo), C=Compromiso, D=Devengado, G=Girado
+        if (siaf === 'B') return { pct: 100, color: 'bg-emerald-600', label: 'En cuenta 100%' };
         if (siaf === 'G') return { pct: 85, color: 'bg-emerald-500', label: 'Girado 85%' };
         if (siaf === 'D') return { pct: 60, color: 'bg-sky-500', label: 'Devengado 60%' };
         if (siaf === 'R') return { pct: 15, color: 'bg-red-500', label: 'Rechazada' };
@@ -167,6 +168,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50">
                                         <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Descripción</th>
+                                        <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Producto / Servicio</th>
                                         <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Cliente / Entidad</th>
                                         <th className="text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Creado</th>
                                         <th className="text-center text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 py-2.5">Tipo</th>
@@ -202,6 +204,12 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                         </div>
                                                         <span className="text-[10px] text-slate-400 whitespace-nowrap">{Math.round(prog.pct)}%</span>
                                                     </div>
+                                                </td>
+                                                {/* Producto / Servicio */}
+                                                <td className="px-3 py-2 max-w-[140px]">
+                                                    {deuda.deuda_entidad?.producto_servicio ? (
+                                                        <span className="text-xs text-slate-600 truncate block">{deuda.deuda_entidad.producto_servicio}</span>
+                                                    ) : <span className="text-xs text-slate-300">—</span>}
                                                 </td>
                                                 {/* Cliente */}
                                                 <td className="px-3 py-2 max-w-[140px]">
@@ -259,11 +267,13 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                                     ${deuda.deuda_entidad.estado_siaf === 'C' ? 'bg-blue-100 text-blue-800' : ''}
                                                                     ${deuda.deuda_entidad.estado_siaf === 'D' ? 'bg-amber-100 text-amber-800' : ''}
                                                                     ${deuda.deuda_entidad.estado_siaf === 'G' ? 'bg-green-100 text-green-800' : ''}
+                                                                    ${deuda.deuda_entidad.estado_siaf === 'B' ? 'bg-emerald-100 text-emerald-800' : ''}
                                                                     ${deuda.deuda_entidad.estado_siaf === 'R' ? 'bg-red-100 text-red-800' : ''}
                                                                 `}>
                                                                     {deuda.deuda_entidad.estado_siaf === 'C' && 'COMPROMISO'}
                                                                     {deuda.deuda_entidad.estado_siaf === 'D' && 'DEVENGADO'}
                                                                     {deuda.deuda_entidad.estado_siaf === 'G' && 'GIRADO'}
+                                                                    {deuda.deuda_entidad.estado_siaf === 'B' && 'EN CUENTA'}
                                                                     {deuda.deuda_entidad.estado_siaf === 'R' && 'RECHAZADA'}
                                                                 </span>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
@@ -286,7 +296,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                 {/* Acciones */}
                                                 <td className="px-3 py-2 text-right">
                                                     <div className="flex items-center justify-end gap-0.5">
-                                                        <button 
+                                                        <button
                                                             onClick={() => setDocumentosDeudaId(deuda.id)}
                                                             className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg hover:bg-slate-100 transition-colors"
                                                             title="Documentos (Factura/Guía)"
@@ -327,9 +337,9 @@ export default function DeudasIndex({ deudas, filtros }) {
 
             {/* Modal de Documentos */}
             {documentosDeuda && (
-                <DocumentosModal 
-                    deuda={documentosDeuda} 
-                    onClose={() => setDocumentosDeudaId(null)} 
+                <DocumentosModal
+                    deuda={documentosDeuda}
+                    onClose={() => setDocumentosDeudaId(null)}
                 />
             )}
         </Layout>
@@ -365,7 +375,7 @@ function DocumentosModal({ deuda, onClose }) {
 function DocumentoUploader({ deuda, tipo, label }) {
     const inputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
-    
+
     const campo = `${tipo}_pdf`;
     const tienePdf = !!deuda[campo];
 
@@ -375,7 +385,7 @@ function DocumentoUploader({ deuda, tipo, label }) {
         setUploading(true);
         const fd = new FormData();
         fd.append('documento', file);
-        
+
         router.post(`/deudas/${deuda.id}/documentos/${tipo}`, fd, {
             forceFormData: true,
             preserveScroll: true,

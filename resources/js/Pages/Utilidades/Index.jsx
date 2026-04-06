@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
 import { formatMoney } from '../../helpers/currencyHelper';
 import { exportUtilidadesPDF } from '../../helpers/exportPDF';
@@ -48,11 +48,13 @@ function GastoRow({ gasto, ocId, cur }) {
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({
         tipo_gasto:  gasto.tipo_gasto,
+        cantidad:    gasto.cantidad || 1,
         descripcion: gasto.descripcion || '',
         monto:       gasto.monto,
         fecha:       gasto.fecha ? gasto.fecha.split('T')[0] : '',
     });
     const [saving, setSaving] = useState(false);
+    const boletaRef = useRef(null);
 
     const save = () => {
         setSaving(true);
@@ -67,6 +69,22 @@ function GastoRow({ gasto, ocId, cur }) {
         router.delete(`/utilidades/${ocId}/gastos/${gasto.id}`, { preserveScroll: true });
     };
 
+    const uploadBoleta = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('boleta', file);
+        router.post(`/utilidades/${ocId}/gastos/${gasto.id}/boleta`, formData, {
+            preserveScroll: true,
+            forceFormData: true,
+        });
+    };
+
+    const deleteBoleta = () => {
+        if (!confirm('¿Eliminar boleta?')) return;
+        router.delete(`/utilidades/${ocId}/gastos/${gasto.id}/boleta`, { preserveScroll: true });
+    };
+
     const inp = 'px-2 py-1 rounded-lg border border-slate-200 text-xs outline-none focus:border-[#0EA5E9] focus:ring-2 focus:ring-[#0EA5E9]/10';
 
     if (editing) {
@@ -77,6 +95,10 @@ function GastoRow({ gasto, ocId, cur }) {
                         className={`${inp} bg-white`}>
                         {Object.entries(TIPO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                     </select>
+                </td>
+                <td className="px-3 py-2">
+                    <input type="number" min="1" value={form.cantidad} onChange={e => setForm(f => ({ ...f, cantidad: e.target.value }))}
+                        className={`${inp} w-14`} />
                 </td>
                 <td className="px-3 py-2">
                     <input type="text" value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
@@ -90,6 +112,7 @@ function GastoRow({ gasto, ocId, cur }) {
                     <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
                         className={inp} />
                 </td>
+                <td className="px-3 py-2" />
                 <td className="px-3 py-2 whitespace-nowrap">
                     <button onClick={save} disabled={saving} className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 mr-2 disabled:opacity-50">
                         {saving ? '...' : 'Guardar'}
@@ -105,9 +128,30 @@ function GastoRow({ gasto, ocId, cur }) {
             <td className="px-3 py-1.5">
                 <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">{TIPO_LABELS[gasto.tipo_gasto] || gasto.tipo_gasto}</span>
             </td>
+            <td className="px-3 py-1.5 text-xs text-slate-600 text-center">{gasto.cantidad || 1}</td>
             <td className="px-3 py-1.5 text-xs text-slate-500">{gasto.descripcion || '—'}</td>
             <td className="px-3 py-1.5 text-xs font-semibold text-slate-700">{formatMoney(gasto.monto, cur)}</td>
             <td className="px-3 py-1.5 text-xs text-slate-400">{gasto.fecha ? new Date(gasto.fecha).toLocaleDateString('es-PE') : '—'}</td>
+            <td className="px-3 py-1.5 whitespace-nowrap">
+                {gasto.boleta_path ? (
+                    <span className="inline-flex items-center gap-1">
+                        <a href={`/utilidades/${ocId}/gastos/${gasto.id}/boleta`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs text-emerald-600 hover:text-emerald-800" title="Ver boleta">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            Ver
+                        </a>
+                        <button onClick={deleteBoleta} className="text-xs text-red-400 hover:text-red-600" title="Eliminar boleta">✕</button>
+                    </span>
+                ) : (
+                    <>
+                        <input type="file" ref={boletaRef} className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={uploadBoleta} />
+                        <button onClick={() => boletaRef.current?.click()} className="text-xs text-sky-500 hover:text-sky-700" title="Subir boleta">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 inline mr-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Boleta
+                        </button>
+                    </>
+                )}
+            </td>
             <td className="px-3 py-1.5 whitespace-nowrap">
                 <button onClick={() => setEditing(true)} className="text-xs text-sky-500 hover:text-sky-700 mr-2">Editar</button>
                 <button onClick={del} className="text-xs text-red-400 hover:text-red-600">Eliminar</button>
@@ -120,15 +164,26 @@ function GastoRow({ gasto, ocId, cur }) {
 function GastosPanel({ oc }) {
     const gastos = oc.gastos || [];
     const cur    = oc.currency_code || 'PEN';
-    const [addForm, setAddForm] = useState({ tipo_gasto: 'compra_producto', descripcion: '', monto: '', fecha: new Date().toISOString().split('T')[0] });
+    const [addForm, setAddForm] = useState({ tipo_gasto: 'compra_producto', cantidad: 1, descripcion: '', monto: '', fecha: new Date().toISOString().split('T')[0] });
     const [adding, setAdding] = useState(false);
+    const [boletaFile, setBoletaFile] = useState(null);
+    const addBoletaRef = useRef(null);
 
     const submit = (e) => {
         e.preventDefault();
         setAdding(true);
-        router.post(`/utilidades/${oc.id}/gastos`, addForm, {
+        const formData = new FormData();
+        formData.append('tipo_gasto', addForm.tipo_gasto);
+        formData.append('cantidad', addForm.cantidad);
+        formData.append('descripcion', addForm.descripcion);
+        formData.append('monto', addForm.monto);
+        formData.append('fecha', addForm.fecha);
+        if (boletaFile) formData.append('boleta', boletaFile);
+
+        router.post(`/utilidades/${oc.id}/gastos`, formData, {
             preserveScroll: true,
-            onFinish: () => { setAdding(false); setAddForm(f => ({ ...f, monto: '', descripcion: '' })); },
+            forceFormData: true,
+            onFinish: () => { setAdding(false); setAddForm(f => ({ ...f, monto: '', descripcion: '', cantidad: 1 })); setBoletaFile(null); if (addBoletaRef.current) addBoletaRef.current.value = ''; },
         });
     };
 
@@ -137,7 +192,7 @@ function GastosPanel({ oc }) {
     return (
         <tr>
             <td colSpan={12} className="bg-slate-50 px-6 py-4 border-b border-slate-100">
-                <div className="max-w-3xl">
+                <div className="max-w-4xl">
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                         Gastos de <span className="text-slate-700">{oc.numero_oc}</span>
                     </p>
@@ -148,7 +203,7 @@ function GastosPanel({ oc }) {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50">
-                                        {['Tipo', 'Descripción', 'Monto', 'Fecha', ''].map(h => (
+                                        {['Tipo', 'Cant.', 'Descripción', 'Monto', 'Fecha', 'Boleta', ''].map(h => (
                                             <th key={h} className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 py-2">{h}</th>
                                         ))}
                                     </tr>
@@ -158,9 +213,9 @@ function GastosPanel({ oc }) {
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t border-slate-200">
-                                        <td colSpan={2} className="px-3 py-1.5 text-xs font-semibold text-slate-600">Total gastos</td>
+                                        <td colSpan={3} className="px-3 py-1.5 text-xs font-semibold text-slate-600">Total gastos</td>
                                         <td className="px-3 py-1.5 text-xs font-bold text-amber-700">{formatMoney(oc.total_gastos, cur)}</td>
-                                        <td colSpan={2} />
+                                        <td colSpan={3} />
                                     </tr>
                                 </tfoot>
                             </table>
@@ -172,6 +227,9 @@ function GastosPanel({ oc }) {
                             className={`${inp} bg-white`}>
                             {Object.entries(TIPO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
+                        <input type="number" min="1" placeholder="Cant." value={addForm.cantidad}
+                            onChange={e => setAddForm(f => ({ ...f, cantidad: e.target.value }))}
+                            className={`${inp} w-16`} />
                         <input type="text" placeholder="Descripción" value={addForm.descripcion}
                             onChange={e => setAddForm(f => ({ ...f, descripcion: e.target.value }))}
                             className={`${inp} flex-1 min-w-[120px]`} />
@@ -180,6 +238,14 @@ function GastosPanel({ oc }) {
                             className={`${inp} w-24`} required />
                         <input type="date" value={addForm.fecha} onChange={e => setAddForm(f => ({ ...f, fecha: e.target.value }))}
                             className={inp} />
+                        <div className="flex items-center gap-1">
+                            <input type="file" ref={addBoletaRef} className="hidden" accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                onChange={e => setBoletaFile(e.target.files[0] || null)} />
+                            <button type="button" onClick={() => addBoletaRef.current?.click()}
+                                className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${boletaFile ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                                {boletaFile ? '✓ ' + boletaFile.name.slice(0, 12) : '📎 Boleta'}
+                            </button>
+                        </div>
                         <button type="submit" disabled={adding}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0EA5E9] hover:bg-[#0284C7] disabled:opacity-50">
                             {adding ? '...' : '+ Añadir'}

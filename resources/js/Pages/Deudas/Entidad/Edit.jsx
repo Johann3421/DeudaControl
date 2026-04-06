@@ -98,6 +98,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                         {deudaEntidad.estado_siaf === 'C' ? 'C – COMPROMISO' :
                                          deudaEntidad.estado_siaf === 'D' ? 'D – DEVENGADO' :
                                          deudaEntidad.estado_siaf === 'G' ? 'G – GIRADO' :
+                                         deudaEntidad.estado_siaf === 'B' ? 'B – LLEGO A LA CUENTA' :
                                          deudaEntidad.estado_siaf === 'R' ? 'R – RECHAZADA' :
                                          deudaEntidad.estado_siaf || '-'}
                                     </p>
@@ -250,6 +251,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                         <option value="C">Compromiso (C)</option>
                                         <option value="D">Devengado (D)</option>
                                         <option value="G">Girado (G)</option>
+                                        <option value="B">B (Llego a la cuenta)</option>
                                         <option value="R">Rechazada (R)</option>
                                     </select>
                                     {errors.estado_siaf && <p className="mt-1 text-sm text-red-600">{errors.estado_siaf}</p>}

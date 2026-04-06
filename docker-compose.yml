@@ -67,6 +67,32 @@ services:
       retries: 5
       start_period: 30s
 
+  # ── Backup automático diario ──────────────────────────────────────────────
+  # Ejecuta pg_dump cada 24 horas y guarda los dumps en el volumen db_backups.
+  # Este volumen es INDEPENDIENTE de postgres_data_v2, así que aunque se borre
+  # accidentalmente la DB, los respaldos siguen disponibles aquí.
+  # Retiene los últimos 7 backups (≈ 1 semana).
+  # Para ver los backups: Dokploy → Terminal del servicio backup → ls /backups
+  backup:
+    image: postgres:16-alpine
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-changeme}
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USERNAME: ${DB_USERNAME:-deudas_user}
+      DB_DATABASE: ${DB_DATABASE:-control_deudas}
+    volumes:
+      - db_backups:/backups
+      - ./docker/backup/entrypoint.sh:/entrypoint.sh:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: sh /entrypoint.sh
+
 volumes:
   postgres_data_v2:
   app_storage:
+  # Volumen independiente para los backups diarios.
+  # NUNCA eliminar este volumen si quieres conservar los respaldos.
+  db_backups:

@@ -12,9 +12,11 @@ class GastoOC extends Model
     protected $fillable = [
         'orden_compra_id',
         'tipo_gasto',
+        'cantidad',
         'descripcion',
         'monto',
         'fecha',
+        'boleta_path',
     ];
 
     protected function casts(): array

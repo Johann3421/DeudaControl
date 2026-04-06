@@ -276,12 +276,23 @@ class UtilidadController extends Controller
     {
         $validated = $request->validate([
             'tipo_gasto'  => ['required', 'in:compra_producto,transporte,envio,accesorios,logistica,otro'],
+            'cantidad'    => ['nullable', 'integer', 'min:1'],
             'descripcion' => ['nullable', 'string', 'max:255'],
             'monto'       => ['required', 'numeric', 'min:0.01'],
             'fecha'       => ['nullable', 'date'],
+            'boleta'      => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $validated['orden_compra_id'] = $utilidad->id;
+        $validated['cantidad'] = $validated['cantidad'] ?? 1;
+
+        if ($request->hasFile('boleta')) {
+            $file = $request->file('boleta');
+            $fileName = 'boleta_' . time() . '_' . uniqid() . '.' . $file->extension();
+            $validated['boleta_path'] = $file->storeAs("gastos_oc/{$utilidad->id}", $fileName, 'public');
+        }
+        unset($validated['boleta']);
+
         GastoOC::create($validated);
 
         return back()->with('success', 'Gasto añadido.');
@@ -292,10 +303,12 @@ class UtilidadController extends Controller
         abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
         $validated = $request->validate([
             'tipo_gasto'  => ['required', 'in:compra_producto,transporte,envio,accesorios,logistica,otro'],
+            'cantidad'    => ['nullable', 'integer', 'min:1'],
             'descripcion' => ['nullable', 'string', 'max:255'],
             'monto'       => ['required', 'numeric', 'min:0.01'],
             'fecha'       => ['nullable', 'date'],
         ]);
+        $validated['cantidad'] = $validated['cantidad'] ?? 1;
         $gasto->update($validated);
         return back()->with('success', 'Gasto actualizado.');
     }
@@ -303,8 +316,50 @@ class UtilidadController extends Controller
     public function destroyGasto(OrdenCompra $utilidad, GastoOC $gasto)
     {
         abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
+        if ($gasto->boleta_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($gasto->boleta_path);
+        }
         $gasto->delete();
         return back()->with('success', 'Gasto eliminado.');
+    }
+
+    public function uploadBoleta(Request $request, OrdenCompra $utilidad, GastoOC $gasto)
+    {
+        abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
+        $request->validate([
+            'boleta' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        if ($gasto->boleta_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($gasto->boleta_path);
+        }
+
+        $file = $request->file('boleta');
+        $fileName = 'boleta_' . time() . '_' . uniqid() . '.' . $file->extension();
+        $gasto->update([
+            'boleta_path' => $file->storeAs("gastos_oc/{$utilidad->id}", $fileName, 'public'),
+        ]);
+
+        return back()->with('success', 'Boleta subida.');
+    }
+
+    public function viewBoleta(OrdenCompra $utilidad, GastoOC $gasto)
+    {
+        abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
+        if (!$gasto->boleta_path || !\Illuminate\Support\Facades\Storage::disk('public')->exists($gasto->boleta_path)) {
+            abort(404, 'Boleta no encontrada.');
+        }
+        return response()->file(\Illuminate\Support\Facades\Storage::disk('public')->path($gasto->boleta_path));
+    }
+
+    public function deleteBoleta(OrdenCompra $utilidad, GastoOC $gasto)
+    {
+        abort_if($gasto->orden_compra_id !== $utilidad->id, 404);
+        if ($gasto->boleta_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($gasto->boleta_path);
+            $gasto->update(['boleta_path' => null]);
+        }
+        return back()->with('success', 'Boleta eliminada.');
     }
 
     // ─── Pagos ───────────────────────────────────────────────────────────────

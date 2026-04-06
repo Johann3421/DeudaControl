@@ -5,10 +5,11 @@ import { formatMoney } from '../../helpers/currencyHelper';
 
 // ─── Estado SIAF ─────────────────────────────────────────────────────────────
 const SIAF_MAP = {
-    C: { label: 'Compromiso',  bg: 'bg-blue-100',    text: 'text-blue-800'   },
-    D: { label: 'Devengado',   bg: 'bg-violet-100',  text: 'text-violet-800' },
-    G: { label: 'Girado',      bg: 'bg-emerald-100', text: 'text-emerald-800'},
-    R: { label: 'Rechazada',   bg: 'bg-red-100',     text: 'text-red-800'    },
+    C: { label: 'Compromiso',       bg: 'bg-blue-100',    text: 'text-blue-800'   },
+    D: { label: 'Devengado',        bg: 'bg-violet-100',  text: 'text-violet-800' },
+    G: { label: 'Girado',           bg: 'bg-emerald-100', text: 'text-emerald-800'},
+    B: { label: 'En cuenta',        bg: 'bg-emerald-200', text: 'text-emerald-900'},
+    R: { label: 'Rechazada',        bg: 'bg-red-100',     text: 'text-red-800'    },
 };
 
 // ─── Estado Seguimiento ───────────────────────────────────────────────────────

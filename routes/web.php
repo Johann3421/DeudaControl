@@ -25,6 +25,7 @@ use App\Http\Controllers\SiafIntegrationController;
 use App\Http\Controllers\SiafScraperController;
 use App\Http\Controllers\ExcelSiafController;
 use App\Http\Controllers\Api\AlertasController;
+use App\Http\Controllers\Api\ChatbotQueryController;
 use App\Http\Controllers\UtilidadController;
 use Illuminate\Support\Facades\Route;
 
@@ -56,6 +57,7 @@ Route::prefix('maintenance')->group(function () {
 // Alertas API - para n8n/automatizaciones (sin autenticación, protegido por token)
 Route::prefix('api')->group(function () {
     Route::get('/alertas/vencimientos', [AlertasController::class, 'vencimientos']);
+    Route::get('/chatbot/consulta', [ChatbotQueryController::class, 'consulta']);
 });
 
 // SIAF API Routes - Test endpoint (para debugging)
@@ -152,6 +154,10 @@ Route::middleware('auth')->group(function () {
         Route::post('{utilidad}/gastos', [UtilidadController::class, 'storeGasto'])->name('gastos.store');
         Route::put('{utilidad}/gastos/{gasto}', [UtilidadController::class, 'updateGasto'])->name('gastos.update');
         Route::delete('{utilidad}/gastos/{gasto}', [UtilidadController::class, 'destroyGasto'])->name('gastos.destroy');
+        // Boletas de gastos
+        Route::post('{utilidad}/gastos/{gasto}/boleta', [UtilidadController::class, 'uploadBoleta'])->name('gastos.uploadBoleta');
+        Route::get('{utilidad}/gastos/{gasto}/boleta', [UtilidadController::class, 'viewBoleta'])->name('gastos.viewBoleta');
+        Route::delete('{utilidad}/gastos/{gasto}/boleta', [UtilidadController::class, 'deleteBoleta'])->name('gastos.deleteBoleta');
         // Pagos de OC
         Route::post('{utilidad}/pagos', [UtilidadController::class, 'storePago'])->name('pagos.store');
         Route::delete('{utilidad}/pagos/{pago}', [UtilidadController::class, 'destroyPago'])->name('pagos.destroy');

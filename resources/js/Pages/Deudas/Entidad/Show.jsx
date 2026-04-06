@@ -224,6 +224,7 @@ export default function EntidadDeudaShow({ deuda }) {
                                             {deudaEntidad.estado_siaf === 'C' && 'COMPROMISO'}
                                             {deudaEntidad.estado_siaf === 'D' && 'DEVENGADO'}
                                             {deudaEntidad.estado_siaf === 'G' && 'GIRADO'}
+                                            {deudaEntidad.estado_siaf === 'B' && 'EN CUENTA'}
                                             {deudaEntidad.estado_siaf === 'R' && 'RECHAZADA'}
                                         </span>
                                     ) : '-'}
