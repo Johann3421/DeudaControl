@@ -237,15 +237,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Estado SIAF</label>
                                     <select
                                         value={data.estado_siaf}
-                                        onChange={(e) => {
-                                            const v = e.target.value;
-                                            setData('estado_siaf', v);
-                                            if (v === 'G') {
-                                                setData('fase_siaf', 'P');
-                                            } else if (data.fase_siaf === 'P') {
-                                                setData('fase_siaf', '');
-                                            }
-                                        }}
+                                        onChange={(e) => setData('estado_siaf', e.target.value)}
                                         className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.estado_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                                     >
                                         <option value="">-- Seleccionar --</option>
@@ -257,28 +249,19 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Fase SIAF</label>
-                                    {data.estado_siaf === 'G' ? (
-                                        <select
-                                            value={data.fase_siaf}
-                                            onChange={(e) => setData('fase_siaf', e.target.value)}
-                                            className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
-                                        >
-                                            <option value="">-- Sin fase --</option>
-                                            <option value="P">P – Pagado en cuenta</option>
-                                        </select>
-                                    ) : (
-                                        <select
-                                            value={data.fase_siaf}
-                                            onChange={(e) => setData('fase_siaf', e.target.value)}
-                                            className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
-                                        >
-                                            <option value="">-- Sin fase --</option>
-                                            <option value="A">A – APROBADO</option>
-                                            <option value="F">F – VERIFICACION</option>
-                                            <option value="R">R – RECHAZADO</option>
-                                            <option value="V">V – VALIDACION</option>
-                                        </select>
-                                    )}
+                                    <select
+                                        value={data.fase_siaf}
+                                        onChange={(e) => setData('fase_siaf', e.target.value)}
+                                        className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white ${errors.fase_siaf ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                                    >
+                                        <option value="">-- Sin fase --</option>
+                                        <option value="A">A – APROBADO</option>
+                                        <option value="F">F – VERIFICACION</option>
+                                        <option value="R">R – RECHAZADO</option>
+                                        <option value="V">V – VALIDACION</option>
+                                        {data.estado_siaf === 'G' && <option value="P">P – Pagado en cuenta</option>}
+                                    </select>
+                                    
                                     {errors.fase_siaf && <p className="mt-1 text-sm text-red-600">{errors.fase_siaf}</p>}
                                 </div>
                             </div>
