@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActividadLog;
+use App\Models\Deuda;
+use App\Models\DeudaEntidad;
+use App\Models\Entidad;
 use App\Services\DeudaEntidadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
