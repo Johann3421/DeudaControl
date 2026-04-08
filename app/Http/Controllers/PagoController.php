@@ -106,6 +106,15 @@ class PagoController extends Controller
             ]);
         }
 
+        // Para deudas de entidad, verificar que la fase SIAF sea 'P' antes de completar al 100%
+        if ($deuda->tipo_deuda === 'entidad' && ($deuda->monto_pendiente - $validated['monto']) <= 0) {
+            if ($deuda->deudaEntidad?->fase_siaf !== 'P') {
+                return back()->withErrors([
+                    'monto' => 'Esta deuda de entidad no puede completarse al 100% hasta que el Jefe establezca la fase SIAF como P – Pagado en cuenta.',
+                ]);
+            }
+        }
+
         $pago = Pago::create($validated);
 
         $deuda->monto_pendiente -= $validated['monto'];

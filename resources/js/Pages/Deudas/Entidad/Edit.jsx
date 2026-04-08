@@ -1,7 +1,9 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Layout from '../../../Components/Layout';
 
 export default function EntidadDeudaEdit({ deuda, entidades }) {
+    const { auth } = usePage().props;
+    const esJefe = auth?.user?.rol === 'jefe';
     const deudaEntidad = deuda.deuda_entidad || {};
     const cerradoInfo = !!deudaEntidad.cerrado; // solo informativo, ya no bloquea la edición
 
@@ -259,9 +261,9 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
                                         <option value="F">F – VERIFICACION</option>
                                         <option value="R">R – RECHAZADO</option>
                                         <option value="V">V – VALIDACION</option>
-                                        {data.estado_siaf === 'G' && <option value="P">P – Pagado en cuenta</option>}
+                                        {esJefe && data.estado_siaf === 'G' && <option value="P">P – Pagado en cuenta</option>}
                                     </select>
-                                    
+
                                     {errors.fase_siaf && <p className="mt-1 text-sm text-red-600">{errors.fase_siaf}</p>}
                                 </div>
                             </div>

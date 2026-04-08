@@ -180,7 +180,7 @@ class DeudaController extends Controller
         $path = $file->storeAs("deudas/docs/{$deuda->id}", $fileName, 'public');
 
         $campo = "{$tipo}_pdf";
-        
+
         if ($deuda->$campo) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($deuda->$campo);
         }

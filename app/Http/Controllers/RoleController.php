@@ -29,6 +29,12 @@ class RoleController extends Controller
     public function update(Request $request, User $user)
     {
         $this->authorize();
+
+        // El rol 'jefe' es protegido: nadie puede asignarlo ni quitarlo
+        if ($user->rol === 'jefe') {
+            return back()->with('error', 'El rol de este usuario está protegido y no puede modificarse.');
+        }
+
         $validated = $request->validate([
             'rol' => ['required', 'in:usuario,superadmin'],
         ]);
@@ -43,6 +49,11 @@ class RoleController extends Controller
         $this->authorize();
         if ($user->id === Auth::id()) {
             return back()->with('error', 'No puedes eliminar tu propia cuenta.');
+        }
+
+        // El usuario con rol 'jefe' no puede ser eliminado por superadmin
+        if ($user->rol === 'jefe') {
+            return back()->with('error', 'Este usuario está protegido y no puede eliminarse.');
         }
 
         $user->delete();

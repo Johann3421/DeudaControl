@@ -352,7 +352,7 @@ export default function Layout({ children, title }) {
                                         <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                                     )}
                                 </button>
-                                
+
                                 {notificationsOpen && (
                                     <>
                                         <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />

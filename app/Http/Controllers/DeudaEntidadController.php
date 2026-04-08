@@ -113,7 +113,7 @@ class DeudaEntidadController extends Controller
             'currency_code' => ['required', 'string', 'in:PEN,USD,EUR,BRL,COP,CLP,ARS,MXN'],
             // Nuevos campos del SIAF
             'estado_siaf' => ['nullable', 'in:C,D,G,R,B'],
-            'fase_siaf' => ['nullable', 'in:A,F,R,V,B'],
+            'fase_siaf' => ['nullable', 'in:A,F,R,V,B,P'],
             'estado_expediente' => ['nullable', 'string', 'max:50'],
             'fecha_proceso' => ['nullable', 'date_format:Y-m-d'],
             'empresa_factura' => ['nullable', 'string', 'max:200'],
@@ -128,9 +128,25 @@ class DeudaEntidadController extends Controller
             'currency_code.required' => 'Selecciona una moneda.',
             'currency_code.in' => 'La moneda seleccionada no es válida.',
             'estado_siaf.in' => 'El estado SIAF debe ser C, D, G, R o B.',
-            'fase_siaf.in' => 'La fase SIAF debe ser A, F, R, V o B.',
+            'fase_siaf.in' => 'La fase SIAF debe ser A, F, R, V, B o P.',
             'fecha_proceso.date_format' => 'La fecha de proceso debe estar en formato válido (dd/mm/yyyy).',
         ]);
+
+        $user = Auth::user();
+
+        // Solo el rol 'jefe' puede asignar la fase P (Pagado en cuenta)
+        if (isset($validated['fase_siaf']) && $validated['fase_siaf'] === 'P' && !$user->esJefe()) {
+            abort(403, 'Solo el Jefe puede establecer la fase P – Pagado en cuenta.');
+        }
+
+        // Ninguna deuda entidad puede llegar al 100% (pagada/pagado_banco) si la fase SIAF no es 'P'
+        $faseSiafActual = $deuda->deudaEntidad?->fase_siaf;
+        $faseSiafNueva = $validated['fase_siaf'] ?? $faseSiafActual;
+        if (in_array($validated['estado'], ['pagada', 'pagado_banco']) && $faseSiafNueva !== 'P') {
+            return back()->withErrors([
+                'estado' => 'No se puede marcar la deuda como pagada hasta que el Jefe establezca la fase SIAF como P – Pagado en cuenta.',
+            ]);
+        }
 
         // Si la deuda se marca como pagada o pagado_banco, asegurar que el monto pendiente sea 0
         if (isset($validated['estado']) && in_array($validated['estado'], ['pagada', 'pagado_banco'])) {
@@ -147,13 +163,20 @@ class DeudaEntidadController extends Controller
     public function cambiarSeguimiento(Request $request, DeudaEntidad $deudaEntidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $deudaEntidad->deuda->user_id !== $user->id) {
+        if ($user->rol !== 'superadmin' && $user->rol !== 'jefe' && $deudaEntidad->deuda->user_id !== $user->id) {
             abort(403);
         }
 
         $validated = $request->validate([
             'estado_seguimiento' => ['required', 'in:emitido,enviado,observado,pagado'],
         ]);
+
+        // Para marcar como pagado, la fase SIAF debe ser 'P' (solo el Jefe puede haberla fijado)
+        if ($validated['estado_seguimiento'] === 'pagado' && $deudaEntidad->fase_siaf !== 'P') {
+            return back()->withErrors([
+                'estado_seguimiento' => 'No se puede marcar como pagado hasta que el Jefe establezca la fase SIAF como P – Pagado en cuenta.',
+            ]);
+        }
 
         $this->service->cambiarEstadoSeguimiento($deudaEntidad, $validated['estado_seguimiento']);
 
