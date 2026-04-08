@@ -52,17 +52,18 @@ function calcProgreso(deuda) {
         const de = deuda.deuda_entidad;
         const seg = de.estado_seguimiento;
         const siaf = de.estado_siaf;
+        const fase = de.fase_siaf;
 
-        if (seg === 'pagado') return { pct: 100, color: 'bg-emerald-500', label: 'Pagado' };
+        // 100% solo si el Jefe asignó fase P (Pagado en cuenta)
+        if (fase === 'P') return { pct: 100, color: 'bg-emerald-500', label: 'Pagado en cuenta 100%' };
 
-        // Fase SIAF: R=Rechazada(rojo), C=Compromiso, D=Devengado, G=Girado
-        if (siaf === 'B') return { pct: 100, color: 'bg-emerald-600', label: 'En cuenta 100%' };
-        if (siaf === 'G') return { pct: 85, color: 'bg-emerald-500', label: 'Girado 85%' };
+        // Fase SIAF: G=Girado máx 95%, D=Devengado, C=Compromiso, R=Rechazada
+        if (siaf === 'G') return { pct: 95, color: 'bg-emerald-500', label: 'Girado 95%' };
         if (siaf === 'D') return { pct: 60, color: 'bg-sky-500', label: 'Devengado 60%' };
         if (siaf === 'R') return { pct: 15, color: 'bg-red-500', label: 'Rechazada' };
         if (siaf === 'C') return { pct: 35, color: 'bg-blue-500', label: 'Compromiso 35%' };
 
-        // Seguimiento sin SIAF
+        // Seguimiento sin SIAF (máx 25% mientras no haya fase P)
         if (seg === 'enviado') return { pct: 25, color: 'bg-sky-400', label: 'Enviado SIAF 25%' };
         if (seg === 'en_proceso') return { pct: 15, color: 'bg-amber-400', label: 'En proceso 15%' };
         if (seg === 'observado') return { pct: 10, color: 'bg-orange-400', label: 'Observado 10%' };
