@@ -127,6 +127,10 @@ class DeudaEntidadService
             $deudaEntidad->update(['estado_seguimiento' => $nuevoEstado]);
 
             if ($nuevoEstado === 'pagado') {
+                // Verificar que el jefe haya establecido la fase SIAF como 'P' antes de completar
+                if ($deudaEntidad->fase_siaf !== 'P') {
+                    throw new \DomainException('No se puede marcar como pagado hasta que el Jefe establezca la fase SIAF como P – Pagado en cuenta.');
+                }
                 $deudaEntidad->update(['cerrado' => true]);
                 $deudaEntidad->deuda->update([
                     'estado' => 'pagada',

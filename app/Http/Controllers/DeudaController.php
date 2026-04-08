@@ -128,6 +128,15 @@ class DeudaController extends Controller
 
         // Si la deuda se marca como pagada o pagado_banco, asegurarnos que el pendiente sea 0
         if (isset($validated['estado']) && in_array($validated['estado'], ['pagada', 'pagado_banco'])) {
+            // Para deudas de entidad, solo el jefe puede marcarlas como pagadas (requiere fase SIAF = 'P')
+            if ($deuda->tipo_deuda === 'entidad') {
+                $deuda->load('deudaEntidad');
+                if ($deuda->deudaEntidad?->fase_siaf !== 'P') {
+                    return back()->withErrors([
+                        'estado' => 'No se puede marcar esta deuda como pagada hasta que el Jefe establezca la fase SIAF como P – Pagado en cuenta.',
+                    ]);
+                }
+            }
             $validated['monto_pendiente'] = 0;
         }
 
