@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -16,7 +16,7 @@ class HistorialController extends Controller
             ->orderBy('created_at', 'desc');
 
         // Usuarios normales solo ven sus propias acciones
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->where('user_id', $user->id);
         }
 

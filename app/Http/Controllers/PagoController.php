@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -19,7 +19,7 @@ class PagoController extends Controller
         // Admin ve todos, usuarios ven solo los suyos
         $query = Pago::with(['deuda.cliente', 'deuda.user:id,name,email,rol']);
 
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->whereHas('deuda', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             });
@@ -58,7 +58,7 @@ class PagoController extends Controller
             ->with('cliente');
 
         // Superadmins ven todas las deudas, usuarios ven solo las suyas
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->where('user_id', $user->id);
         }
 
@@ -94,7 +94,7 @@ class PagoController extends Controller
             ->where('estado', 'activa');
 
         // Superadmins pueden registrar pagos de cualquier deuda
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $deuda->where('user_id', $user->id);
         }
 
@@ -143,7 +143,7 @@ class PagoController extends Controller
         $deuda = $pago->deuda;
         $user = Auth::user();
 
-        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $deuda->user_id !== $user->id) {
             abort(403);
         }
 

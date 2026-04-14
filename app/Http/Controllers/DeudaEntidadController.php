@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -163,7 +163,7 @@ class DeudaEntidadController extends Controller
     public function cambiarSeguimiento(Request $request, DeudaEntidad $deudaEntidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $user->rol !== 'jefe' && $deudaEntidad->deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $user->rol !== 'jefe' && $deudaEntidad->deuda->user_id !== $user->id) {
             abort(403);
         }
 
@@ -186,7 +186,7 @@ class DeudaEntidadController extends Controller
     private function authorize(Deuda $deuda): void
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $deuda->user_id !== $user->id) {
             abort(403);
         }
     }

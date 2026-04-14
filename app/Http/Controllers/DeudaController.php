@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -20,7 +20,7 @@ class DeudaController extends Controller
         $query = Deuda::with(['cliente', 'user:id,name,email,rol', 'deudaEntidad.entidad'])
             ->withCount('pagos');
 
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->where('user_id', $user->id);
         }
 
@@ -168,7 +168,7 @@ class DeudaController extends Controller
     private function authorize(Deuda $deuda): void
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $deuda->user_id !== $user->id) {
             abort(403);
         }
     }

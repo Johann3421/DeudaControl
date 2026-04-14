@@ -33,7 +33,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'notificaciones' => function () use ($request) {
-                if ($request->user() && $request->user()->rol === 'superadmin') {
+                if ($request->user() && $request->user()->esPrivilegiado()) {
                     $deudas = Deuda::where('estado', 'activa')
                         ->whereNotNull('fecha_vencimiento')
                         ->where('fecha_vencimiento', '<=', now()->addDays(7))

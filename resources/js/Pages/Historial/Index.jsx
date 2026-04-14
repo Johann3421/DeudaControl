@@ -46,7 +46,7 @@ function formatRelative(dateStr) {
 
 export default function HistorialIndex({ logs }) {
     const { auth } = usePage().props;
-    const esSuperadmin = auth.user?.rol === 'superadmin';
+    const esSuperadmin = auth.user?.rol === 'superadmin' || auth.user?.rol === 'jefe';
 
     return (
         <Layout title="Historial de Actividad">

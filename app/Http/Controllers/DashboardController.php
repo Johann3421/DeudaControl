@@ -17,7 +17,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $userId = $user->id;
-        $isSuperAdmin = $user->rol === 'superadmin';
+        $isSuperAdmin = $user->esPrivilegiado();
 
         // Clientes
         $clientesQuery = Cliente::query();

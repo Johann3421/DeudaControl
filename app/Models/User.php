@@ -83,4 +83,12 @@ class User extends Authenticatable
     {
         return $this->rol === 'jefe';
     }
+
+    /**
+     * Privilegiado = superadmin o jefe. Ambos ven todo y gestionan el sistema.
+     */
+    public function esPrivilegiado(): bool
+    {
+        return in_array($this->rol, ['superadmin', 'jefe']);
+    }
 }

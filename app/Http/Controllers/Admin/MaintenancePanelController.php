@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -17,7 +17,7 @@ class MaintenancePanelController extends Controller
      */
     private function authorize(): void
     {
-        if (Auth::user()->rol !== 'superadmin') {
+        if (!Auth::user()->esPrivilegiado()) {
             abort(403, 'Acceso restringido a superadmins');
         }
     }

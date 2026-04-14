@@ -276,7 +276,7 @@ export default function Layout({ children, title }) {
                         })}
 
                         {/* Admin section */}
-                        {auth.user.rol === 'superadmin' && (
+                        {(auth.user.rol === 'superadmin' || auth.user.rol === 'jefe') && (
                             <>
                                 <div className="px-3 py-3 mt-6 mb-2">
                                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Administración</p>
@@ -340,7 +340,7 @@ export default function Layout({ children, title }) {
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-4 relative">
-                        {auth.user?.rol === 'superadmin' && (
+                        {(auth.user?.rol === 'superadmin' || auth.user?.rol === 'jefe') && (
                             <div className="relative">
                                 <button
                                     onClick={() => setNotificationsOpen(!notificationsOpen)}

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -68,7 +68,7 @@ class UtilidadController extends Controller
         $query = OrdenCompra::with(['gastos', 'pagos', 'deuda.cliente'])
             ->orderBy('fecha_oc', 'desc');
 
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->where('user_id', $user->id);
         }
 
@@ -107,7 +107,7 @@ class UtilidadController extends Controller
 
         // Resumen global
         $allQuery = OrdenCompra::with(['gastos', 'pagos', 'deuda']);
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $allQuery->where('user_id', $user->id);
         }
         $all = $allQuery->get();
@@ -173,7 +173,7 @@ class UtilidadController extends Controller
     public function show(OrdenCompra $utilidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $utilidad->user_id !== $user->id) {
             abort(403);
         }
 
@@ -193,7 +193,7 @@ class UtilidadController extends Controller
     public function edit(OrdenCompra $utilidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $utilidad->user_id !== $user->id) {
             abort(403);
         }
 
@@ -231,7 +231,7 @@ class UtilidadController extends Controller
     public function update(Request $request, OrdenCompra $utilidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $utilidad->user_id !== $user->id) {
             abort(403);
         }
 
@@ -263,7 +263,7 @@ class UtilidadController extends Controller
     public function destroy(OrdenCompra $utilidad)
     {
         $user = Auth::user();
-        if ($user->rol !== 'superadmin' && $utilidad->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $utilidad->user_id !== $user->id) {
             abort(403);
         }
 

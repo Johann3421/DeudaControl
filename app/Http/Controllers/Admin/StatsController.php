@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -14,7 +14,7 @@ class StatsController extends Controller
 {
     private function authorize()
     {
-        if (Auth::user()->rol !== 'superadmin') {
+        if (!Auth::user()->esPrivilegiado()) {
             abort(403, 'No tienes permisos para acceder a esta área.');
         }
     }

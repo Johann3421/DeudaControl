@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -20,7 +20,7 @@ class OrdenController extends Controller
         ]);
 
         // Super-admin sees all; normal user only their own
-        if ($user->rol !== 'superadmin') {
+        if (!$user->esPrivilegiado()) {
             $query->whereHas('deuda', fn($q) => $q->where('user_id', $user->id));
         }
 
@@ -45,7 +45,7 @@ class OrdenController extends Controller
         $user = Auth::user();
 
         // Authorization
-        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $orden->deuda->user_id !== $user->id) {
             abort(403);
         }
 
@@ -73,7 +73,7 @@ class OrdenController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $orden->deuda->user_id !== $user->id) {
             abort(403);
         }
 
@@ -88,7 +88,7 @@ class OrdenController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $orden->deuda->user_id !== $user->id) {
             abort(403);
         }
 
@@ -105,7 +105,7 @@ class OrdenController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->rol !== 'superadmin' && $orden->deuda->user_id !== $user->id) {
+        if (!$user->esPrivilegiado() && $orden->deuda->user_id !== $user->id) {
             abort(403);
         }
 

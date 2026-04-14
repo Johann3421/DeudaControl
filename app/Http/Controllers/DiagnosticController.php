@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -12,7 +12,7 @@ class DiagnosticController extends Controller
     public function siaf()
     {
         // Solo superadmins pueden ver diagnósticos
-        if (Auth::user()->rol !== 'superadmin') {
+        if (!Auth::user()->esPrivilegiado()) {
             abort(403, 'Solo superadmins pueden ver diagnósticos');
         }
 
