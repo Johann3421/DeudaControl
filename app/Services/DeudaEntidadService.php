@@ -6,6 +6,7 @@ use App\Models\Deuda;
 use App\Models\DeudaEntidad;
 use App\Models\Entidad;
 use App\Models\Movimiento;
+use App\Models\OrdenCompra;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -73,11 +74,15 @@ class DeudaEntidadService
         return DB::transaction(function () use ($deuda, $datos) {
             $extension = $deuda->deudaEntidad;
 
-            if ($extension && !$extension->estaEditable()) {
-                throw new \DomainException('Esta deuda de entidad esta cerrada y no puede editarse.');
-            }
-
             $originales = $deuda->getOriginal();
+
+            // Si la fase SIAF es P (Pagado en cuenta), forzar cierre automático
+            $esFaseP = isset($datos['fase_siaf']) && $datos['fase_siaf'] === 'P';
+
+            if ($esFaseP) {
+                $datos['estado'] = 'pagado_banco';
+                $datos['monto_pendiente'] = 0;
+            }
 
             // Determinar nuevo estado y preparar campos a actualizar
             $nuevoEstado = $datos['estado'] ?? $deuda->estado;
@@ -100,7 +105,7 @@ class DeudaEntidadService
             $deuda->update($updateData);
 
             if ($extension) {
-                $extension->update(array_filter([
+                $extensionData = array_filter([
                     'producto_servicio' => $datos['producto_servicio'] ?? null,
                     'codigo_siaf' => $datos['codigo_siaf'] ?? null,
                     'fecha_limite_pago' => $datos['fecha_limite_pago'] ?? null,
@@ -110,7 +115,22 @@ class DeudaEntidadService
                     'fase_siaf' => $datos['fase_siaf'] ?? null,
                     'estado_expediente' => $datos['estado_expediente'] ?? null,
                     'fecha_proceso' => $datos['fecha_proceso'] ?? null,
-                ], fn($v) => $v !== null));
+                ], fn($v) => $v !== null);
+
+                // Fase P: cerrar la deuda entidad automáticamente
+                if ($esFaseP) {
+                    $extensionData['cerrado'] = true;
+                    $extensionData['estado_seguimiento'] = 'pagado';
+                }
+
+                $extension->update($extensionData);
+            }
+
+            // Fase P: cerrar todas las órdenes de compra vinculadas a esta deuda
+            if ($esFaseP) {
+                OrdenCompra::where('deuda_id', $deuda->id)
+                    ->where('estado', '!=', 'pagado')
+                    ->update(['estado' => 'pagado']);
             }
 
             $this->historialService->registrarActualizacion($deuda, $originales);
