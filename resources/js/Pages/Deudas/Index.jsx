@@ -194,18 +194,26 @@ export default function DeudasIndex({ deudas, filtros }) {
                                         const estilos = ESTADO_STYLES[deuda.estado] || ESTADO_STYLES.activa;
                                         const tipoStyle = TIPO_STYLES[deuda.tipo_deuda] || TIPO_STYLES.particular;
                                         const prog = calcProgreso(deuda);
+                                        const esCobrada = deuda.deuda_entidad?.fase_siaf === 'P' || deuda.estado === 'pagado_banco';
                                         return (
-                                            <tr key={deuda.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <tr key={deuda.id} className={`transition-colors ${esCobrada ? 'bg-emerald-50/60 hover:bg-emerald-50' : 'hover:bg-slate-50/50'}`}>
                                                 {/* Descripción + barra progreso */}
                                                 <td className="px-3 py-2 max-w-[150px]">
-                                                    <Link href={`/deudas/${deuda.id}`} className="text-xs font-medium text-slate-800 hover:text-[#0EA5E9] transition-colors truncate block">
-                                                        {deuda.descripcion}
-                                                    </Link>
+                                                    <div className="flex items-center gap-1">
+                                                        <Link href={`/deudas/${deuda.id}`} className="text-xs font-medium text-slate-800 hover:text-[#0EA5E9] transition-colors truncate block">
+                                                            {deuda.descripcion}
+                                                        </Link>
+                                                        {esCobrada && (
+                                                            <span title="Dinero recibido en cuenta" className="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-100 text-emerald-600">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="flex items-center gap-1.5 mt-1">
                                                         <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden max-w-[80px]">
                                                             <div className={`h-full ${prog.color} rounded-full transition-all`} style={{ width: `${prog.pct}%` }} />
                                                         </div>
-                                                        <span className="text-[10px] text-slate-400 whitespace-nowrap">{Math.round(prog.pct)}%</span>
+                                                        <span className={`text-[10px] whitespace-nowrap ${esCobrada ? 'text-emerald-600 font-semibold' : 'text-slate-400'}`}>{Math.round(prog.pct)}%</span>
                                                     </div>
                                                 </td>
                                                 {/* Producto / Servicio */}
@@ -241,7 +249,7 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                 </td>
                                                 {/* Pendiente */}
                                                 <td className="px-3 py-2 text-right whitespace-nowrap">
-                                                    <span className="text-xs font-semibold text-amber-600">{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</span>
+                                                    <span className={`text-xs font-semibold ${esCobrada ? 'text-emerald-600' : 'text-amber-600'}`}>{formatMoney(deuda.monto_pendiente, deuda.currency_code)}</span>
                                                 </td>
                                                 {/* Columnas de entidad */}
                                                 {tieneDeudaEntidad && (
@@ -284,13 +292,19 @@ export default function DeudasIndex({ deudas, filtros }) {
                                                         {/* Fase SIAF */}
                                                         <td className="px-3 py-2 text-center">
                                                             {deuda.tipo_deuda === 'entidad' && deuda.deuda_entidad?.fase_siaf ? (
-                                                                <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                                                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold
+                                                                    ${deuda.deuda_entidad.fase_siaf === 'P' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}
+                                                                `}>
                                                                     {deuda.deuda_entidad.fase_siaf === 'A' ? 'APROBADO' :
                                                                      deuda.deuda_entidad.fase_siaf === 'F' ? 'VERIF.' :
                                                                      deuda.deuda_entidad.fase_siaf === 'R' ? 'RECHAZ.' :
                                                                      deuda.deuda_entidad.fase_siaf === 'V' ? 'VALID.' :
                                                                      deuda.deuda_entidad.fase_siaf === 'B' ? 'BUENO' :
+                                                                     deuda.deuda_entidad.fase_siaf === 'P' ? 'EN CUENTA' :
                                                                      deuda.deuda_entidad.fase_siaf}
+                                                                    {deuda.deuda_entidad.fase_siaf === 'P' && (
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                                    )}
                                                                 </span>
                                                             ) : <span className="text-xs text-slate-300">-</span>}
                                                         </td>
