@@ -3,7 +3,7 @@ import Layout from '../../../Components/Layout';
 import { useState, useEffect } from 'react';
 import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/currencyHelper';
 
-export default function EntidadDeudaCreate({ entidades }) {
+export default function EntidadDeudaCreate({ entidades, empresas_factura }) {
     const currencies = getAvailableCurrencies();
 
     // Función para traducir mensajes de error genéricos
@@ -104,7 +104,7 @@ export default function EntidadDeudaCreate({ entidades }) {
         unidad_ejecutora: '',
     });
 
-    const EMPRESAS_FACTURA = [
+    const EMPRESAS_FACTURA = empresas_factura && empresas_factura.length > 0 ? empresas_factura : [
         'GRUPO LARIOS & ASOCIADOS S.A.C.S',
         'THE KING COMPUTER EIRL',
         'MACRO DISTRIBUIDORA DEL PERU E.I.R.L.',
@@ -114,6 +114,7 @@ export default function EntidadDeudaCreate({ entidades }) {
         'SEKAI TECH S.C.R.L.',
         'ALMERCO JAUREGUI JULIO CESAR',
         'KENYA TECHNOLOGY S.A.C.',
+        'FONSECACORP EIRL',
     ];
 
     // Obtener token CSRF de Inertia o del DOM

@@ -6,6 +6,7 @@ use App\Models\ActividadLog;
 use App\Models\Deuda;
 use App\Models\DeudaEntidad;
 use App\Models\Entidad;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Services\DeudaEntidadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,8 @@ class DeudaEntidadController extends Controller
             ->get(['id', 'razon_social', 'ruc', 'tipo']);
 
         return Inertia::render('Deudas/Entidad/Create', [
-            'entidades' => $entidades,
+            'entidades'         => $entidades,
+            'empresas_factura'  => SettingsController::getEmpresas(),
         ]);
     }
 
@@ -96,8 +98,9 @@ class DeudaEntidadController extends Controller
             ->get(['id', 'razon_social', 'ruc', 'tipo']);
 
         return Inertia::render('Deudas/Entidad/Edit', [
-            'deuda' => $deuda,
-            'entidades' => $entidades,
+            'deuda'             => $deuda,
+            'entidades'         => $entidades,
+            'empresas_factura'  => SettingsController::getEmpresas(),
         ]);
     }
 

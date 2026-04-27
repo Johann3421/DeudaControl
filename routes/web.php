@@ -176,6 +176,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+        Route::post('/settings/empresas', [SettingsController::class, 'addEmpresa'])->name('settings.empresas.add');
+        Route::delete('/settings/empresas', [SettingsController::class, 'removeEmpresa'])->name('settings.empresas.remove');
 
         Route::get('/diagnostic/siaf', [DiagnosticController::class, 'siaf'])->name('diagnostic.siaf');
 

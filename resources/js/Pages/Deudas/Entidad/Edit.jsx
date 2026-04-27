@@ -1,13 +1,13 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Layout from '../../../Components/Layout';
 
-export default function EntidadDeudaEdit({ deuda, entidades }) {
+export default function EntidadDeudaEdit({ deuda, entidades, empresas_factura }) {
     const { auth } = usePage().props;
     const esJefe = auth?.user?.rol === 'jefe';
     const deudaEntidad = deuda.deuda_entidad || {};
     const cerradoInfo = !!deudaEntidad.cerrado; // solo informativo, ya no bloquea la edición
 
-    const EMPRESAS_FACTURA = [
+    const EMPRESAS_FACTURA = empresas_factura && empresas_factura.length > 0 ? empresas_factura : [
         'GRUPO LARIOS & ASOCIADOS S.A.C.S',
         'THE KING COMPUTER EIRL',
         'MACRO DISTRIBUIDORA DEL PERU E.I.R.L.',
@@ -17,6 +17,7 @@ export default function EntidadDeudaEdit({ deuda, entidades }) {
         'SEKAI TECH S.C.R.L.',
         'ALMERCO JAUREGUI JULIO CESAR',
         'KENYA TECHNOLOGY S.A.C.',
+        'FONSECACORP EIRL',
     ];
 
     const { data, setData, put, processing, errors } = useForm({
