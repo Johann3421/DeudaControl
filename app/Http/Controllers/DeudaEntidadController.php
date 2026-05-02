@@ -50,6 +50,7 @@ class DeudaEntidadController extends Controller
             'fecha_proceso' => ['nullable', 'date_format:Y-m-d'],
             'empresa_factura' => ['nullable', 'string', 'max:200'],
             'unidad_ejecutora' => ['nullable', 'string', 'max:150'],
+            'fecha_limite_entrega' => ['nullable', 'date_format:Y-m-d'],
         ], [
             'entidad_id.required' => 'Selecciona una entidad.',
             'entidad_id.exists' => 'La entidad seleccionada no existe.',
@@ -121,6 +122,7 @@ class DeudaEntidadController extends Controller
             'fecha_proceso' => ['nullable', 'date_format:Y-m-d'],
             'empresa_factura' => ['nullable', 'string', 'max:200'],
             'unidad_ejecutora' => ['nullable', 'string', 'max:150'],
+            'fecha_limite_entrega' => ['nullable', 'date_format:Y-m-d'],
         ], [
             'descripcion.required' => 'La descripción es obligatoria.',
             'producto_servicio.required' => 'El producto o servicio es obligatorio.',

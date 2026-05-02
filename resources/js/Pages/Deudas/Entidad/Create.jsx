@@ -93,6 +93,7 @@ export default function EntidadDeudaCreate({ entidades, empresas_factura }) {
         monto_total: '',
         codigo_siaf: '',
         fecha_limite_pago: '',
+        fecha_limite_entrega: '',
         notas: '',
         // Nuevos campos SIAF - deben ser strings vacíos, no undefined
         estado_siaf: '',
@@ -578,6 +579,22 @@ export default function EntidadDeudaCreate({ entidades, empresas_factura }) {
                                 className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.fecha_limite_pago ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
                             />
                             {errors.fecha_limite_pago && <p className="mt-1 text-sm text-red-600">{errors.fecha_limite_pago}</p>}
+                        </div>
+
+                        {/* Fecha Límite de Entrega (dato interno, no visible en tabla) */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                Fecha Límite de Entrega
+                                <span className="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Solo interno</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={data.fecha_limite_entrega}
+                                onChange={(e) => setData('fecha_limite_entrega', e.target.value)}
+                                className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${errors.fecha_limite_entrega ? 'border-red-300' : 'border-slate-200 focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10'}`}
+                            />
+                            <p className="mt-1 text-xs text-slate-400">Fecha interna para alertas de entrega vía WhatsApp. No se muestra en la tabla.</p>
+                            {errors.fecha_limite_entrega && <p className="mt-1 text-sm text-red-600">{errors.fecha_limite_entrega}</p>}
                         </div>
 
                         {/* Notas */}

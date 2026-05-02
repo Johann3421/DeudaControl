@@ -25,6 +25,7 @@ use App\Http\Controllers\SiafIntegrationController;
 use App\Http\Controllers\SiafScraperController;
 use App\Http\Controllers\ExcelSiafController;
 use App\Http\Controllers\Api\AlertasController;
+use App\Http\Controllers\Api\AlertasEntregaController;
 use App\Http\Controllers\Api\ChatbotQueryController;
 use App\Http\Controllers\UtilidadController;
 use App\Http\Controllers\HistorialController;
@@ -58,6 +59,7 @@ Route::prefix('maintenance')->group(function () {
 // Alertas API - para n8n/automatizaciones (sin autenticación, protegido por token)
 Route::prefix('api')->group(function () {
     Route::get('/alertas/vencimientos', [AlertasController::class, 'vencimientos']);
+    Route::get('/alertas/entregas', [AlertasEntregaController::class, 'vencimientos']);
     Route::get('/chatbot/consulta', [ChatbotQueryController::class, 'consulta']);
 });
 

@@ -22,7 +22,7 @@ export default function SettingsIndex({ app_name, timezone, empresas_factura = [
         setRemoving(nombre);
         router.delete('/admin/settings/empresas', { data: { nombre }, preserveScroll: true, onFinish: () => setRemoving(null) });
     };
-    
+
     return (
         <Layout title="Configuración">
             <Head title="Configuración" />
