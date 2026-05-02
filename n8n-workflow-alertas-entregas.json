@@ -1,0 +1,172 @@
+{
+  "name": "Alertas Entrega de Órdenes — Control Deudas (WhatsApp Grupo)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "⏰ Lun-Sáb 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [160, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n//  CONSULTAR API ALERTAS DE ENTREGA — Control Deudas\n// ============================================================\nconst ALERTAS_TOKEN = 'Rd2GcVzGM3Bh8j0V+2XCriMqsdWqSSWv8mmdPyL8eMY=';\nconst API_URL       = 'https://deudas.sekaitech.com.pe';\n\nlet result;\ntry {\n  result = await this.helpers.httpRequest({\n    method: 'GET',\n    url: API_URL + '/api/alertas/entregas?dias=7',\n    headers: {\n      'X-Alertas-Token': ALERTAS_TOKEN,\n      'Accept': 'application/json'\n    },\n    timeout: 20000,\n    json: true\n  });\n  if (typeof result === 'string') result = JSON.parse(result);\n} catch(e) {\n  return [{ json: { error: true, message: e.message } }];\n}\n\nreturn [{ json: result }];\n"
+      },
+      "id": "node-fetch-api",
+      "name": "🌐 Consultar API Entregas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [380, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false},
+          "conditions": [
+            {
+              "id": "cond-api-ok",
+              "leftValue": "={{ $json.error !== undefined }}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equal"}
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-api-error",
+      "name": "🔍 ¿Error de API?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [620, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// NOTIFICAR ERROR EN EL GRUPO\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '6mF28RqtJdPIZorVIbAaRBiKZoZr3a5t4d9jikNna7c=';\nconst EVOLUTION_INSTANCE = 'sekaitech';\nconst GROUP_JID          = '120363424829792074@g.us';\n\nconst inp  = $input.item.json;\nconst errorMsg = inp.message || inp.error || 'Error desconocido';\nconst ahora = new Date().toLocaleString('es-PE', { timeZone: 'America/Lima' });\n\nconst texto = `⚠️ *ERROR — Alertas Entregas Control Deudas*\\n🗓️ ${ahora}\\n${'─'.repeat(30)}\\nNo se pudo consultar la API de entregas.\\n\\nError: ${errorMsg}\\n\\nRevisa los logs en Dokploy.`;\n\ntry {\n  await this.helpers.httpRequest({\n    method: 'POST',\n    url: EVOLUTION_URL + '/message/sendText/' + EVOLUTION_INSTANCE,\n    headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },\n    body: { number: GROUP_JID, text: texto },\n    json: true,\n    timeout: 10000\n  });\n} catch(e) { /* silenciar error secundario */ }\n\nreturn [{ json: { notified: true, error: errorMsg } }];\n"
+      },
+      "id": "node-send-error-msg",
+      "name": "🆘 Notificar Error API",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// =================================================================\n//  PROCESAR ÓRDENES Y PREPARAR MENSAJES POR URGENCIA DE ENTREGA\n// =================================================================\nlet data = $input.first().json;\n\n// n8n a veces anida la respuesta\nif (data.body && data.body.ordenes !== undefined) data = data.body;\nif (data.data && data.data.ordenes !== undefined) data = data.data;\n\nconst ordenes = Array.isArray(data.ordenes) ? data.ordenes : [];\n\nif (ordenes.length === 0) {\n  return [{ json: { debug_input: data, hayAlertas: 'false', mensajes: [], total: 0 } }];\n}\n\nconst sep = '─'.repeat(30);\nconst mensajes = [];\n\nconst vencHoy  = ordenes.filter(x => x.dias_restantes <= 0);\nconst criticas = ordenes.filter(x => x.dias_restantes > 0 && x.dias_restantes <= 3);\nconst aviso    = ordenes.filter(x => x.dias_restantes > 3);\n\n// ── Encabezado resumen ───────────────────────────────────────────\nlet header = [\n  '🚚 *ALERTAS DE FECHA LÍMITE DE ENTREGA*',\n  '🗓️ ' + (data.generado || new Date().toLocaleString('es-PE')) + '  |  deudas.sekaitech.com.pe',\n  sep,\n  '📊 *Resumen:*',\n  '   • Total con fecha próxima: *' + ordenes.length + '*'\n];\nif (vencHoy.length)  header.push('   • 🔴 Entrega hoy o vencida: *' + vencHoy.length + '*');\nif (criticas.length) header.push('   • 🟠 Críticas (≤3d): *' + criticas.length + '*');\nif (aviso.length)    header.push('   • 🟡 Aviso (>3d): *' + aviso.length + '*');\nmensajes.push(header.join('\\n'));\n\n// ── Builder de ítem ─────────────────────────────────────────────\nconst buildItem = (item, i) => {\n  const diasStr = item.dias_restantes < 0\n    ? `Hace ${Math.abs(item.dias_restantes)} día(s) — VENCIDA`\n    : item.dias_restantes === 0 ? '¡ENTREGA HOY!'\n    : `Faltan ${item.dias_restantes} días`;\n\n  return [\n    '',\n    ` *${i + 1}. OC #${item.orden_compra}*`,\n    `   🏢 Entidad: ${item.entidad}`,\n    `   🔧 Producto/Servicio: ${item.producto_servicio}`,\n    item.empresa_factura ? `   🏬 Empresa factura: ${item.empresa_factura}` : null,\n    `   💰 Monto: *${item.monto}*`,\n    `   📊 Estado: ${item.estado_seguimiento}`,\n    `   👤 Responsable: ${item.responsable || 'No asignado'}`,\n    `   📦 Entregar: *${item.fecha_limite_entrega}* (${diasStr})`,\n  ].filter(Boolean).join('\\n');\n};\n\nif (vencHoy.length > 0) {\n  let bloque = ['🔴 *ENTREGA VENCIDA O HOY (Acción Inmediata)*', sep];\n  vencHoy.forEach((x, i) => bloque.push(buildItem(x, i)));\n  mensajes.push(bloque.join('\\n'));\n}\n\nif (criticas.length > 0) {\n  let bloque = ['🟠 *ENTREGA CRÍTICA (1-3 días)*', sep];\n  criticas.forEach((x, i) => bloque.push(buildItem(x, i)));\n  mensajes.push(bloque.join('\\n'));\n}\n\nif (aviso.length > 0) {\n  let bloque = ['🟡 *AVISO DE ENTREGA (> 3 días)*', sep];\n  aviso.forEach((x, i) => bloque.push(buildItem(x, i)));\n  mensajes.push(bloque.join('\\n'));\n}\n\nreturn [{ json: { hayAlertas: 'true', mensajes, total: ordenes.length } }];\n"
+      },
+      "id": "node-build-msg",
+      "name": "📝 Procesar y Construir Mensajes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 420]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false},
+          "conditions": [
+            {
+              "id": "cond-hay-alertas",
+              "leftValue": "={{ $json.hayAlertas }}",
+              "rightValue": "true",
+              "operator": {"type": "string", "operation": "equals"}
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-if-alertas",
+      "name": "❓ ¿Hay Alertas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 420]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "mensajes",
+        "options": {"destinationFieldName": "mensaje"}
+      },
+      "id": "node-split",
+      "name": "✂️ Dividir Mensajes",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1320, 320]
+    },
+    {
+      "parameters": {
+        "amount": 1500,
+        "unit": "milliseconds"
+      },
+      "id": "node-wait",
+      "name": "⏳ Esperar 1.5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1540, 320],
+      "webhookId": "wait-entregas-messages"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n//  ENVIAR MENSAJES VÍA EVOLUTION API → GRUPO WHATSAPP ENTREGAS\n// ============================================================\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '6mF28RqtJdPIZorVIbAaRBiKZoZr3a5t4d9jikNna7c=';\nconst EVOLUTION_INSTANCE = 'sekaitech';\nconst GROUP_JID          = '120363424829792074@g.us';\n\nlet results = [];\n\nfor (const item of $input.all()) {\n  const mensaje = item.json.mensaje || '';\n  if (!mensaje) continue;\n\n  try {\n    const r = await this.helpers.httpRequest({\n      method: 'POST',\n      url: EVOLUTION_URL + '/message/sendText/' + EVOLUTION_INSTANCE,\n      headers: {\n        'apikey': EVOLUTION_API_KEY,\n        'Content-Type': 'application/json'\n      },\n      body: { number: GROUP_JID, text: mensaje },\n      json: true,\n      timeout: 15000\n    });\n    results.push({ json: { success: true, key: r.key } });\n    await new Promise(resolve => setTimeout(resolve, 1500));\n  } catch(e) {\n    results.push({ json: { success: false, error: e.message } });\n  }\n}\n\nreturn results;\n"
+      },
+      "id": "node-send-evolution",
+      "name": "📲 Enviar a WhatsApp (Evolution)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 320]
+    },
+    {
+      "parameters": {},
+      "id": "node-no-alertas",
+      "name": "🔕 Sin Alertas — OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1320, 520]
+    }
+  ],
+  "connections": {
+    "⏰ Lun-Sáb 08:00": {
+      "main": [[{"node": "🌐 Consultar API Entregas", "type": "main", "index": 0}]]
+    },
+    "🌐 Consultar API Entregas": {
+      "main": [[{"node": "🔍 ¿Error de API?", "type": "main", "index": 0}]]
+    },
+    "🔍 ¿Error de API?": {
+      "main": [
+        [{"node": "🆘 Notificar Error API", "type": "main", "index": 0}],
+        [{"node": "📝 Procesar y Construir Mensajes", "type": "main", "index": 0}]
+      ]
+    },
+    "📝 Procesar y Construir Mensajes": {
+      "main": [[{"node": "❓ ¿Hay Alertas?", "type": "main", "index": 0}]]
+    },
+    "❓ ¿Hay Alertas?": {
+      "main": [
+        [{"node": "✂️ Dividir Mensajes", "type": "main", "index": 0}],
+        [{"node": "🔕 Sin Alertas — OK", "type": "main", "index": 0}]
+      ]
+    },
+    "✂️ Dividir Mensajes": {
+      "main": [[{"node": "⏳ Esperar 1.5s", "type": "main", "index": 0}]]
+    },
+    "⏳ Esperar 1.5s": {
+      "main": [[{"node": "📲 Enviar a WhatsApp (Evolution)", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-02T00:00:00.000Z",
+  "versionId": "1"
+}
