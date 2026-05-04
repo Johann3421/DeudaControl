@@ -19,15 +19,10 @@ class AlertasEntregaController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $dias  = (int) ($request->query('dias', 7));
-        $hoy   = Carbon::today();
-        $hasta = Carbon::today()->addDays($dias);
-        $ayer  = Carbon::yesterday();
+        $hoy  = Carbon::today();
 
         $ordenes = DeudaEntidad::where('cerrado', false)
             ->whereNotNull('fecha_limite_entrega')
-            ->where('fecha_limite_entrega', '>=', $ayer)
-            ->where('fecha_limite_entrega', '<=', $hasta)
             ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada', 'pagado_banco']))
             ->with(['deuda.user', 'entidad'])
             ->orderBy('fecha_limite_entrega')
