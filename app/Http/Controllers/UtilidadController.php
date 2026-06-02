@@ -18,13 +18,9 @@ class UtilidadController extends Controller
 
     private function empresaOpciones(): array
     {
-        return array_values(array_unique(array_merge(
-            SettingsController::getEmpresas(),
-            OrdenCompra::whereNotNull('empresa_factura')
-                ->distinct()
-                ->pluck('empresa_factura')
-                ->all()
-        )));
+        // Use the same source as the Deudas controllers: stored defaults (or configured list).
+        // This keeps the options identical to the Deudas/Entidad area and avoids duplicates.
+        return SettingsController::getEmpresas();
     }
 
     private function withUtilidad(OrdenCompra $oc): array
