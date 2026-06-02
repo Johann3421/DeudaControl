@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Admin\SettingsController;
 use App\Models\ActividadLog;
 use App\Models\Deuda;
 use App\Models\GastoOC;
@@ -14,6 +15,17 @@ use Inertia\Inertia;
 class UtilidadController extends Controller
 {
     // ─── Helpers ────────────────────────────────────────────────────────────
+
+    private function empresaOpciones(): array
+    {
+        return array_values(array_unique(array_merge(
+            SettingsController::getEmpresas(),
+            OrdenCompra::whereNotNull('empresa_factura')
+                ->distinct()
+                ->pluck('empresa_factura')
+                ->all()
+        )));
+    }
 
     private function withUtilidad(OrdenCompra $oc): array
     {
@@ -130,8 +142,7 @@ class UtilidadController extends Controller
 
     public function create()
     {
-        $empresas = \App\Models\OrdenCompra::whereNotNull('empresa_factura')
-            ->distinct()->pluck('empresa_factura');
+        $empresas = $this->empresaOpciones();
         $entidades = \App\Models\Entidad::pluck('razon_social');
 
         return Inertia::render('Utilidades/Create', [
@@ -214,8 +225,7 @@ class UtilidadController extends Controller
             ]);
         }
 
-        $empresas = \App\Models\OrdenCompra::whereNotNull('empresa_factura')
-            ->distinct()->pluck('empresa_factura');
+        $empresas = $this->empresaOpciones();
         $entidades = \App\Models\Entidad::pluck('razon_social');
 
         return Inertia::render('Utilidades/Edit', [

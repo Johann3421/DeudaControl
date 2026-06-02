@@ -1,0 +1,645 @@
+{
+  "name": "Sorteo Puntos Grupo - Evolution API",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Aquí procesamos el webhook de Evolution API\n// Evolution API puede enviar en $json directamente o en $json.body\nconst raw = $input.first().json;\nconst body = raw.body || raw;\n\nif (!body || body.event !== 'messages.upsert') {\n  return [{ json: { procesar: false, accion: null, reason: 'No es messages.upsert: ' + (body && body.event) } }];\n}\n\nconst data = body.data;\nif (!data || !data.message) {\n  return [{ json: { procesar: false, accion: null, reason: 'Sin data.message' } }];\n}\n\nconst message = data.message;\n\nconst GROUP_JID = '120363405067640480@g.us';\n\nif (data.key.remoteJid !== GROUP_JID) {\n  return [{ json: { procesar: false, accion: null, reason: 'Mensaje fuera del grupo: ' + data.key.remoteJid } }];\n}\n\nif (data.key.fromMe) {\n  return [{ json: { procesar: false, accion: null, reason: 'Mensaje de mi mismo' } }];\n}\n\nconst senderJid = data.key.participant || data.key.remoteJid;\nconst senderName = data.pushName || senderJid.split('@')[0];\n\n// ── Detectar comandos de texto ───────────────────────────────────\nconst textMsg = message.conversation || (message.extendedTextMessage && message.extendedTextMessage.text) || '';\nconst texto = textMsg.trim().toLowerCase();\n\nif (texto.length > 0) {\n  // Tabla de posiciones\n  if (/tabla|posiciones|ranking|top|clasificaci/.test(texto)) {\n    return [{ json: { procesar: true, accion: 'tabla', senderId: senderJid, senderName: senderName, groupJid: GROUP_JID } }];\n  }\n  // Mis puntos\n  if (/mis punt|cuantos punt|mi puntaje|mis pt|puntos tengo/.test(texto)) {\n    return [{ json: { procesar: true, accion: 'mis_puntos', senderId: senderJid, senderName: senderName, groupJid: GROUP_JID } }];\n  }\n  // Mi posición\n  if (/mi posici|mi lugar|que puesto|mi ranking/.test(texto)) {\n    return [{ json: { procesar: true, accion: 'mi_posicion', senderId: senderJid, senderName: senderName, groupJid: GROUP_JID } }];\n  }\n  // Ayuda\n  if (/ayuda|help|comandos|que haces|instrucciones|hola bot/.test(texto)) {\n    return [{ json: { procesar: true, accion: 'ayuda', senderId: senderJid, senderName: senderName, groupJid: GROUP_JID } }];\n  }\n  // No reconocido → ignorar\n  return [{ json: { procesar: false, accion: null, reason: 'Texto no reconocido: ' + texto } }];\n}\n\n// ── Detectar imagen con puntos ───────────────────────────────────\nif (!message.imageMessage) {\n  return [{ json: { procesar: false, accion: null, reason: 'No es texto ni imagen' } }];\n}\n\nconst caption = (message.imageMessage.caption || '').trim();\nconst match = caption.match(/(?:puntos?|#puntos?)\\s*(\\d+(?:[.,]\\d+)?)/i);\n\nif (!match) {\n  return [{ json: { procesar: false, accion: null, reason: 'Imagen sin #puntos en el caption' } }];\n}\n\nconst puntos = parseFloat(match[1].replace(',', '.'));\n\nreturn [{ json: { \n  procesar: true,\n  accion: 'registrar',\n  puntos: puntos,\n  senderId: senderJid,\n  senderName: senderName,\n  timestamp: new Date().toISOString(),\n  messageId: data.key.id,\n  groupJid: GROUP_JID\n} }];\n"
+      },
+      "id": "0b62f2cc-878b-4d46-9c32-114976cf02b6",
+      "name": "Procesar Mensaje y Extraer Puntos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.accion }}",
+              "value2": "registrar"
+            }
+          ],
+          "boolean": [
+            {
+              "value1": "={{ $json.procesar }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "5d39839c-39d3-4a19-b21e-386bea3ca1ed",
+      "name": "¿Es Imagen Válida con Puntos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.accion }}",
+              "value2": "ayuda"
+            }
+          ]
+        }
+      },
+      "id": "node-router",
+      "name": "Router de Acciones",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── RESPONDER: MIS PUNTOS + MI POSICIÓN ──\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '36336609909C-4FFE-AB5D-2F619AE65495';\nconst EVOLUTION_INSTANCE = 'sekaitech';\n\nconst inp = $input.first().json;\nreturn [{ json: {\n  _accion: inp.accion,\n  senderId: inp.senderId,\n  senderName: inp.senderName,\n  groupJid: inp.groupJid,\n  EVOLUTION_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE\n} }];\n"
+      },
+      "id": "node-prepare-consulta",
+      "name": "Preparar Consulta Puntos/Posición",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8",
+          "mode": "list",
+          "cachedResultName": "Historial Sorteo Puntos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Historial",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "node-leer-historial-consulta",
+      "name": "Leer Historial (Consulta)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1216,
+        1400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UmHFVXUSZpGHYIuJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── CALCULAR Y RESPONDER CONSULTA DEL USUARIO ──\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '36336609909C-4FFE-AB5D-2F619AE65495';\nconst EVOLUTION_INSTANCE = 'sekaitech';\n\n// Contexto del usuario viene del nodo Router (rama FALSE)\nconst ctx = $('Router de Acciones').first().json;\nconst accion   = ctx.accion;\nconst mySender = ctx.senderId;\nconst myName   = ctx.senderName;\nconst groupJid = ctx.groupJid;\n\n// Todos los registros del historial (items de Google Sheets)\nconst rows = $input.all().map(e => e.json);\n\n// Calcular ranking acumulado\nconst puntajes = {};\nrows.forEach(row => {\n  const userId = row['Usuario ID'];\n  if (!userId) return;\n  const puntos = parseFloat((row['Puntos'] || '0').toString().replace(/[^0-9.]/g, '')) || 0;\n  if (!puntajes[userId]) puntajes[userId] = { nombre: row['Nombre'] || 'Anónimo', puntos: 0 };\n  puntajes[userId].puntos += puntos;\n});\n\nconst ranking = Object.entries(puntajes)\n  .map(([id, v]) => ({ id, nombre: v.nombre, puntos: v.puntos }))\n  .sort((a, b) => b.puntos - a.puntos);\n\nlet respuesta = '';\n\nif (accion === 'tabla') {\n  const medallas = ['🥇','🥈','🥉','4️⃣','5️⃣'];\n  const top5 = ranking.slice(0, 5);\n  if (top5.length === 0) {\n    respuesta = '📋 *TABLA DE POSICIONES — Sorteo Fin de Año*\\n\\nAún no hay puntos registrados. ¡Sube tu primera boleta!';\n  } else {\n    respuesta = '🏆 *TABLA DE POSICIONES — Sorteo Fin de Año*\\n' + '─'.repeat(30) + '\\n';\n    top5.forEach((u, i) => {\n      const marca = u.id === mySender ? ' 👈 *tú*' : '';\n      respuesta += medallas[i] + ' *' + u.nombre + '* — ' + u.puntos.toFixed(2) + ' pts' + marca + '\\n';\n    });\n    if (ranking.length > 5) respuesta += '\\n_...y ' + (ranking.length - 5) + ' participante(s) más_';\n    respuesta += '\\n\\n💡 Sube más boletas con _#puntos [cantidad]_ para subir.';\n  }\n} else if (accion === 'mis_puntos') {\n  const me = puntajes[mySender];\n  if (!me) {\n    respuesta = '👤 *' + myName + '*, todavía no tienes puntos registrados.\\n\\n📸 Envía una imagen de tu boleta con el texto _#puntos [cantidad]_ para empezar.';\n  } else {\n    respuesta = '✨ *Tus puntos, ' + myName + '*\\n' + '─'.repeat(25) + '\\n💰 Total acumulado: *' + me.puntos.toFixed(2) + ' puntos*\\n\\n¡Sigue subiendo boletas para escalar posiciones! 🚀';\n  }\n} else if (accion === 'mi_posicion') {\n  const pos = ranking.findIndex(u => u.id === mySender);\n  if (pos === -1) {\n    respuesta = '👤 *' + myName + '*, aún no tienes puntos. ¡Comienza subiendo tu primera boleta con _#puntos [cantidad]_!';\n  } else {\n    const emojis = ['🥇','🥈','🥉'];\n    const medalla = emojis[pos] !== undefined ? emojis[pos] : '#' + (pos + 1);\n    const me = ranking[pos];\n    respuesta = '📍 *Tu posición actual, ' + myName + '*\\n' + '─'.repeat(25) + '\\n' + medalla + ' Posición: *' + (pos + 1) + '° de ' + ranking.length + '*\\n💰 Puntos: *' + me.puntos.toFixed(2) + '*';\n    if (pos > 0) {\n      const diff = ranking[pos - 1].puntos - me.puntos;\n      respuesta += '\\n\\n⬆️ Te faltan *' + diff.toFixed(2) + ' pts* para superar al ' + pos + '°';\n    } else {\n      respuesta += '\\n\\n👑 ¡Estás en primer lugar! Mantén el liderazgo.';\n    }\n  }\n} else {\n  respuesta = '❓ No entendí el comando. Escribe *ayuda* para ver qué puedo hacer.';\n}\n\nreturn [{ json: {\n  url: EVOLUTION_URL + '/message/sendText/' + EVOLUTION_INSTANCE,\n  headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },\n  body: { number: groupJid, text: respuesta }\n} }];\n"
+      },
+      "id": "node-responder-consulta",
+      "name": "Calcular y Responder Consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.headers.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "node-enviar-consulta",
+      "name": "Enviar Respuesta Consulta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1620,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── RESPONDER: AYUDA ──\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '36336609909C-4FFE-AB5D-2F619AE65495';\nconst EVOLUTION_INSTANCE = 'sekaitech';\n\nconst inp = $input.first().json;\n\nconst ayuda = [\n  '🤖 *BOT — Sorteo Fin de Año*',\n  '─'.repeat(30),\n  '',\n  '📸 *Registrar puntos:*',\n  '   Envía una _imagen de tu boleta_ con el texto:',\n  '   👉 _#puntos 150_  (el número = tus puntos)',\n  '',\n  '📋 *Comandos disponibles:*',\n  '   • *tabla* — Ver el Top 5 de posiciones',\n  '   • *mis puntos* — Ver tus puntos acumulados',\n  '   • *mi posición* — Ver en qué lugar estás',\n  '   • *ayuda* — Mostrar este menú',\n  '',\n  '📅 Cada lunes a las 8:00 am se publica el ranking semanal automáticamente.',\n  '',\n  '¡Mucha suerte a todos! 🍀',\n].join('\\n');\n\nreturn [{ json: {\n  url: `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,\n  headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },\n  body: { number: inp.groupJid, text: ayuda }\n} }];\n"
+      },
+      "id": "node-ayuda",
+      "name": "Responder Ayuda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.headers.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "node-enviar-ayuda",
+      "name": "Enviar Ayuda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1216,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8",
+          "mode": "list",
+          "cachedResultName": "Historial Sorteo Puntos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Historial",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $json.timestamp }}",
+            "Usuario ID": "={{ $json.senderId }}",
+            "Nombre": "={{ $json.senderName }}",
+            "Puntos": "={{ $json.puntos }}",
+            "Mensaje ID": "={{ $json.messageId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Usuario ID",
+              "displayName": "Usuario ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Puntos",
+              "displayName": "Puntos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mensaje ID",
+              "displayName": "Mensaje ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "3e8e0908-2fb7-4a2d-b029-5746ac363e29",
+      "name": "Guardar Historial en BD (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        1008,
+        1136
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UmHFVXUSZpGHYIuJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '36336609909C-4FFE-AB5D-2F619AE65495';\nconst EVOLUTION_INSTANCE = 'sekaitech';\n\nconst data = $('Procesar Mensaje y Extraer Puntos').first().json;\nconst texto = `✅ *BOLETA REGISTRADA* \\n\\n👤 Usuario: ${data.senderName}\\n✨ Puntos sumados: *${data.puntos} Puntos*\\n\\n¡Sigue subiendo boletas con el hashtag de puntos (#puntos [cantidad]) para estar en los primeros puestos del sorteo!`;\n\nreturn [{ json: { \n  url: `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,\n  headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },\n  body: { number: data.groupJid, text: texto }\n} }];\n"
+      },
+      "id": "bf1df014-062b-44bb-b3dd-b334abb66f61",
+      "name": "Preparar Reacción de Confirmación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.headers.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "0c4f0500-957c-4975-aa80-8b9eeda71cdf",
+      "name": "Avisar en Grupo (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1408,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "792d183a-9c31-4662-ba33-da0740cedbe0",
+      "name": "Cron Tabla Semanal (Lunes 8am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        336,
+        1568
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8",
+          "mode": "list",
+          "cachedResultName": "Historial Sorteo Puntos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Historial",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1o-HR81ycEHfwU_BKcUPS-hduzkj_z87Z5bIMhmstqa8/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "1674d3e3-06b9-4227-afc6-d0d5f2286347",
+      "name": "Obtener Todo el Historial",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        560,
+        1568
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "UmHFVXUSZpGHYIuJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst rows = items.map(e => e.json);\n\n// Agrupar por usuario sumando los puntos\nconst puntajes = {};\nrows.forEach(row => {\n  const userId = row['Usuario ID'];\n  const puntosStr = row['Puntos'] ? row['Puntos'].toString() : '0';\n  const puntos = parseFloat(puntosStr.replace(/[^\\d.]/g, '')) || 0;\n  const nombre = row['Nombre'];\n  \n  if (userId) {\n    if (!puntajes[userId]) {\n      puntajes[userId] = { nombre: nombre || 'Anónimo', puntos: 0 };\n    }\n    puntajes[userId].puntos += puntos;\n  }\n});\n\n// Ordenar array por puntos de mayor a menor\nconst ranking = Object.values(puntajes).sort((a, b) => b.puntos - a.puntos);\n\n// Extraer el Top 5\nconst top5 = ranking.slice(0, 5);\n\nlet tablaTexto = `🏆 *RANKING TOP 5 - SORTEO FIN DE AÑO* 🏆\n` + `─`.repeat(30) + `\n`;\nconst medallas = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];\n\nif (top5.length === 0) {\n  tablaTexto += `No hubo boletas registradas esta semana. \n¡Empiecen a enviar sus puntos para la siguiente semana!`;\n} else {\n  top5.forEach((user, index) => {\n    tablaTexto += `${medallas[index]} *${user.nombre}* — ${user.puntos.toFixed(2)} pts\n`;\n  });\n  if (ranking.length > 5) tablaTexto += `_...y ${ranking.length - 5} participante(s) más_\n`;\n  tablaTexto += `\n💡 Recuerda: envía tu boleta con _#puntos [cantidad]_ para sumar.\n🤖 Escribe *tabla*, *mis puntos* o *mi posición* para consultar.`;\n}\n\nconst EVOLUTION_URL      = 'https://evolution.sekaitech.com.pe';\nconst EVOLUTION_API_KEY  = '36336609909C-4FFE-AB5D-2F619AE65495';\nconst EVOLUTION_INSTANCE = 'sekaitech';\nconst GROUP_JID          = '120363405067640480@g.us';\n\nreturn [{ json: { \n  url: `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,\n  headers: { 'apikey': EVOLUTION_API_KEY, 'Content-Type': 'application/json' },\n  body: { number: GROUP_JID, text: tablaTexto }\n} }];\n"
+      },
+      "id": "7134c88e-85f5-4c26-8be1-0e4a3ae8360d",
+      "name": "Calcular Tabla Top 3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        1568
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $json.headers.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "07381989-271e-41fa-b144-6546ca2b4dc3",
+      "name": "Enviar Ranking (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1008,
+        1568
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-webhook-puntos",
+        "options": {}
+      },
+      "id": "17d66360-0a2b-4167-9d7c-c8ad68c9281b",
+      "name": "Webhook Evolution",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        336,
+        1248
+      ],
+      "webhookId": "evolution-webhook-puntos-ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.procesar }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-filtro-procesar",
+      "name": "¿Procesar Comando?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        768,
+        1330
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Procesar Mensaje y Extraer Puntos": {
+      "main": [
+        [
+          {
+            "node": "¿Es Imagen Válida con Puntos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es Imagen Válida con Puntos?": {
+      "main": [
+        [
+          {
+            "node": "Guardar Historial en BD (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Procesar Comando?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router de Acciones": {
+      "main": [
+        [
+          {
+            "node": "Responder Ayuda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Leer Historial (Consulta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Consulta Puntos/Posición": {
+      "main": [
+        [
+          {
+            "node": "Leer Historial (Consulta)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Historial (Consulta)": {
+      "main": [
+        [
+          {
+            "node": "Calcular y Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular y Responder Consulta": {
+      "main": [
+        [
+          {
+            "node": "Enviar Respuesta Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Ayuda": {
+      "main": [
+        [
+          {
+            "node": "Enviar Ayuda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Historial en BD (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Preparar Reacción de Confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Reacción de Confirmación": {
+      "main": [
+        [
+          {
+            "node": "Avisar en Grupo (Evolution API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron Tabla Semanal (Lunes 8am)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Todo el Historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Todo el Historial": {
+      "main": [
+        [
+          {
+            "node": "Calcular Tabla Top 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Tabla Top 3": {
+      "main": [
+        [
+          {
+            "node": "Enviar Ranking (Evolution API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Evolution": {
+      "main": [
+        [
+          {
+            "node": "Procesar Mensaje y Extraer Puntos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Procesar Comando?": {
+      "main": [
+        [
+          {
+            "node": "Router de Acciones",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "930e4736-0bb7-47a8-81ba-512db7e6b97d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "82826da98ab0f0cd5b82b97b2705d997b42d5f740d56c2d5ecbd63478384fc7c"
+  },
+  "id": "e3Wvy1PxNkeD2oqp",
+  "tags": [
+    {
+      "updatedAt": "2026-04-18T15:55:45.799Z",
+      "createdAt": "2026-04-18T15:55:45.799Z",
+      "id": "HzsBVYfAq5VsGptm",
+      "name": "sorteos"
+    }
+  ]
+}
