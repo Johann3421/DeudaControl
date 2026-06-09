@@ -2,40 +2,35 @@ import { router } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 
 /**
- * Custom hook for intelligent search-as-you-type with Inertia.
+ * Custom hook for debounced search-as-you-type with Inertia.
  *
- * Manages a debounced search state. Filter buttons can use the
- * current `buscar` value directly from state, ensuring they always
- * include the latest typed search term.
+ * - `buscar` is local state, initialized from `filters.buscar` on mount.
+ * - Fires `router.get` 300ms after the user stops typing.
+ * - Preserves all other URL params (estado, tipo, etc.) when searching.
+ * - Only fires when the value actually changes (prevents redundant requests).
+ * - No sync from server props to avoid race conditions with out-of-order responses.
  *
  * @param {string} routeName - Inertia route (e.g. '/clientes')
- * @param {object} filters - filters prop from server
+ * @param {object} filters - filters prop from server (used for initial value)
  * @param {number} debounceMs
  * @returns {{ buscar, setBuscar }}
  */
 export default function useSearch(routeName, filters = {}, debounceMs = 300) {
-    const [buscar, setBuscar] = useState(filters?.buscar || '');
+    const initial = filters?.buscar || '';
+    const [buscar, setBuscar] = useState(initial);
     const debounceRef = useRef(null);
-    const initialRender = useRef(true);
+    const lastSubmittedRef = useRef(initial);
 
-    // Sync from server props when they change (e.g. page reload, filter button click)
     useEffect(() => {
-        if (filters?.buscar !== undefined) {
-            setBuscar(filters.buscar || '');
-        }
-    }, [filters?.buscar]);
-
-    // Debounced search triggered when `buscar` changes
-    useEffect(() => {
-        // Skip the initial render
-        if (initialRender.current) {
-            initialRender.current = false;
-            return;
-        }
+        // Skip if the value hasn't changed since last submission
+        if (buscar === lastSubmittedRef.current) return;
 
         if (debounceRef.current) clearTimeout(debounceRef.current);
 
         debounceRef.current = setTimeout(() => {
+            lastSubmittedRef.current = buscar;
+
+            // Build params from current URL, preserving all filters
             const url = new URL(window.location.href);
             const params = {};
             url.searchParams.forEach((value, key) => {
