@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Models\ActividadLog;
 use App\Models\Deuda;
@@ -80,13 +81,7 @@ class UtilidadController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        if ($request->filled('buscar')) {
-            $q = $request->buscar;
-            $query->where(function ($sq) use ($q) {
-                $sq->where('numero_oc', 'like', "%{$q}%")
-                   ->orWhere('cliente', 'like', "%{$q}%");
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['numero_oc', 'cliente']);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

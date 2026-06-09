@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Models\Entidad;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,13 +13,7 @@ class EntidadController extends Controller
     {
         $query = Entidad::query();
 
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('razon_social', 'like', "%{$buscar}%")
-                    ->orWhere('ruc', 'like', "%{$buscar}%");
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['razon_social', 'ruc']);
 
         if ($request->filled('tipo')) {
             $query->where('tipo', $request->tipo);

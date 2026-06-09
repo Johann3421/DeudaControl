@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,15 +17,7 @@ class ClienteController extends Controller
 
         // Todos los usuarios ven todos los clientes
 
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('nombre', 'like', "%{$buscar}%")
-                  ->orWhere('apellido', 'like', "%{$buscar}%")
-                  ->orWhere('cedula', 'like', "%{$buscar}%")
-                  ->orWhere('email', 'like', "%{$buscar}%");
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['nombre', 'apellido', 'cedula', 'email']);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

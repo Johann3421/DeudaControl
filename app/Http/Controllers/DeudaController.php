@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Models\ActividadLog;
 use App\Models\Cliente;
 use App\Models\Deuda;
@@ -24,23 +25,11 @@ class DeudaController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('descripcion', 'like', "%{$buscar}%")
-                  ->orWhereHas('cliente', function ($cq) use ($buscar) {
-                      $cq->where('nombre', 'like', "%{$buscar}%")
-                        ->orWhere('apellido', 'like', "%{$buscar}%");
-                  })
-                  ->orWhereHas('deudaEntidad.entidad', function ($cq) use ($buscar) {
-                      $cq->where('razon_social', 'like', "%{$buscar}%")
-                        ->orWhere('ruc', 'like', "%{$buscar}%");
-                  })
-                  ->orWhereHas('user', function ($cq) use ($buscar) {
-                      $cq->where('name', 'like', "%{$buscar}%");
-                  });
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['descripcion'], [
+            ['cliente', ['nombre', 'apellido']],
+            ['deudaEntidad.entidad', ['razon_social', 'ruc']],
+            ['user', ['name']],
+        ]);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

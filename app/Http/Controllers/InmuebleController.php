@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Models\Inmueble;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,13 +14,7 @@ class InmuebleController extends Controller
     {
         $query = Inmueble::query();
 
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('nombre', 'like', "%{$buscar}%")
-                  ->orWhere('direccion', 'like', "%{$buscar}%");
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['nombre', 'direccion']);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

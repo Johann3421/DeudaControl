@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\SearchHelper;
 use App\Models\ActividadLog;
 use App\Models\Deuda;
 use App\Models\Movimiento;
@@ -25,19 +26,10 @@ class PagoController extends Controller
             });
         }
 
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('referencia', 'like', "%{$buscar}%")
-                  ->orWhereHas('deuda', function ($dq) use ($buscar) {
-                      $dq->where('descripcion', 'like', "%{$buscar}%");
-                  })
-                  ->orWhereHas('deuda.cliente', function ($cq) use ($buscar) {
-                      $cq->where('nombre', 'like', "%{$buscar}%")
-                        ->orWhere('apellido', 'like', "%{$buscar}%");
-                  });
-            });
-        }
+        SearchHelper::apply($query, $request->buscar, ['referencia'], [
+            ['deuda', ['descripcion']],
+            ['deuda.cliente', ['nombre', 'apellido']],
+        ]);
 
         if ($request->filled('metodo_pago')) {
             $query->where('metodo_pago', $request->metodo_pago);

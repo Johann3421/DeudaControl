@@ -1,6 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import Layout from '../../Components/Layout';
+import SearchInput from '../../Components/SearchInput';
+import useSearch from '../../helpers/useSearch';
 import { formatMoney } from '../../helpers/currencyHelper';
 
 function formatDate(dateStr) {
@@ -32,15 +34,10 @@ const METODO_COLORS = {
 };
 
 export default function PagosIndex({ pagos, filtros }) {
-    const [buscar, setBuscar] = useState(filtros?.buscar || '');
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get('/pagos', { buscar, metodo_pago: filtros?.metodo_pago }, { preserveState: true });
-    };
+    const { buscar, setBuscar } = useSearch('/pagos', filtros);
 
     const handleFilterMetodo = (metodo) => {
-        router.get('/pagos', { buscar: filtros?.buscar, metodo_pago: metodo }, { preserveState: true });
+        router.get('/pagos', { buscar, metodo_pago: metodo }, { preserveState: true });
     };
 
     const handleDeletePago = (id) => {
@@ -66,12 +63,7 @@ export default function PagosIndex({ pagos, filtros }) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <form onSubmit={handleSearch} className="flex-1 flex gap-2">
-                        <input type="text" value={buscar} onChange={(e) => setBuscar(e.target.value)}
-                            placeholder="Buscar por referencia, cliente o descripcion..."
-                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all" />
-                        <button type="submit" className="px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">Buscar</button>
-                    </form>
+                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por referencia, cliente o descripcion..." />
                     <div className="flex gap-2 flex-wrap">
                         {[['', 'Todos'], ['efectivo', 'Efectivo'], ['transferencia', 'Transfer.'], ['tarjeta', 'Tarjeta']].map(([val, label]) => (
                             <button key={val} onClick={() => handleFilterMetodo(val)}
