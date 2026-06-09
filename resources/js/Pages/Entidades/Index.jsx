@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 
 const TIPO_STYLES = {
     publica: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Publica' },
@@ -14,7 +13,17 @@ const ESTADO_STYLES = {
 };
 
 export default function EntidadesIndex({ entidades, filtros }) {
-    const { buscar, setBuscar } = useSearch('/entidades', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const debounceRef = useRef(null);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/entidades', { buscar: value, tipo: filtros?.tipo }, { preserveState: true });
+        }, 300);
+    };
 
     const handleFilterTipo = (tipo) => {
         router.get('/entidades', { buscar, tipo }, { preserveState: true });
@@ -47,7 +56,13 @@ export default function EntidadesIndex({ entidades, filtros }) {
 
                 {/* Filtros */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por razon social o RUC..." />
+                    <input
+                        type="text"
+                        value={buscar}
+                        onChange={handleSearchChange}
+                        placeholder="Buscar por razon social, RUC, contacto..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                    />
                     <div className="flex gap-2 flex-wrap">
                         {[['', 'Todas'], ['publica', 'Publicas'], ['privada', 'Privadas']].map(([val, label]) => (
                             <button

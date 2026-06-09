@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 
 const ESTADO_STYLES = {
     disponible: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -19,7 +18,17 @@ const TIPO_STYLES = {
 };
 
 export default function InmueblesIndex({ inmuebles, filtros }) {
-    const { buscar, setBuscar } = useSearch('/inmuebles', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const debounceRef = useRef(null);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/inmuebles', { buscar: value, estado: filtros?.estado }, { preserveState: true });
+        }, 300);
+    };
 
     const handleFilterEstado = (estado) => {
         router.get('/inmuebles', { buscar, estado }, { preserveState: true });
@@ -46,7 +55,13 @@ export default function InmueblesIndex({ inmuebles, filtros }) {
 
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por nombre o direccion..." />
+                    <input
+                        type="text"
+                        value={buscar}
+                        onChange={handleSearchChange}
+                        placeholder="Buscar por nombre, direccion..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                    />
                     <div className="flex gap-2 flex-wrap">
                         {[['', 'Todos'], ['disponible', 'Disponible'], ['alquilado', 'Alquilado'], ['mantenimiento', 'Mantenimiento']].map(([val, label]) => (
                             <button

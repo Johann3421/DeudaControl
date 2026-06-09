@@ -1,8 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 import { formatMoney } from '../../helpers/currencyHelper';
 import { exportDeudasPDF } from '../../helpers/exportPDF';
 
@@ -81,9 +79,10 @@ function calcProgreso(deuda) {
 
 export default function DeudasIndex({ deudas, filtros }) {
     const { auth } = usePage().props;
-    const { buscar, setBuscar } = useSearch('/deudas', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
     const [exporting, setExporting] = useState(false);
     const [documentosDeudaId, setDocumentosDeudaId] = useState(null);
+    const debounceRef = useRef(null);
 
     const documentosDeuda = documentosDeudaId ? deudas.data.find(d => d.id === documentosDeudaId) : null;
 
@@ -97,6 +96,20 @@ export default function DeudasIndex({ deudas, filtros }) {
 
     // Detectar si hay deudas de entidad para mostrar columnas SIAF dinámicamente
     const tieneDeudaEntidad = deudas.data.some(d => d.tipo_deuda === 'entidad');
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/deudas', { 
+                buscar: value, 
+                estado: filtros?.estado, 
+                tipo_deuda: filtros?.tipo_deuda 
+            }, { preserveState: true });
+        }, 300);
+    };
 
     const handleFilterEstado = (estado) => {
         router.get('/deudas', { buscar, estado, tipo_deuda: filtros?.tipo_deuda }, { preserveState: true });
@@ -131,7 +144,13 @@ export default function DeudasIndex({ deudas, filtros }) {
 
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por descripcion o cliente..." />
+                        <input
+                            type="text"
+                            value={buscar}
+                            onChange={handleSearchChange}
+                            placeholder="Buscar por descripción, producto, cliente, entidad..."
+                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                        />
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <span className="text-xs text-slate-400 self-center mr-1">Tipo:</span>

@@ -1,14 +1,23 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 
 function formatMoney(amount) {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(amount || 0);
 }
 
 export default function ClientesIndex({ clientes, filtros }) {
-    const { buscar, setBuscar } = useSearch('/clientes', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const debounceRef = useRef(null);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/clientes', { buscar: value, estado: filtros?.estado }, { preserveState: true });
+        }, 300);
+    };
 
     const handleFilterEstado = (estado) => {
         router.get('/clientes', { buscar, estado }, { preserveState: true });
@@ -35,7 +44,13 @@ export default function ClientesIndex({ clientes, filtros }) {
 
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por nombre, cedula o email..." />
+                    <input
+                        type="text"
+                        value={buscar}
+                        onChange={handleSearchChange}
+                        placeholder="Buscar por nombre, cedula, email, telefono..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                    />
                     <div className="flex gap-2">
                         {['', 'activo', 'inactivo'].map((estado) => (
                             <button

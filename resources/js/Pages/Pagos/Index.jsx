@@ -1,8 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 import { formatMoney } from '../../helpers/currencyHelper';
 
 function formatDate(dateStr) {
@@ -34,7 +32,17 @@ const METODO_COLORS = {
 };
 
 export default function PagosIndex({ pagos, filtros }) {
-    const { buscar, setBuscar } = useSearch('/pagos', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
+    const debounceRef = useRef(null);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/pagos', { buscar: value, metodo_pago: filtros?.metodo_pago }, { preserveState: true });
+        }, 300);
+    };
 
     const handleFilterMetodo = (metodo) => {
         router.get('/pagos', { buscar, metodo_pago: metodo }, { preserveState: true });
@@ -63,7 +71,13 @@ export default function PagosIndex({ pagos, filtros }) {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por referencia, cliente o descripcion..." />
+                    <input
+                        type="text"
+                        value={buscar}
+                        onChange={handleSearchChange}
+                        placeholder="Buscar por referencia, cliente, descripcion..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                    />
                     <div className="flex gap-2 flex-wrap">
                         {[['', 'Todos'], ['efectivo', 'Efectivo'], ['transferencia', 'Transfer.'], ['tarjeta', 'Tarjeta']].map(([val, label]) => (
                             <button key={val} onClick={() => handleFilterMetodo(val)}

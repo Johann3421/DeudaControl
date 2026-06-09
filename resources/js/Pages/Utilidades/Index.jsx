@@ -1,8 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useRef } from 'react';
 import Layout from '../../Components/Layout';
-import SearchInput from '../../Components/SearchInput';
-import useSearch from '../../helpers/useSearch';
 import { formatMoney } from '../../helpers/currencyHelper';
 import { exportUtilidadesPDF } from '../../helpers/exportPDF';
 
@@ -262,9 +260,10 @@ function GastosPanel({ oc }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function UtilidadesIndex({ ocs, resumen, filtros }) {
     const { auth } = usePage().props;
-    const { buscar, setBuscar } = useSearch('/utilidades', filtros);
+    const [buscar, setBuscar] = useState(filtros?.buscar || '');
     const [expandedId, setExpanded] = useState(null);
     const [exporting, setExporting] = useState(false);
+    const debounceRef = useRef(null);
 
     const handleExport = () => {
         setExporting(true);
@@ -275,6 +274,15 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
     };
 
     const toggleExpand = (id) => setExpanded(prev => prev === id ? null : id);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setBuscar(value);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            router.get('/utilidades', { buscar: value, estado: filtros?.estado, filtro_utilidad: filtros?.filtro_utilidad }, { preserveState: true });
+        }, 300);
+    };
 
     const filterEstado = (estado) =>
         router.get('/utilidades', { buscar, estado, filtro_utilidad: filtros?.filtro_utilidad }, { preserveState: true });
@@ -316,7 +324,13 @@ export default function UtilidadesIndex({ ocs, resumen, filtros }) {
 
                 {/* Filters */}
                 <div className="space-y-3">
-                    <SearchInput value={buscar} onChange={setBuscar} placeholder="Buscar por N° OC, cliente, empresa o entidad..." />
+                    <input
+                        type="text"
+                        value={buscar}
+                        onChange={handleSearchChange}
+                        placeholder="Buscar por N° OC, cliente, empresa o entidad..."
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none transition-all"
+                    />
                     <div className="flex flex-wrap gap-2">
                         <span className="text-xs text-slate-400 self-center mr-1">Estado:</span>
                         {[['', 'Todos'], ['pendiente', 'Pendiente'], ['entregado', 'Entregado'], ['facturado', 'Facturado'], ['pagado', 'Pagado']].map(([v, l]) => (
