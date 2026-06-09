@@ -3,22 +3,18 @@
 namespace App\Helpers;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class SearchHelper
 {
     /**
-     * Apply a multi-word search to an Eloquent query.
-     *
-     * Splits the search term by spaces. Each word must match at least one
-     * of the given columns (OR within a word, AND across words).
-     *
-     * Example: "juan perez" → matches records where (col1 contains "juan" OR col2 contains "juan")
-     *          AND (col1 contains "perez" OR col2 contains "perez")
+     * Apply a multi-word, case-insensitive search to an Eloquent query.
+     * Uses LOWER() + LIKE for cross-database compatibility (PostgreSQL, SQLite).
      *
      * @param Builder $query
      * @param string|null $term
-     * @param array $columns            Direct column names, e.g. ['nombre', 'apellido']
-     * @param array $relationColumns    Relation searches, e.g. [['cliente', ['nombre', 'apellido']]]
+     * @param array $columns            Direct column names
+     * @param array $relationColumns    [['relation', ['col1', 'col2']]]
      * @return Builder
      */
     public static function apply(Builder $query, ?string $term, array $columns = [], array $relationColumns = []): Builder
@@ -31,21 +27,17 @@ class SearchHelper
 
         $query->where(function (Builder $q) use ($words, $columns, $relationColumns) {
             foreach ($words as $word) {
-                $q->where(function (Builder $wordQuery) use ($word, $columns, $relationColumns) {
-                    // Direct columns
+                $lower = strtolower($word);
+                $q->where(function (Builder $wq) use ($lower, $columns, $relationColumns) {
                     foreach ($columns as $col) {
-                        $wordQuery->orWhere($col, 'like', "%{$word}%");
+                        $wq->orWhereRaw("LOWER({$col}) LIKE ?", ["%{$lower}%"]);
                     }
-
-                    // Relation columns
                     foreach ($relationColumns as $rel) {
                         [$relation, $relCols] = $rel;
-                        $wordQuery->orWhereHas($relation, function (Builder $rq) use ($word, $relCols) {
-                            $rq->where(function (Builder $rcq) use ($word, $relCols) {
-                                foreach ($relCols as $col) {
-                                    $rcq->orWhere($col, 'like', "%{$word}%");
-                                }
-                            });
+                        $wq->orWhereHas($relation, function (Builder $rq) use ($lower, $relCols) {
+                            foreach ($relCols as $col) {
+                                $rq->orWhereRaw("LOWER({$col}) LIKE ?", ["%{$lower}%"]);
+                            }
                         });
                     }
                 });
