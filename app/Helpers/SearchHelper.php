@@ -3,7 +3,6 @@
 namespace App\Helpers;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class SearchHelper
 {
@@ -35,9 +34,11 @@ class SearchHelper
                     foreach ($relationColumns as $rel) {
                         [$relation, $relCols] = $rel;
                         $wq->orWhereHas($relation, function (Builder $rq) use ($lower, $relCols) {
-                            foreach ($relCols as $col) {
-                                $rq->orWhereRaw("LOWER({$col}) LIKE ?", ["%{$lower}%"]);
-                            }
+                            $rq->where(function (Builder $grp) use ($lower, $relCols) {
+                                foreach ($relCols as $col) {
+                                    $grp->orWhereRaw("LOWER({$col}) LIKE ?", ["%{$lower}%"]);
+                                }
+                            });
                         });
                     }
                 });
