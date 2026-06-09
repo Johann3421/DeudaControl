@@ -17,7 +17,9 @@ class ClienteController extends Controller
 
         // Todos los usuarios ven todos los clientes
 
-        SearchHelper::apply($query, $request->buscar, ['nombre', 'apellido', 'cedula', 'email']);
+        SearchHelper::apply($query, $request->buscar, [
+            'nombre', 'apellido', 'cedula', 'email', 'telefono', 'direccion', 'notas',
+        ]);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

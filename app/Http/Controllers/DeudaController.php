@@ -25,10 +25,13 @@ class DeudaController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        SearchHelper::apply($query, $request->buscar, ['descripcion'], [
-            ['cliente', ['nombre', 'apellido']],
-            ['deudaEntidad.entidad', ['razon_social', 'ruc']],
-            ['user', ['name']],
+        SearchHelper::apply($query, $request->buscar, [
+            'descripcion', 'notas',
+        ], [
+            ['cliente', ['nombre', 'apellido', 'cedula', 'email', 'telefono', 'direccion', 'notas']],
+            ['deudaEntidad', ['orden_compra', 'producto_servicio', 'codigo_siaf', 'unidad_ejecutora', 'empresa_factura']],
+            ['deudaEntidad.entidad', ['razon_social', 'ruc', 'contacto_nombre', 'contacto_telefono', 'contacto_email', 'direccion', 'notas']],
+            ['user', ['name', 'email']],
         ]);
 
         if ($request->filled('estado')) {

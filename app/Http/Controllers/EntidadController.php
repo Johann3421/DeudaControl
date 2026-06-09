@@ -13,7 +13,9 @@ class EntidadController extends Controller
     {
         $query = Entidad::query();
 
-        SearchHelper::apply($query, $request->buscar, ['razon_social', 'ruc']);
+        SearchHelper::apply($query, $request->buscar, [
+            'razon_social', 'ruc', 'contacto_nombre', 'contacto_telefono', 'contacto_email', 'direccion', 'notas',
+        ]);
 
         if ($request->filled('tipo')) {
             $query->where('tipo', $request->tipo);

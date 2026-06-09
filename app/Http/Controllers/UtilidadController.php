@@ -81,7 +81,9 @@ class UtilidadController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        SearchHelper::apply($query, $request->buscar, ['numero_oc', 'cliente']);
+        SearchHelper::apply($query, $request->buscar, [
+            'numero_oc', 'cliente', 'empresa_factura', 'entidad_recibe', 'notas',
+        ]);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);

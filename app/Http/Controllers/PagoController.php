@@ -26,9 +26,12 @@ class PagoController extends Controller
             });
         }
 
-        SearchHelper::apply($query, $request->buscar, ['referencia'], [
-            ['deuda', ['descripcion']],
-            ['deuda.cliente', ['nombre', 'apellido']],
+        SearchHelper::apply($query, $request->buscar, [
+            'referencia', 'notas',
+        ], [
+            ['deuda', ['descripcion', 'notas']],
+            ['deuda.cliente', ['nombre', 'apellido', 'cedula']],
+            ['deuda.user', ['name', 'email']],
         ]);
 
         if ($request->filled('metodo_pago')) {

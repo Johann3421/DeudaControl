@@ -14,7 +14,9 @@ class InmuebleController extends Controller
     {
         $query = Inmueble::query();
 
-        SearchHelper::apply($query, $request->buscar, ['nombre', 'direccion']);
+        SearchHelper::apply($query, $request->buscar, [
+            'nombre', 'direccion', 'descripcion',
+        ]);
 
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
