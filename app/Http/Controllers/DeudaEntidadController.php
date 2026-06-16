@@ -90,7 +90,7 @@ class DeudaEntidadController extends Controller
 
     public function edit(Deuda $deuda)
     {
-        $deuda->load('deudaEntidad');
+        $deuda->load(['deudaEntidad', 'documentos']);
 
         // Cargar entidades del dueño real de la deuda (importante para superadmin)
         $entidades = Entidad::where('user_id', $deuda->user_id)

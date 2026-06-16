@@ -57,6 +57,7 @@ class DeudaParticularController extends Controller
 
     public function edit(Deuda $deuda)
     {
+        $deuda->load('documentos');
         $clientes = Cliente::where('estado', 'activo')
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'apellido']);

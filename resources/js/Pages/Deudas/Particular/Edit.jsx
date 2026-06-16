@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import Layout from '../../../Components/Layout';
+import DocumentosModal from '../../../Components/Documentos/DocumentosModal';
 import { getAvailableCurrencies, getCurrencySymbol } from '../../../helpers/currencyHelper';
 
 export default function ParticularEdit({ deuda, clientes }) {
@@ -22,6 +24,9 @@ export default function ParticularEdit({ deuda, clientes }) {
         e.preventDefault();
         put(`/deudas/${deuda.id}/particular`);
     };
+
+    const [showDocumentos, setShowDocumentos] = useState(false);
+    const docsCount = (deuda.factura_pdf ? 1 : 0) + (deuda.guia_pdf ? 1 : 0) + (deuda.documentos?.length || 0);
 
     return (
         <Layout title="Editar Deuda - Particular">
@@ -155,8 +160,33 @@ export default function ParticularEdit({ deuda, clientes }) {
                             <Link href="/deudas" className="px-6 py-2.5 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Cancelar</Link>
                         </div>
                     </form>
+
+                    {/* Documentos adjuntos */}
+                    <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-5">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-900">Documentos adjuntos</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">{docsCount === 0 ? 'Sin documentos' : `${docsCount} documento${docsCount === 1 ? '' : 's'}`}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowDocumentos(true)}
+                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Gestionar documentos
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {showDocumentos && (
+                <DocumentosModal
+                    deuda={deuda}
+                    onClose={() => setShowDocumentos(false)}
+                />
+            )}
         </Layout>
     );
 }
