@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\MaintenancePanelController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ClienteController;
@@ -173,6 +174,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::patch('/roles/{user}', [RoleController::class, 'update'])->name('roles.update');
         Route::delete('/roles/{user}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
 
         Route::get('/stats', [StatsController::class, 'index'])->name('stats.index');
 
