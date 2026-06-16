@@ -16,16 +16,9 @@ class AlertasController extends Controller
         $token = $request->header('X-Alertas-Token') ?: $request->query('token');
         $expected = config('services.alertas.token');
 
-        if (!$expected || $token !== $expected) {
+        if (!$expected || !hash_equals($expected, $token ?? '')) {
             return response()->json([
                 'error' => 'Unauthorized',
-                'debug' => [
-                    'received_length' => strlen($token ?? ''),
-                    'expected_length' => strlen($expected ?? ''),
-                    'received_first5' => substr($token ?? '', 0, 5),
-                    'expected_first5' => substr($expected ?? '', 0, 5),
-                    'expected_empty'  => empty($expected),
-                ],
             ], 401);
         }
 

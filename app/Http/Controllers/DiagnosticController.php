@@ -391,21 +391,21 @@ class DiagnosticController extends Controller
      */
     public function siafConfig()
     {
+        $proxyUrl = config('services.siaf.proxy_url');
+        $proxySecret = config('services.siaf.proxy_secret');
+
         return response()->json([
             'timestamp' => now(),
             'environment' => app()->environment(),
             'config_cached' => app()->configurationIsCached(),
             'siaf_config' => [
                 'proxy_url' => [
-                    'value' => config('services.siaf.proxy_url'),
-                    'is_empty' => empty(config('services.siaf.proxy_url')),
-                    'length' => strlen(config('services.siaf.proxy_url') ?? ''),
+                    'is_set' => !empty($proxyUrl),
+                    'length' => strlen($proxyUrl ?? ''),
                 ],
                 'proxy_secret' => [
-                    'value' => config('services.siaf.proxy_secret'),
-                    'is_empty' => empty(config('services.siaf.proxy_secret')),
-                    'length' => strlen(config('services.siaf.proxy_secret') ?? ''),
-                    'first_3_chars' => substr(config('services.siaf.proxy_secret') ?? '', 0, 3) . '***',
+                    'is_set' => !empty($proxySecret),
+                    'length' => strlen($proxySecret ?? ''),
                 ],
                 'timeout' => config('services.siaf.timeout'),
                 'connect_timeout' => config('services.siaf.connect_timeout'),
@@ -415,7 +415,7 @@ class DiagnosticController extends Controller
                 'openssl_enabled' => extension_loaded('openssl'),
                 'allow_url_fopen' => ini_get('allow_url_fopen'),
             ],
-            'warning' => empty(config('services.siaf.proxy_secret'))
+            'warning' => empty($proxySecret)
                 ? '⚠️ SIAF_PROXY_SECRET está vacío. Verifica que esté configurado en Dokploy → Environment Variables'
                 : '✓ Config parece OK',
         ]);
