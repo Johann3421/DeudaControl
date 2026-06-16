@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { router } from '@inertiajs/react';
 
 function formatBytes(bytes) {
@@ -147,18 +147,21 @@ function ExtraDocumentoItem({ deuda, doc }) {
     );
 }
 
-// ─── Form para añadir nuevo adjunto con título ─────────────────────────────
+// ─── Form para añadir nuevo adjunto con título + drag-and-drop ───────────
 function AddExtraDocumentoForm({ deuda, onCancel }) {
     const inputRef = useRef(null);
     const [titulo, setTitulo] = useState('');
     const [uploading, setUploading] = useState(false);
+    const [dragging, setDragging] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleFile = (e) => {
-        const file = e.target.files[0];
-        if (!file || !titulo.trim()) {
-            if (!titulo.trim()) alert('Ingresa un título para el documento');
+    const enviar = (file) => {
+        if (!file) return;
+        if (!titulo.trim()) {
+            setError('Ingresa un título para el documento antes de subir.');
             return;
         }
+        setError('');
         setUploading(true);
         const fd = new FormData();
         fd.append('titulo', titulo.trim());
@@ -173,23 +176,63 @@ function AddExtraDocumentoForm({ deuda, onCancel }) {
         });
     };
 
+    const handleFile = (e) => enviar(e.target.files[0]);
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) enviar(file);
+    };
+
     return (
-        <div className="p-3 rounded-xl bg-indigo-50/50 border border-indigo-200 space-y-2">
+        <div className="space-y-2">
             <input
                 type="text"
                 value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
+                onChange={(e) => { setTitulo(e.target.value); if (error) setError(''); }}
                 placeholder="Título del documento (ej. Contrato, Recibo, Cotización)"
                 maxLength={100}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-indigo-200 bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 outline-none"
             />
-            <div className="flex items-center gap-2">
-                <input type="file" ref={inputRef} accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} className="hidden" />
-                <button onClick={() => inputRef.current?.click()} disabled={uploading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50">
-                    {uploading ? 'Subiendo...' : 'Subir documento'}
+            <div className="relative">
+                <input
+                    type="file"
+                    ref={inputRef}
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFile}
+                    className="hidden"
+                />
+                <button
+                    type="button"
+                    onClick={() => inputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={handleDrop}
+                    disabled={uploading}
+                    className={`w-full flex flex-col items-center justify-center gap-1.5 p-4 rounded-xl border-2 border-dashed transition-colors disabled:opacity-50 group ${
+                        dragging
+                            ? 'border-indigo-400 bg-indigo-50'
+                            : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-slate-400 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span className="text-xs font-medium text-slate-600 group-hover:text-slate-800">
+                        {uploading ? 'Subiendo...' : (dragging ? 'Suelta el archivo aquí' : 'Subir o arrastrar archivo (PDF, JPG, PNG)')}
+                    </span>
                 </button>
-                <button onClick={onCancel} className="px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="w-full px-3 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                >
                     Cancelar
                 </button>
             </div>
@@ -201,13 +244,6 @@ function AddExtraDocumentoForm({ deuda, onCancel }) {
 export default function DocumentosModal({ deuda, onClose }) {
     const [addingExtra, setAddingExtra] = useState(false);
     const documentos = deuda.documentos || [];
-
-    // Si el modal se abre y no hay extras, mostrar el form automáticamente
-    useEffect(() => {
-        if (documentos.length === 0 && !addingExtra) {
-            setAddingExtra(true);
-        }
-    }, []);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -246,10 +282,23 @@ export default function DocumentosModal({ deuda, onClose }) {
                     )}
 
                     {addingExtra ? (
-                        <AddExtraDocumentoForm deuda={deuda} onCancel={() => setAddingExtra(false)} />
+                        <div>
+                            <div className="h-px bg-slate-100 w-full mb-4" />
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-sm font-semibold text-slate-700">Nuevo documento</label>
+                                <button
+                                    onClick={() => setAddingExtra(false)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                                    title="Cancelar"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                            <AddExtraDocumentoForm deuda={deuda} onCancel={() => setAddingExtra(false)} />
+                        </div>
                     ) : (
                         <button onClick={() => setAddingExtra(true)}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-dashed border-indigo-200 transition-colors">
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-500 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-200 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Añadir otro documento
                         </button>
