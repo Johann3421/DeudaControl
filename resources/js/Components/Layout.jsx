@@ -424,10 +424,13 @@ export default function Layout({ children, title }) {
 
                         <button
                             onClick={() => setUserMenuOpen(!userMenuOpen)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+                            className="flex items-center gap-2.5 pl-1.5 pr-2.5 py-1.5 text-sm text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-100 transition-colors"
                         >
-                            <span className="hidden sm:inline">{auth.user?.name}</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <span className="w-7 h-7 rounded-full bg-[#0EA5E9]/15 flex items-center justify-center text-[#0EA5E9] font-semibold text-xs shrink-0">
+                                {auth.user?.name?.charAt(0).toUpperCase()}
+                            </span>
+                            <span className="hidden sm:inline font-medium">{auth.user?.name}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 text-slate-400 transition-transform duration-150 ${userMenuOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <polyline points="6 9 12 15 18 9" />
                             </svg>
                         </button>
@@ -435,25 +438,40 @@ export default function Layout({ children, title }) {
                         {userMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                                <div className="absolute right-0 z-50 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1">
-                                    <Link
-                                        href="/profile"
-                                        className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                                        onClick={() => setUserMenuOpen(false)}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                            <circle cx="12" cy="7" r="4" />
-                                        </svg>
-                                        Mi Perfil
-                                    </Link>
-                                    <div className="my-1 border-t border-slate-100" />
-                                    <button
-                                        onClick={handleLogout}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                                    >
-                                        Cerrar sesion
-                                    </button>
+                                <div className="absolute right-0 z-50 mt-2 w-64 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-slate-50/50 border-b border-slate-100">
+                                        <div className="w-10 h-10 rounded-full bg-[#0EA5E9]/15 flex items-center justify-center text-[#0EA5E9] font-semibold shrink-0">
+                                            {auth.user?.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-slate-900 truncate">{auth.user?.name}</p>
+                                            <p className="text-xs text-slate-500 truncate">{auth.user?.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="py-1">
+                                        <Link
+                                            href="/profile"
+                                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                            onClick={() => setUserMenuOpen(false)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                                <circle cx="12" cy="7" r="4" />
+                                            </svg>
+                                            Mi Perfil
+                                        </Link>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                                <polyline points="16 17 21 12 16 7" />
+                                                <line x1="21" y1="12" x2="9" y2="12" />
+                                            </svg>
+                                            Cerrar sesion
+                                        </button>
+                                    </div>
                                 </div>
                             </>
                         )}
