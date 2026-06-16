@@ -4,9 +4,11 @@ use App\Http\Controllers\Admin\MaintenancePanelController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeudaAlquilerController;
@@ -44,6 +46,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,1');
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])->middleware('throttle:5,1');
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'create'])->name('password.request');
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])->name('password.email');
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'create'])->name('password.reset');
+    Route::post('/reset-password', [ResetPasswordController::class, 'store'])->name('password.store');
 });
 
 // Health check endpoint (sin autenticación, para diagnosticar)
