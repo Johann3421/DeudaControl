@@ -146,6 +146,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/deudas/{deuda}/documentos/{tipo}/view', [DeudaController::class, 'viewDocument'])->name('deudas.viewDocument');
     Route::delete('/deudas/{deuda}/documentos/{tipo}', [DeudaController::class, 'deleteDocument'])->name('deudas.deleteDocument');
 
+    // Documentos adicionales (N PDFs con título personalizado)
+    Route::post('/deudas/{deuda}/documentos', [DeudaController::class, 'uploadExtraDocument'])->name('deudas.uploadExtraDocument');
+    Route::get('/deudas/{deuda}/documentos/{documento}/view', [DeudaController::class, 'viewExtraDocument'])->name('deudas.viewExtraDocument');
+    Route::put('/deudas/{deuda}/documentos/{documento}', [DeudaController::class, 'updateExtraDocument'])->name('deudas.updateExtraDocument');
+    Route::delete('/deudas/{deuda}/documentos/{documento}/delete', [DeudaController::class, 'deleteExtraDocument'])->name('deudas.deleteExtraDocument');
+
     // Entidades (institutional)
     Route::resource('entidades', EntidadController::class);
 

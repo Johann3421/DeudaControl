@@ -66,6 +66,11 @@ class Deuda extends Model
         return $this->hasMany(DeudaHistorial::class);
     }
 
+    public function documentos(): HasMany
+    {
+        return $this->hasMany(DeudaDocumento::class)->orderBy('created_at');
+    }
+
     public function notificaciones(): HasMany
     {
         return $this->hasMany(Notificacion::class);

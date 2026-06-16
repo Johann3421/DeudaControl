@@ -18,7 +18,7 @@ class DeudaController extends Controller
         $user = Auth::user();
 
         // Admin ve todas, usuarios ven solo las suyas
-        $query = Deuda::with(['cliente', 'user:id,name,email,rol', 'deudaEntidad.entidad'])
+        $query = Deuda::with(['cliente', 'user:id,name,email,rol', 'deudaEntidad.entidad', 'documentos'])
             ->withCount('pagos');
 
         if (!$user->esPrivilegiado()) {
@@ -217,5 +217,70 @@ class DeudaController extends Controller
         }
 
         return back()->with('success', ucfirst($tipo) . ' eliminada correctamente.');
+    }
+
+    // ─── Documentos adicionales (N PDFs con título personalizado) ───────────
+
+    public function uploadExtraDocument(Request $request, Deuda $deuda)
+    {
+        $this->authorize($deuda);
+
+        $validated = $request->validate([
+            'titulo' => ['required', 'string', 'max:100'],
+            'documento' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+        ]);
+
+        $file = $request->file('documento');
+        $extension = $file->extension();
+        $fileName = 'doc_' . $deuda->id . '_' . time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $extension;
+        $path = $file->storeAs("deudas/docs/{$deuda->id}", $fileName, 'public');
+
+        $deuda->documentos()->create([
+            'titulo' => $validated['titulo'],
+            'path' => $path,
+            'mime' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'uploaded_by' => Auth::id(),
+        ]);
+
+        return back()->with('success', 'Documento "' . $validated['titulo'] . '" añadido correctamente.');
+    }
+
+    public function viewExtraDocument(Deuda $deuda, \App\Models\DeudaDocumento $documento)
+    {
+        $this->authorize($deuda);
+        if ($documento->deuda_id !== $deuda->id) abort(404);
+
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        if (!$disk->exists($documento->path)) {
+            abort(404, 'Documento no encontrado.');
+        }
+
+        return response()->file($disk->path($documento->path));
+    }
+
+    public function updateExtraDocument(Request $request, Deuda $deuda, \App\Models\DeudaDocumento $documento)
+    {
+        $this->authorize($deuda);
+        if ($documento->deuda_id !== $deuda->id) abort(404);
+
+        $validated = $request->validate([
+            'titulo' => ['required', 'string', 'max:100'],
+        ]);
+
+        $documento->update(['titulo' => $validated['titulo']]);
+
+        return back()->with('success', 'Título actualizado.');
+    }
+
+    public function deleteExtraDocument(Deuda $deuda, \App\Models\DeudaDocumento $documento)
+    {
+        $this->authorize($deuda);
+        if ($documento->deuda_id !== $deuda->id) abort(404);
+
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($documento->path);
+        $documento->delete();
+
+        return back()->with('success', 'Documento eliminado.');
     }
 }
