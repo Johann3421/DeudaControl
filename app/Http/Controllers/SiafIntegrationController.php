@@ -29,9 +29,7 @@ class SiafIntegrationController extends Controller
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_CONNECTTIMEOUT => 25,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_FOLLOWLOCATION => true,
+                                                CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_COOKIEJAR => $cookieFile,
                 CURLOPT_HTTPHEADER => [
@@ -60,9 +58,7 @@ class SiafIntegrationController extends Controller
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_CONNECTTIMEOUT => 25,
                 CURLOPT_BINARYTRANSFER => true,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_COOKIEFILE => $cookieFile,
+                                                CURLOPT_COOKIEFILE => $cookieFile,
             ]);
 
             $captchaImage = curl_exec($ch);
@@ -355,9 +351,7 @@ class SiafIntegrationController extends Controller
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_CONNECTTIMEOUT => 25,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_COOKIEFILE => $cookieFile,
+                                                CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_HTTPHEADER => [
                     'User-Agent: Mozilla/5.0',
                     'Referer: https://apps2.mef.gob.pe/consulta-vfp-webapp/consultaExpediente.jspx',

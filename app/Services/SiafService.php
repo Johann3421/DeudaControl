@@ -171,9 +171,7 @@ class SiafService
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_TIMEOUT => $t,
                         CURLOPT_CONNECTTIMEOUT => min(15, (int)($t / 2)),
-                        CURLOPT_SSL_VERIFYPEER => false,
-                        CURLOPT_SSL_VERIFYHOST => false,
-                        CURLOPT_HTTPHEADER => [
+                                                                        CURLOPT_HTTPHEADER => [
                             'X-Proxy-Secret: ' . $secret,
                             'Accept: application/json',
                         ],
@@ -296,9 +294,7 @@ class SiafService
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => $timeoutSecs,
                 CURLOPT_CONNECTTIMEOUT => $timeoutSecs,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_FOLLOWLOCATION => true,
+                                                CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_COOKIEJAR => $cookieFile,
                 CURLOPT_HTTPHEADER => [
@@ -337,9 +333,7 @@ class SiafService
                 CURLOPT_TIMEOUT => $timeoutSecs,
                 CURLOPT_CONNECTTIMEOUT => $timeoutSecs,
                 CURLOPT_BINARYTRANSFER => true,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_FOLLOWLOCATION => true,
+                                                CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_HTTPHEADER => [
                     'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
@@ -573,9 +567,7 @@ class SiafService
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 60,
                 CURLOPT_CONNECTTIMEOUT => 20,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_HTTPHEADER => [
+                                                CURLOPT_HTTPHEADER => [
                     'X-Proxy-Secret: ' . $secret,
                     'Accept: application/json',
                     'Content-Type: application/x-www-form-urlencoded',
@@ -749,9 +741,7 @@ class SiafService
                 CURLOPT_CONNECTTIMEOUT => $connectTimeout,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_MAXREDIRS => 5,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_COOKIEFILE => $cookieFile,
+                                                CURLOPT_COOKIEFILE => $cookieFile,
                 CURLOPT_COOKIEJAR => $cookieFile,
                 CURLOPT_HTTPHEADER => [
                     'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',

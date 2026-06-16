@@ -192,9 +192,7 @@ class MaintenancePanelController extends Controller
                 CURLOPT_URL => $proxyUrl . '/health',
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 10,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_HTTPHEADER => [
+                                                CURLOPT_HTTPHEADER => [
                     'X-Proxy-Secret: ' . $proxySecret,
                     'Accept: application/json',
                 ],
@@ -222,9 +220,7 @@ class MaintenancePanelController extends Controller
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 30,
                 CURLOPT_CONNECTTIMEOUT => 10,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_HTTPHEADER => [
+                                                CURLOPT_HTTPHEADER => [
                     'X-Proxy-Secret: ' . $proxySecret,
                     'Accept: application/json',
                 ],

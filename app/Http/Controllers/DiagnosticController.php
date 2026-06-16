@@ -63,8 +63,7 @@ class DiagnosticController extends Controller
                 CURLOPT_URL => 'https://www.google.com',
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 5,
-                CURLOPT_SSL_VERIFYPEER => false,
-            ]);
+                            ]);
 
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -239,9 +238,7 @@ class DiagnosticController extends Controller
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 5,
             CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_FOLLOWLOCATION => false,
+                                    CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_HTTPHEADER => [
                 'User-Agent: Mozilla/5.0',
             ],
@@ -288,9 +285,7 @@ class DiagnosticController extends Controller
             CURLOPT_TCP_KEEPALIVE => 1,
             CURLOPT_TCP_KEEPIDLE => 60,
             CURLOPT_TCP_KEEPINTVL => 10,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+                                    CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
         ]);
 
         $response = curl_exec($ch);

@@ -58,9 +58,7 @@ class DiagnosticSiafController extends Controller
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_CONNECTTIMEOUT => $connectTimeout,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_SSL_VERIFYHOST => false,
-                CURLOPT_FOLLOWLOCATION => true,
+                                                CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_VERBOSE => true,
                 CURLOPT_STDERR => $verbose = fopen('php://temp', 'w+'),
                 CURLOPT_HTTPHEADER => [
