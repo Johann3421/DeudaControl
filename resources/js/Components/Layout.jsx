@@ -436,6 +436,18 @@ export default function Layout({ children, title }) {
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                                 <div className="absolute right-0 z-50 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-1">
+                                    <Link
+                                        href="/profile"
+                                        className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                        onClick={() => setUserMenuOpen(false)}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                        Mi Perfil
+                                    </Link>
+                                    <div className="my-1 border-t border-slate-100" />
                                     <button
                                         onClick={handleLogout}
                                         className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
