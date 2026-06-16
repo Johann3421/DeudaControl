@@ -9,18 +9,13 @@ use Illuminate\Support\Facades\Http;
 class MaintenanceController extends Controller
 {
     /**
-     * Token para autorizar operaciones de mantenimiento
-     */
-    private const MAINTENANCE_TOKEN = 'cleanup_2026_02_16_securekey';
-
-    /**
      * Panel de mantenimiento - limpiar caché y rutas
      */
     public function cleanup(Request $request)
     {
         $token = $request->query('token');
 
-        if (!$token || $token !== self::MAINTENANCE_TOKEN) {
+        if (!$token || !hash_equals((string) config('services.maintenance.token'), $token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Token inválido o no proporcionado',
@@ -82,7 +77,7 @@ class MaintenanceController extends Controller
     {
         $token = $request->query('token');
 
-        if (!$token || $token !== self::MAINTENANCE_TOKEN) {
+        if (!$token || !hash_equals((string) config('services.maintenance.token'), $token)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Token inválido',
@@ -135,7 +130,7 @@ class MaintenanceController extends Controller
     {
         $token = $request->query('token');
 
-        if (!$token || $token !== self::MAINTENANCE_TOKEN) {
+        if (!$token || !hash_equals((string) config('services.maintenance.token'), $token)) {
             return response()->json(['success' => false, 'message' => 'Token inválido'], 401);
         }
 
