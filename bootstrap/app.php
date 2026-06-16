@@ -27,7 +27,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);
 
-        // Excluir rutas API de verificación CSRF
+        // Excluir rutas API de verificación CSRF.
+        // Razón: las APIs públicas (alertas, chatbot, diagnostic) usan autenticación
+        // por token estático (X-Alertas-Token o query string) — no usan sesión.
+        // CSRF solo aplica a requests con sesión. Las rutas maintenance/* también
+        // usan token en query string. La seguridad se mantiene por el token.
         $middleware->validateCsrfTokens(except: [
             'api/*',
             'maintenance/*',

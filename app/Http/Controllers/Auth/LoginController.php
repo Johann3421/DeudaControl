@@ -32,6 +32,11 @@ class LoginController extends Controller
             }
 
             $request->session()->regenerate();
+
+            if (Auth::user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! Auth::user()->hasVerifiedEmail()) {
+                return redirect()->route('verification.notice');
+            }
+
             return redirect()->intended('/dashboard');
         }
 
