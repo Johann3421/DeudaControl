@@ -34,5 +34,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->respond(function ($response, $exception, $request) {
+            if (! $request->expectsJson() && ! $request->header('X-Inertia')) {
+                return $response;
+            }
+
+            if ($exception instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+                return \Inertia\Inertia::render('Errors/NotFound')->toResponse($request)->setStatusCode(404);
+            }
+
+            if ($exception instanceof \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+                || $exception instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                return \Inertia\Inertia::render('Errors/Forbidden')->toResponse($request)->setStatusCode(403);
+            }
+
+            return $response;
+        });
     })->create();
