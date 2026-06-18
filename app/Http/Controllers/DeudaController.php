@@ -177,7 +177,7 @@ class DeudaController extends Controller
         ]);
 
         $file = $request->file('documento');
-        $fileName = "{$tipo}_{$deuda->id}_" . time() . '.' . $file->extension();
+        $fileName = "{$tipo}_{$deuda->id}_" . time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $file->extension();
         $path = $file->storeAs("deudas/docs/{$deuda->id}", $fileName, 'public');
 
         $campo = "{$tipo}_pdf";
@@ -202,7 +202,11 @@ class DeudaController extends Controller
         }
 
         $path = \Illuminate\Support\Facades\Storage::disk('public')->path($deuda->$campo);
-        return response()->file($path);
+        return response()->file($path, [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     public function deleteDocument(Deuda $deuda, $tipo)
@@ -256,7 +260,11 @@ class DeudaController extends Controller
             abort(404, 'Documento no encontrado.');
         }
 
-        return response()->file($disk->path($documento->path));
+        return response()->file($disk->path($documento->path), [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     public function updateExtraDocument(Request $request, Deuda $deuda, \App\Models\DeudaDocumento $documento)

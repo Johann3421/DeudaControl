@@ -51,7 +51,7 @@ function FixedDocumentoUploader({ deuda, tipo, label }) {
 
             {tienePdf ? (
                 <div className="flex items-center gap-2">
-                    <a href={`/deudas/${deuda.id}/documentos/${tipo}/view`} target="_blank" rel="noopener noreferrer"
+                    <a href={`/deudas/${deuda.id}/documentos/${tipo}/view?v=${Date.now()}`} target="_blank" rel="noopener noreferrer"
                         className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-sky-700 bg-sky-50 hover:bg-sky-100 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         Ver PDF
@@ -135,7 +135,7 @@ function ExtraDocumentoItem({ deuda, doc }) {
                     </button>
                 )}
             </div>
-            <a href={`/deudas/${deuda.id}/documentos/${doc.id}/view`} target="_blank" rel="noopener noreferrer"
+            <a href={`/deudas/${deuda.id}/documentos/${doc.id}/view?v=${Date.now()}`} target="_blank" rel="noopener noreferrer"
                 className="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="Ver">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </a>
