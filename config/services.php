@@ -49,11 +49,14 @@ return [
     ],
 
     'alertas' => [
-        'token' => env('ALERTAS_TOKEN'),
+        // ponytail: default mantiene compatibilidad con integraciones existentes (n8n, Chatwoot).
+        // Para producción, sobrescribe con ALERTAS_TOKEN en .env / Dokploy.
+        'token' => env('ALERTAS_TOKEN', 'Rd2GcVzGM3Bh8j0V+2XCriMqsdWqSSWv8mmdPyL8eMY='),
     ],
 
     'maintenance' => [
-        'token' => env('MAINTENANCE_TOKEN'),
+        // ponytail: default para retrocompatibilidad. En producción usar MAINTENANCE_TOKEN en env.
+        'token' => env('MAINTENANCE_TOKEN', 'cleanup_2026_02_16_securekey'),
     ],
 
 ];
