@@ -22,6 +22,13 @@ class AlertasEntregaController extends Controller
         $hoy  = Carbon::today();
 
         $ordenes = DeudaEntidad::where('cerrado', false)
+            ->where(function ($query) {
+                $query->whereNotIn('estado_seguimiento', [
+                    'entregado', 'Entregado', 'ENTREGADO',
+                    'facturado', 'Facturado', 'FACTURADO',
+                    'pagado', 'Pagado', 'PAGADO'
+                ])->orWhereNull('estado_seguimiento');
+            })
             ->whereNotNull('fecha_limite_entrega')
             ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada', 'pagado_banco']))
             ->with(['deuda.user', 'entidad'])
