@@ -438,15 +438,21 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Ocultar formulario, mostrar código
-                    form.style.display = 'none';
-                    resultPanel.style.display = 'block';
-                    pairingCodeDisplay.textContent = formatPairingCode(data.code);
-                    activeInstance = data.instance;
+                    if (data.already_connected) {
+                        form.style.display = 'none';
+                        successPanel.style.display = 'block';
+                    } else {
+                        // Ocultar formulario, mostrar código
+                        form.style.display = 'none';
+                        resultPanel.style.display = 'block';
+                        pairingCodeDisplay.textContent = formatPairingCode(data.code);
+                        activeInstance = data.instance;
 
-                    // Comenzar a monitorear si el usuario se conecta exitosamente
-                    startPollingConnection(activeInstance);
+                        // Comenzar a monitorear si el usuario se conecta exitosamente
+                        startPollingConnection(activeInstance);
+                    }
                 } else {
+
                     showError(data.message || 'Error al obtener el código. Inténtalo de nuevo.');
                 }
             } catch (err) {

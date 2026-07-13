@@ -38,7 +38,28 @@ class WhatsappConnectionController extends Controller
         $apiKey = config('services.evolution.apikey');
 
         try {
+            // A. Verificar si la instancia ya existe y está conectada en la Evolution API
+            $stateResponse = Http::withHeaders(['apikey' => $apiKey])->get("{$apiUrl}/instance/connectionState/{$instanceName}");
+            if ($stateResponse->successful() && $stateResponse->json('instance.state') === 'open') {
+                WhatsappInstance::updateOrCreate(
+                    ['instance_name' => $instanceName],
+                    [
+                        'name' => $request->name,
+                        'phone' => $phone,
+                        'status' => 'connected',
+                        'pairing_code' => null
+                    ]
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'already_connected' => true,
+                    'instance' => $instanceName
+                ]);
+            }
+
             // 1. Intentar crear la instancia en Evolution API
+
             // (Si ya existe, la API suele retornar un error que podemos ignorar temporalmente)
             $createResponse = Http::withHeaders([
                 'apikey' => $apiKey,
