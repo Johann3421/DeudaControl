@@ -38,8 +38,9 @@ return [
     'whatsapp' => [
         'api_url' => env('WHATSAPP_API_URL', ''),
         'api_token' => env('WHATSAPP_API_TOKEN', ''),
-        'group_id' => env('WHATSAPP_GROUP_ID', ''),
+        'group_id' => env('WHATSAPP_GROUP_ID', '120363428384843924@g.us'),
     ],
+
 
     'siaf' => [
         'proxy_url' => env('SIAF_PROXY_URL', ''),
