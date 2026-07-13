@@ -1,7 +1,4 @@
-an342@srv1372287:~$ johan342@srv1372287:~$ sudo docker exec -it deudas-deudassekaitech-odpmzy-app-1 tail -n 25 storage/logs/laravel.log
-[2026-07-13 23:12:20] production.INFO: [EXCEL SIAF] Solicitud recibida {"has_file":true,"method":"POST"}
-[2026-07-13 23:12:20] production.INFO: [EXCEL SIAF] Procesando archivo {"filename":"consultaExpediente.xls","size":640,"extension":"xls","path":"/tmp/phpDjPDhg"}
-[2026-07-13 23:12:20] production.INFO: [EXCEL DATE DEBUG] {"cellValue":"13/07/2026","type":"string","class":"N/A"}
+johan342@srv1372287:~$ sudo docker exec -it deudas-deudassekaitech-odpmzy-app-1 tail -n 25 storage/logs/laravel.log
 [2026-07-13 23:12:20] production.INFO: [EXCEL DATE FORMATTED (string pattern matched)] {"input":"13/07/2026","result":"13/07/2026"}
 [2026-07-13 23:12:20] production.INFO: [EXCEL DATE DEBUG] {"cellValue":"13/07/2026 13:00:44","type":"string","class":"N/A"}
 [2026-07-13 23:12:20] production.INFO: [EXCEL DATE FORMATTED (string pattern matched)] {"input":"13/07/2026","result":"13/07/2026"}
@@ -24,4 +21,7 @@ an342@srv1372287:~$ johan342@srv1372287:~$ sudo docker exec -it deudas-deudassek
 [2026-07-13 23:29:12] production.INFO: Recibido webhook de Evolution API. Evento: connection.update, Instancia: vendedor_51934342427, Estado: open
 [2026-07-13 23:29:12] production.INFO: Instancia vendedor_51934342427 actualizada a estado: connected
 [2026-07-13 23:29:12] production.INFO: Automatización: Intentando agregar 51934342427@s.whatsapp.net al grupo 120363428384843924@g.us via sekaitech. Respuesta: {"status":404,"error":"Not Found","response":{"message":["Cannot PUT /group/updateParticipant/sekaitech?groupJid=120363428384843924@g.us"]}}
+[2026-07-13 23:32:42] production.INFO: Recibido webhook de Evolution API. Evento: connection.update, Instancia: vendedor_51934342427, Estado: open
+[2026-07-13 23:32:42] production.INFO: Instancia vendedor_51934342427 actualizada a estado: connected
+[2026-07-13 23:32:44] production.INFO: Automatización: Intentando agregar 51934342427@s.whatsapp.net al grupo 120363428384843924@g.us via sekaitech. Respuesta: {"updateParticipants":[{"status":"409","jid":"62857534292024@lid","content":{"tag":"participant","attrs":{"jid":"62857534292024@lid","error":"409","phone_number":"51934342427@s.whatsapp.net"}}}]}
 johan342@srv1372287:~$

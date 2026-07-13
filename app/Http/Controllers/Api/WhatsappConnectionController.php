@@ -69,12 +69,41 @@ class WhatsappConnectionController extends Controller
             ])->post("{$apiUrl}/instance/create", [
                 'instanceName' => $instanceName,
                 'qrcode' => ($method === 'qr'),
-                'integration' => 'WHATSAPP-BAILEYS'
+                'integration' => 'WHATSAPP-BAILEYS',
+                'webhook' => [
+                    'enabled' => true,
+                    'url' => url('/api/webhooks/whatsapp-connection'),
+                    'byEvents' => false,
+                    'events' => [
+                        'CONNECTION_UPDATE'
+                    ]
+                ]
             ]);
+
 
             Log::info("Evolution API Create Instance Response for {$instanceName}: " . $createResponse->body());
 
+            // Asegurar que el webhook esté configurado para esta instancia (incluso si ya existía de antes)
+            try {
+                Http::withHeaders([
+                    'apikey' => $apiKey,
+                    'Content-Type' => 'application/json'
+                ])->post("{$apiUrl}/webhook/set/{$instanceName}", [
+                    'webhook' => [
+                        'enabled' => true,
+                        'url' => url('/api/webhooks/whatsapp-connection'),
+                        'byEvents' => false,
+                        'events' => [
+                            'CONNECTION_UPDATE'
+                        ]
+                    ]
+                ]);
+            } catch (\Exception $ex) {
+                Log::warning("No se pudo configurar el webhook explícito para {$instanceName}: " . $ex->getMessage());
+            }
+
             // 2. Solicitar el pairing code o QR code
+
             if ($method === 'qr') {
                 $connectResponse = Http::withHeaders([
                     'apikey' => $apiKey,
