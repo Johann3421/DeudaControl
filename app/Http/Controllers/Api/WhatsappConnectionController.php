@@ -189,7 +189,33 @@ class WhatsappConnectionController extends Controller
             if ($instance) {
                 $instance->update(['status' => $status]);
                 Log::info("Instancia {$instanceName} actualizada a estado: {$status}");
+
+                // Si la instancia se conectó con éxito, intentar agregarla al grupo automáticamente
+                if ($status === 'connected') {
+                    $adminInstance = 'sekaitech';
+                    $groupId = config('services.whatsapp.group_id') ?: env('WHATSAPP_GROUP_ID');
+                    $apiUrl = rtrim(config('services.evolution.url'), '/');
+                    $apiKey = config('services.evolution.apikey');
+
+                    if ($groupId) {
+                        try {
+                            $participantJid = $instance->phone . '@s.whatsapp.net';
+                            $addResponse = Http::withHeaders([
+                                'apikey' => $apiKey,
+                                'Content-Type' => 'application/json'
+                            ])->put("{$apiUrl}/group/updateParticipant/{$adminInstance}?groupJid={$groupId}", [
+                                'action' => 'add',
+                                'participants' => [$participantJid]
+                            ]);
+
+                            Log::info("Automatización: Intentando agregar {$participantJid} al grupo {$groupId} via {$adminInstance}. Respuesta: " . $addResponse->body());
+                        } catch (\Exception $e) {
+                            Log::error("Error agregando participante {$instance->phone} al grupo {$groupId}: " . $e->getMessage());
+                        }
+                    }
+                }
             }
+
         }
 
         return response()->json(['status' => 'ok']);
