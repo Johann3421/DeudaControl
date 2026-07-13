@@ -20,8 +20,10 @@ class WhatsappConnectionController extends Controller
 
     /**
      * Solicita el código de vinculación (Pairing Code) a la Evolution API.
-         public function requestPairingCode(Request $request)
+     */
+    public function requestPairingCode(Request $request)
     {
+
         $request->validate([
             'name' => 'required|string|max:100',
             'phone' => 'required|string|min:8|max:20',
