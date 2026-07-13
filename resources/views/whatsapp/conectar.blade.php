@@ -337,6 +337,8 @@
 
         <!-- Formulario Principal -->
         <form id="connectForm">
+            <input type="hidden" id="methodInput" name="method" value="pairing">
+            
             <div class="form-group">
                 <label for="name">Nombre Completo</label>
                 <input type="text" id="name" name="name" required placeholder="Ej. Juan Pérez" autocomplete="name">
@@ -358,32 +360,44 @@
         <!-- Panel de Resultado -->
         <div id="resultPanel" class="result-panel">
             <div class="code-display" id="codeBox" title="Click para copiar">
-                <div class="code-value" id="pairingCode">---- ----</div>
-                <div class="code-copy-text" id="copyText">Copiar código</div>
+                <!-- Contenedor Pairing Code -->
+                <div id="pairingCodeContainer">
+                    <div class="code-value" id="pairingCode">---- ----</div>
+                    <div class="code-copy-text" id="copyText">Copiar código</div>
+                </div>
+                <!-- Contenedor Código QR -->
+                <div id="qrCodeContainer" style="display: none;">
+                    <img id="qrImage" src="" alt="Código QR" style="max-width: 180px; display: block; margin: 0 auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" />
+                    <div class="code-copy-text" style="margin-top: 12px;">Escanea este código con tu celular</div>
+                </div>
             </div>
 
-            <ul class="instructions-list">
+            <ul class="instructions-list" id="instructionsList">
                 <li class="instruction-item">
                     <span class="instruction-number">1</span>
-                    <div>Abre <strong>WhatsApp</strong> en tu teléfono.</div>
+                    <div class="instruction-text">Abre <strong>WhatsApp</strong> en tu teléfono.</div>
                 </li>
                 <li class="instruction-item">
                     <span class="instruction-number">2</span>
-                    <div>Ve a <strong>Ajustes</strong> o <strong>Configuración</strong> > <strong>Dispositivos vinculados</strong>.</div>
+                    <div class="instruction-text">Ve a <strong>Ajustes</strong> o <strong>Configuración</strong> > <strong>Dispositivos vinculados</strong>.</div>
                 </li>
                 <li class="instruction-item">
                     <span class="instruction-number">3</span>
-                    <div>Selecciona <strong>Vincular un dispositivo</strong>.</div>
+                    <div class="instruction-text">Selecciona <strong>Vincular un dispositivo</strong>.</div>
                 </li>
-                <li class="instruction-item">
+                <li class="instruction-item" id="instructionStep4">
                     <span class="instruction-number">4</span>
-                    <div>Toca en la opción inferior <strong>"Vincular con el número de teléfono"</strong> (no escanees QR).</div>
+                    <div class="instruction-text">Toca en la opción inferior <strong>"Vincular con el número de teléfono"</strong> (no escanees QR).</div>
                 </li>
-                <li class="instruction-item">
+                <li class="instruction-item" id="instructionStep5">
                     <span class="instruction-number">5</span>
-                    <div>Introduce el código de 8 caracteres que se muestra arriba.</div>
+                    <div class="instruction-text">Introduce el código de 8 caracteres que se muestra arriba.</div>
                 </li>
             </ul>
+
+            <div id="qrAlternativeBox" style="text-align: center; margin-top: 25px; font-size: 13px;">
+                <a href="#" id="tryQrBtn" style="color: var(--accent); text-decoration: none; font-weight: 500; transition: color 0.3s;" onmouseover="this.style.color='#34d399'" onmouseout="this.style.color='var(--accent)'">¿El código se quedó "conectando"? Escanea un Código QR en su lugar</a>
+            </div>
 
             <button type="button" id="resetBtn" class="btn btn-secondary">Generar otro código</button>
         </div>
@@ -412,8 +426,18 @@
         const copyText = document.getElementById('copyText');
         const successPanel = document.getElementById('successPanel');
         
+        const methodInput = document.getElementById('methodInput');
+        const tryQrBtn = document.getElementById('tryQrBtn');
+        const pairingCodeContainer = document.getElementById('pairingCodeContainer');
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        const qrImage = document.getElementById('qrImage');
+        const qrAlternativeBox = document.getElementById('qrAlternativeBox');
+        const instructionStep4 = document.getElementById('instructionStep4');
+        const instructionStep5 = document.getElementById('instructionStep5');
+        
         let checkStatusInterval = null;
         let activeInstance = null;
+
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -442,17 +466,38 @@
                         form.style.display = 'none';
                         successPanel.style.display = 'block';
                     } else {
-                        // Ocultar formulario, mostrar código
                         form.style.display = 'none';
                         resultPanel.style.display = 'block';
-                        pairingCodeDisplay.textContent = formatPairingCode(data.code);
                         activeInstance = data.instance;
+
+                        if (data.qr) {
+                            // Mostrar QR
+                            pairingCodeContainer.style.display = 'none';
+                            qrCodeContainer.style.display = 'block';
+                            qrImage.src = data.qr;
+                            qrAlternativeBox.style.display = 'none';
+                            
+                            // Ajustar instrucciones para QR
+                            instructionStep4.style.display = 'none';
+                            instructionStep5.style.display = 'none';
+                            document.querySelector('#instructionsList li:nth-child(3) .instruction-text').innerHTML = 'Apunta la cámara de tu teléfono hacia el <strong>Código QR</strong> para escanearlo.';
+                        } else {
+                            // Mostrar Código de Vinculación
+                            pairingCodeContainer.style.display = 'block';
+                            qrCodeContainer.style.display = 'none';
+                            pairingCodeDisplay.textContent = formatPairingCode(data.code);
+                            qrAlternativeBox.style.display = 'block';
+                            
+                            // Ajustar instrucciones para código
+                            instructionStep4.style.display = 'flex';
+                            instructionStep5.style.display = 'flex';
+                            document.querySelector('#instructionsList li:nth-child(3) .instruction-text').innerHTML = 'Selecciona <strong>Vincular un dispositivo</strong>.';
+                        }
 
                         // Comenzar a monitorear si el usuario se conecta exitosamente
                         startPollingConnection(activeInstance);
                     }
                 } else {
-
                     showError(data.message || 'Error al obtener el código. Inténtalo de nuevo.');
                 }
             } catch (err) {
@@ -462,6 +507,14 @@
                 submitBtn.disabled = false;
                 btnSpinner.style.display = 'none';
             }
+        });
+
+        // Evento para cambiar al método de Código QR
+        tryQrBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            methodInput.value = 'qr';
+            // Simular submit para volver a consultar la API
+            submitBtn.click();
         });
 
         // Formatea el código de ABCD1234 a ABCD-1234
@@ -481,6 +534,7 @@
 
         // Copiar al portapapeles
         codeBox.addEventListener('click', () => {
+            if (methodInput.value === 'qr') return; // Desactivar copia en modo QR
             const rawCode = pairingCodeDisplay.textContent.replace('-', '');
             navigator.clipboard.writeText(rawCode).then(() => {
                 copyText.textContent = '¡Copiado!';
@@ -496,10 +550,12 @@
 
         resetBtn.addEventListener('click', () => {
             clearInterval(checkStatusInterval);
+            methodInput.value = 'pairing';
             resultPanel.style.display = 'none';
             form.style.display = 'block';
             form.reset();
         });
+
 
         // Polling para chequear si el vendedor finalizó la vinculación
         function startPollingConnection(instanceName) {

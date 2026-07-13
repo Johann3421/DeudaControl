@@ -20,13 +20,15 @@ class WhatsappConnectionController extends Controller
 
     /**
      * Solicita el código de vinculación (Pairing Code) a la Evolution API.
-     */
-    public function requestPairingCode(Request $request)
+         public function requestPairingCode(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:100',
             'phone' => 'required|string|min:8|max:20',
+            'method' => 'nullable|string|in:pairing,qr',
         ]);
+
+        $method = $request->input('method', 'pairing');
 
         // Limpiar el número de teléfono (solo dígitos)
         $phone = preg_replace('/\D/', '', $request->phone);
@@ -59,24 +61,27 @@ class WhatsappConnectionController extends Controller
             }
 
             // 1. Intentar crear la instancia en Evolution API
-
-            // (Si ya existe, la API suele retornar un error que podemos ignorar temporalmente)
             $createResponse = Http::withHeaders([
                 'apikey' => $apiKey,
                 'Content-Type' => 'application/json'
             ])->post("{$apiUrl}/instance/create", [
                 'instanceName' => $instanceName,
-                'qrcode' => false,
+                'qrcode' => ($method === 'qr'),
                 'integration' => 'WHATSAPP-BAILEYS'
             ]);
 
             Log::info("Evolution API Create Instance Response for {$instanceName}: " . $createResponse->body());
 
-            // 2. Solicitar el pairing code (Mediante petición GET con el parámetro query "number")
-            $connectResponse = Http::withHeaders([
-                'apikey' => $apiKey,
-            ])->get("{$apiUrl}/instance/connect/{$instanceName}?number={$phone}");
-
+            // 2. Solicitar el pairing code o QR code
+            if ($method === 'qr') {
+                $connectResponse = Http::withHeaders([
+                    'apikey' => $apiKey,
+                ])->get("{$apiUrl}/instance/connect/{$instanceName}");
+            } else {
+                $connectResponse = Http::withHeaders([
+                    'apikey' => $apiKey,
+                ])->get("{$apiUrl}/instance/connect/{$instanceName}?number={$phone}");
+            }
 
             Log::info("Evolution API Connect Response for {$instanceName}: " . $connectResponse->body());
 
@@ -89,6 +94,33 @@ class WhatsappConnectionController extends Controller
 
             $data = $connectResponse->json();
             
+            if ($method === 'qr') {
+                $qr = $data['base64'] ?? null;
+                if (!$qr) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'La API no devolvió un código QR en base64.'
+                    ], 500);
+                }
+
+                // Guardar estado en base de datos
+                WhatsappInstance::updateOrCreate(
+                    ['instance_name' => $instanceName],
+                    [
+                        'name' => $request->name,
+                        'phone' => $phone,
+                        'status' => 'pairing',
+                        'pairing_code' => null
+                    ]
+                );
+
+                return response()->json([
+                    'success' => true,
+                    'qr' => $qr,
+                    'instance' => $instanceName
+                ]);
+            }
+
             // Extraer el código de vinculación (de 8 caracteres) de forma prioritaria
             $code = $data['pairingCode'] ?? $data['qrcode']['pairingCode'] ?? null;
 
@@ -96,7 +128,6 @@ class WhatsappConnectionController extends Controller
             if (!$code && isset($data['code']) && strlen($data['code']) < 12) {
                 $code = $data['code'];
             }
-
 
             if (!$code) {
                 return response()->json([
@@ -121,6 +152,7 @@ class WhatsappConnectionController extends Controller
                 'code' => $code,
                 'instance' => $instanceName
             ]);
+
 
         } catch (\Exception $e) {
             Log::error("Error solicitando Pairing Code para {$instanceName}: " . $e->getMessage());
