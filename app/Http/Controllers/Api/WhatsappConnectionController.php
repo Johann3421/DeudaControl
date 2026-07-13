@@ -203,7 +203,7 @@ class WhatsappConnectionController extends Controller
                             $addResponse = Http::withHeaders([
                                 'apikey' => $apiKey,
                                 'Content-Type' => 'application/json'
-                            ])->put("{$apiUrl}/group/updateParticipant/{$adminInstance}?groupJid={$groupId}", [
+                            ])->post("{$apiUrl}/group/updateParticipant/{$adminInstance}?groupJid={$groupId}", [
                                 'action' => 'add',
                                 'participants' => [$participantJid]
                             ]);
