@@ -32,9 +32,12 @@ use App\Http\Controllers\ExcelSiafController;
 use App\Http\Controllers\Api\AlertasController;
 use App\Http\Controllers\Api\AlertasEntregaController;
 use App\Http\Controllers\Api\ChatbotQueryController;
+use App\Http\Controllers\Api\DataExportController;
+use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\UtilidadController;
 use App\Http\Controllers\HistorialController;
 use Illuminate\Support\Facades\Route;
+
 
 Route::get('/', function () {
     return auth()->check()
@@ -59,6 +62,11 @@ Route::get('/api/health', function () {
     return response()->json(['status' => 'ok', 'message' => 'API is working']);
 });
 
+// Conexión pública de WhatsApp para vendedores/vendedoras
+Route::get('/whatsapp/conectar', [WhatsappConnectionController::class, 'index'])->name('whatsapp.conectar');
+Route::post('/whatsapp/pairing-code', [WhatsappConnectionController::class, 'requestPairingCode'])->name('whatsapp.pairing-code');
+
+
 // Maintenance endpoints (protegidos por token, sin autenticación)
 Route::prefix('maintenance')->group(function () {
     Route::get('/cleanup', [MaintenanceController::class, 'cleanup'])->name('maintenance.cleanup');
@@ -71,6 +79,10 @@ Route::prefix('api')->group(function () {
     Route::get('/alertas/vencimientos', [AlertasController::class, 'vencimientos']);
     Route::get('/alertas/entregas', [AlertasEntregaController::class, 'vencimientos']);
     Route::get('/chatbot/consulta', [ChatbotQueryController::class, 'consulta']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/v1/data/{entidad}', [DataExportController::class, 'index']);
 });
 
 // SIAF API Routes - Test endpoint (para debugging)

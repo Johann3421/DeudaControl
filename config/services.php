@@ -59,4 +59,11 @@ return [
         'token' => env('MAINTENANCE_TOKEN', 'cleanup_2026_02_16_securekey'),
     ],
 
+    'evolution' => [
+        'url' => env('EVOLUTION_API_URL', 'https://evolution.sekaitech.com.pe'),
+        'apikey' => env('EVOLUTION_API_KEY', '6mF28RqtJdPIZorVIbAaRBiKZoZr3a5t4d9jikNna7c='),
+    ],
+
+
 ];
+
