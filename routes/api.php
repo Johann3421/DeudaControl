@@ -11,3 +11,5 @@ Route::get('/user', function (Request $request) {
 // Webhook y endpoints públicos para Evolution API y n8n (bypassean CSRF)
 Route::post('/webhooks/whatsapp-connection', [WhatsappConnectionController::class, 'webhook']);
 Route::get('/whatsapp/active-instances', [WhatsappConnectionController::class, 'getActiveInstances']);
+Route::post('/whatsapp/temp-image', [WhatsappConnectionController::class, 'storeTempImage']);
+

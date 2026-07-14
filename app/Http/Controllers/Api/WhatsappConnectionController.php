@@ -270,4 +270,36 @@ class WhatsappConnectionController extends Controller
 
         return response()->json($instances);
     }
+
+    /**
+     * Recibe una imagen en base64, la guarda temporalmente y devuelve su URL pública.
+     * Usada por n8n para convertir base64 → URL antes de llamar a sendStatus.
+     */
+    public function storeTempImage(Request $request)
+    {
+        $base64 = $request->input('base64', '');
+
+        // Eliminar el prefijo data:image/...;base64,
+        if (str_contains($base64, ',')) {
+            [, $base64] = explode(',', $base64, 2);
+        }
+
+        $imageData = base64_decode($base64);
+        if (!$imageData) {
+            return response()->json(['error' => 'base64 inválido'], 400);
+        }
+
+        $filename = \Illuminate\Support\Str::uuid() . '.jpg';
+        $path = 'temp-status/' . $filename;
+
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageData);
+
+        // ponytail: no limpiamos automáticamente; archivos viejos se acumulan
+        // upgrade: añadir un scheduled job que borre archivos >1h
+
+        return response()->json([
+            'url' => \Illuminate\Support\Facades\Storage::disk('public')->url($path),
+        ]);
+    }
 }
+
