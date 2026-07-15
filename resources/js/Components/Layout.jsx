@@ -8,11 +8,13 @@ const NAVIGATION = [
     { name: 'Deudas', href: '/deudas', icon: 'debts' },
     { name: 'Entidades', href: '/entidades', icon: 'entities' },
     { name: 'Inmuebles', href: '/inmuebles', icon: 'properties' },
+    { name: 'Luz y Agua', href: '/luz-agua', icon: 'luz_agua' },
     { name: 'Pagos', href: '/pagos', icon: 'payments' },
     { name: 'Movimientos', href: '/movimientos', icon: 'history' },
     { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
     { name: 'Historial', href: '/historial', icon: 'historial' },
 ];
+
 
 const ADMIN_NAVIGATION = [
     { name: 'Gestionar Roles', href: '/admin/roles', icon: 'admin' },
@@ -177,7 +179,19 @@ function HistorialIcon() {
     );
 }
 
+function LuzAguaIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            {/* Bolt for light */}
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            {/* Drop for water */}
+            <path d="M12 2v0a8 8 0 0 0-8 8c0 4.4 3.6 8 8 8s8-3.6 8-8a8 8 0 0 0-8-8z" className="opacity-40" />
+        </svg>
+    );
+}
+
 function BellIcon() {
+
     return (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -202,7 +216,9 @@ const ICONS = {
     maintenance: MaintenanceIcon,
     historial: HistorialIcon,
     userCreate: UserCreateIcon,
+    luz_agua: LuzAguaIcon,
 };
+
 
 export default function Layout({ children, title }) {
     const { auth, flash, notificaciones = [] } = usePage().props;

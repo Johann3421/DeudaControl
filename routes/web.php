@@ -36,7 +36,9 @@ use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\UtilidadController;
 use App\Http\Controllers\HistorialController;
+use App\Http\Controllers\ReciboLuzAguaController;
 use Illuminate\Support\Facades\Route;
+
 
 
 Route::get('/', function () {
@@ -170,7 +172,12 @@ Route::middleware('auth')->group(function () {
     // Inmuebles (properties)
     Route::resource('inmuebles', InmuebleController::class)->except(['show']);
 
+    // Luz y Agua (utilities)
+    Route::resource('luz-agua', ReciboLuzAguaController::class)->parameters(['luz-agua' => 'luz_agua']);
+    Route::patch('luz-agua/{recibo}/pagar', [ReciboLuzAguaController::class, 'pagarRecibo'])->name('luz-agua.pagar-recibo');
+
     Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
+
     Route::get('/pagos/create', [PagoController::class, 'create'])->name('pagos.create');
     Route::post('/pagos', [PagoController::class, 'store'])->name('pagos.store');
     Route::delete('/pagos/{pago}', [PagoController::class, 'destroy'])->name('pagos.destroy');

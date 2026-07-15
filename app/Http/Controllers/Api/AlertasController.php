@@ -92,11 +92,34 @@ class AlertasController extends Controller
                 ];
             });
 
+        // ── Recibos de Luz y Agua próximos a vencer ──────────────────────────
+        $recibos = \App\Models\ReciboLuzAgua::where('estado', 'pendiente')
+            ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento', '>=', $ayer)
+            ->where('fecha_vencimiento', '<=', $en7)
+            ->orderBy('fecha_vencimiento')
+            ->get()
+            ->map(function ($r) use ($hoy) {
+                $venc = Carbon::parse($r->fecha_vencimiento);
+                $dias = (int) $hoy->diffInDays($venc, false);
+                return [
+                    'id'                => $r->id,
+                    'tipo'              => strtoupper($r->tipo),
+                    'numero_suministro' => $r->numero_suministro,
+                    'monto'             => 'S/ ' . number_format($r->monto, 2),
+                    'fecha_vencimiento' => $venc->format('d/m/Y'),
+                    'dias_restantes'    => $dias,
+                    'mes_recibo'        => $r->mes_recibo,
+                ];
+            });
+
         return response()->json([
             'generado'      => now()->format('d/m/Y H:i'),
             'deudas'        => $deudas,
             'ordenes'       => $ordenes,
-            'total_alertas' => count($deudas) + count($ordenes),
+            'recibos'       => $recibos,
+            'total_alertas' => count($deudas) + count($ordenes) + count($recibos),
         ]);
+
     }
 }
