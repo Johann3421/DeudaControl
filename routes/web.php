@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\UtilidadController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\ReciboLuzAguaController;
+use App\Http\Controllers\ServicioWebController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -180,6 +181,9 @@ Route::middleware('auth')->group(function () {
     // Luz y Agua (utilities)
     Route::resource('luz-agua', ReciboLuzAguaController::class)->parameters(['luz-agua' => 'luz_agua']);
     Route::patch('luz-agua/{recibo}/pagar', [ReciboLuzAguaController::class, 'pagarRecibo'])->name('luz-agua.pagar-recibo');
+
+    // Servicios Web (hosting, dominios, etc.)
+    Route::resource('servicios-web', ServicioWebController::class)->except(['show']);
 
     Route::get('/pagos', [PagoController::class, 'index'])->name('pagos.index');
 

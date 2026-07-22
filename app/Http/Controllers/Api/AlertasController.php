@@ -113,13 +113,38 @@ class AlertasController extends Controller
                 ];
             });
 
+        // ── Servicios Web próximos a vencer ─────────────────────────────────
+        $en30 = Carbon::today()->addDays(30); // Usar 30 días para servicios web (más tiempo de anticipación)
+        $servicios = \App\Models\ServicioWeb::where('estado', 'activo')
+            ->where('fecha_vencimiento', '>=', $ayer)
+            ->where('fecha_vencimiento', '<=', $en30)
+            ->orderBy('fecha_vencimiento')
+            ->get()
+            ->map(function ($s) use ($hoy) {
+                $venc = Carbon::parse($s->fecha_vencimiento);
+                $dias = (int) $hoy->diffInDays($venc, false);
+                $sym  = $s->moneda === 'USD' ? '$' : 'S/';
+                return [
+                    'id'                => $s->id,
+                    'tipo'              => strtoupper($s->tipo),
+                    'proveedor'         => $s->proveedor,
+                    'nombre'            => $s->nombre,
+                    'monto'             => $s->monto ? $sym . ' ' . number_format($s->monto, 2) : null,
+                    'periodo'           => $s->periodo,
+                    'fecha_vencimiento' => $venc->format('d/m/Y'),
+                    'dias_restantes'    => $dias,
+                ];
+            });
+
         return response()->json([
             'generado'      => now()->format('d/m/Y H:i'),
             'deudas'        => $deudas,
             'ordenes'       => $ordenes,
             'recibos'       => $recibos,
-            'total_alertas' => count($deudas) + count($ordenes) + count($recibos),
+            'servicios'     => $servicios,
+            'total_alertas' => count($deudas) + count($ordenes) + count($recibos) + count($servicios),
         ]);
+
 
     }
 }

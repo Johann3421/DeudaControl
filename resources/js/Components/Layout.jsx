@@ -9,6 +9,7 @@ const NAVIGATION = [
     { name: 'Entidades', href: '/entidades', icon: 'entities' },
     { name: 'Inmuebles', href: '/inmuebles', icon: 'properties' },
     { name: 'Luz y Agua', href: '/luz-agua', icon: 'luz_agua' },
+    { name: 'Servicios Web', href: '/servicios-web', icon: 'servicios_web' },
     { name: 'Pagos', href: '/pagos', icon: 'payments' },
     { name: 'Movimientos', href: '/movimientos', icon: 'history' },
     { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
@@ -190,6 +191,16 @@ function LuzAguaIcon() {
     );
 }
 
+function ServiciosWebIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+    );
+}
+
 function BellIcon() {
 
     return (
@@ -217,6 +228,7 @@ const ICONS = {
     historial: HistorialIcon,
     userCreate: UserCreateIcon,
     luz_agua: LuzAguaIcon,
+    servicios_web: ServiciosWebIcon,
 };
 
 
