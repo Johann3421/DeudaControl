@@ -32,6 +32,7 @@ use App\Http\Controllers\ExcelSiafController;
 use App\Http\Controllers\Api\AlertasController;
 use App\Http\Controllers\Api\AlertasEntregaController;
 use App\Http\Controllers\Api\ChatbotQueryController;
+use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\UtilidadController;
@@ -81,6 +82,11 @@ Route::prefix('api')->group(function () {
     Route::get('/alertas/vencimientos', [AlertasController::class, 'vencimientos']);
     Route::get('/alertas/entregas', [AlertasEntregaController::class, 'vencimientos']);
     Route::get('/chatbot/consulta', [ChatbotQueryController::class, 'consulta']);
+
+    // Webhook de Evolution API — recibe eventos de conexión WhatsApp
+    // Evolution agrega el nombre del evento como sufijo: /connection-update
+    Route::post('/webhooks/whatsapp-connection', [WhatsappConnectionController::class, 'webhook']);
+    Route::post('/webhooks/whatsapp-connection/{event}', [WhatsappConnectionController::class, 'webhook']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
