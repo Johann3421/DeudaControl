@@ -1,21 +1,40 @@
 import { useState, useEffect } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 
-const NAVIGATION = [
-    { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
-    { name: 'Clientes', href: '/clientes', icon: 'clients' },
-    { name: 'Ordenes', href: '/ordenes', icon: 'ordenes' },
-    { name: 'Deudas', href: '/deudas', icon: 'debts' },
-    { name: 'Entidades', href: '/entidades', icon: 'entities' },
-    { name: 'Inmuebles', href: '/inmuebles', icon: 'properties' },
-    { name: 'Luz y Agua', href: '/luz-agua', icon: 'luz_agua' },
-    { name: 'Servicios Web', href: '/servicios-web', icon: 'servicios_web' },
-    { name: 'Pagos', href: '/pagos', icon: 'payments' },
-    { name: 'Movimientos', href: '/movimientos', icon: 'history' },
-    { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
-    { name: 'Historial', href: '/historial', icon: 'historial' },
+const NAVIGATION_GROUPS = [
+    {
+        title: 'Principal',
+        items: [
+            { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
+            { name: 'Clientes', href: '/clientes', icon: 'clients' },
+            { name: 'Ordenes', href: '/ordenes', icon: 'ordenes' },
+        ]
+    },
+    {
+        title: 'Finanzas & Deudas',
+        items: [
+            { name: 'Deudas', href: '/deudas', icon: 'debts' },
+            { name: 'Pagos', href: '/pagos', icon: 'payments' },
+            { name: 'Movimientos', href: '/movimientos', icon: 'history' },
+            { name: 'Entidades', href: '/entidades', icon: 'entities' },
+        ]
+    },
+    {
+        title: 'Gestión & Servicios',
+        items: [
+            { name: 'Inmuebles', href: '/inmuebles', icon: 'properties' },
+            { name: 'Luz y Agua', href: '/luz-agua', icon: 'luz_agua' },
+            { name: 'Servicios Web', href: '/servicios-web', icon: 'servicios_web' },
+        ]
+    },
+    {
+        title: 'Herramientas',
+        items: [
+            { name: 'Utilidades', href: '/utilidades', icon: 'utilidades' },
+            { name: 'Historial', href: '/historial', icon: 'historial' },
+        ]
+    }
 ];
-
 
 const ADMIN_NAVIGATION = [
     { name: 'Gestionar Roles', href: '/admin/roles', icon: 'admin' },
@@ -293,36 +312,13 @@ export default function Layout({ children, title }) {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                        {NAVIGATION.map((item) => {
-                            const isActive = currentPath.startsWith(item.href);
-                            const Icon = ICONS[item.icon];
-                            return (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={`
-                                        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
-                                        ${isActive
-                                            ? 'bg-[#0EA5E9] text-white shadow-lg shadow-[#0EA5E9]/25'
-                                            : 'text-slate-400 hover:text-white hover:bg-[#1E293B]'
-                                        }
-                                    `}
-                                    onClick={() => setSidebarOpen(false)}
-                                >
-                                    <Icon />
-                                    {item.name}
-                                </Link>
-                            );
-                        })}
-
-                        {/* Admin section */}
-                        {(auth.user.rol === 'superadmin' || auth.user.rol === 'jefe') && (
-                            <>
-                                <div className="px-3 py-3 mt-6 mb-2">
-                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Administración</p>
-                                </div>
-                                {ADMIN_NAVIGATION.map((item) => {
+                    <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-600">
+                        {NAVIGATION_GROUPS.map((group, idx) => (
+                            <div key={group.title} className="space-y-1">
+                                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                                    {group.title}
+                                </p>
+                                {group.items.map((item) => {
                                     const isActive = currentPath.startsWith(item.href);
                                     const Icon = ICONS[item.icon];
                                     return (
@@ -330,10 +326,10 @@ export default function Layout({ children, title }) {
                                             key={item.name}
                                             href={item.href}
                                             className={`
-                                                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+                                                flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150
                                                 ${isActive
-                                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/25'
-                                                    : 'text-slate-400 hover:text-white hover:bg-[#1E293B]'
+                                                    ? 'bg-[#0EA5E9] text-white shadow-md shadow-[#0EA5E9]/25 font-semibold'
+                                                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#1E293B]/70'
                                                 }
                                             `}
                                             onClick={() => setSidebarOpen(false)}
@@ -343,7 +339,37 @@ export default function Layout({ children, title }) {
                                         </Link>
                                     );
                                 })}
-                            </>
+                            </div>
+                        ))}
+
+                        {/* Admin section */}
+                        {(auth.user.rol === 'superadmin' || auth.user.rol === 'jefe') && (
+                            <div className="space-y-1 pt-2 border-t border-white/5">
+                                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-amber-500/80 mb-1.5">
+                                    Administración
+                                </p>
+                                {ADMIN_NAVIGATION.map((item) => {
+                                    const isActive = currentPath.startsWith(item.href);
+                                    const Icon = ICONS[item.icon];
+                                    return (
+                                        <Link
+                                            key={item.name}
+                                            href={item.href}
+                                            className={`
+                                                flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150
+                                                ${isActive
+                                                    ? 'bg-amber-600 text-white shadow-md shadow-amber-600/25 font-semibold'
+                                                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#1E293B]/70'
+                                                }
+                                            `}
+                                            onClick={() => setSidebarOpen(false)}
+                                        >
+                                            <Icon />
+                                            {item.name}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
                         )}
                     </nav>
 
