@@ -34,7 +34,6 @@ use App\Http\Controllers\Api\AlertasEntregaController;
 use App\Http\Controllers\Api\ChatbotQueryController;
 use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\Api\DataExportController;
-use App\Http\Controllers\Api\WhatsappConnectionController;
 use App\Http\Controllers\UtilidadController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\ReciboLuzAguaController;
