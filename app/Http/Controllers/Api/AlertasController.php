@@ -25,16 +25,18 @@ class AlertasController extends Controller
         // Zona horaria de Perú explícitamente (America/Lima)
         $tz    = 'America/Lima';
         $hoy   = Carbon::today($tz);
-        $hace7 = Carbon::today($tz)->subDays(7); // Máximo 7 días de atraso
+        $hace3 = Carbon::today($tz)->subDays(3); // Máximo 3 días de atraso
         $en7   = Carbon::today($tz)->addDays(7); // Próximos 7 días a vencer
         $en30  = Carbon::today($tz)->addDays(30);
 
-        // ── 1. Deudas de Clientes / Particulares (Excluyendo 'entidad' para evitar duplicados) ──
+        // ── 1. Deudas de Clientes / Particulares ─────────────────────────────
+        // (Excluye explícitamente cualquier registro que pertenezca a DeudaEntidad para NO duplicar)
         $deudas = Deuda::whereNotIn('estado', ['pagada', 'cancelada'])
             ->where('tipo_deuda', '!=', 'entidad')
+            ->doesntHave('deudaEntidad')
             ->where('monto_pendiente', '>', 0)
             ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '>=', $hace7)
+            ->where('fecha_vencimiento', '>=', $hace3)
             ->where('fecha_vencimiento', '<=', $en7)
             ->with(['cliente', 'user'])
             ->orderBy('fecha_vencimiento')
@@ -64,7 +66,7 @@ class AlertasController extends Controller
                 ])->orWhereNull('estado_seguimiento');
             })
             ->whereNotNull('fecha_limite_pago')
-            ->where('fecha_limite_pago', '>=', $hace7)
+            ->where('fecha_limite_pago', '>=', $hace3)
             ->where('fecha_limite_pago', '<=', $en7)
             ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada'])->where('monto_pendiente', '>', 0))
             ->with(['deuda.user', 'entidad'])
@@ -98,7 +100,7 @@ class AlertasController extends Controller
         // ── 3. Recibos de Luz y Agua pendientes ──────────────────────────────
         $recibos = \App\Models\ReciboLuzAgua::where('estado', 'pendiente')
             ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '>=', $hace7)
+            ->where('fecha_vencimiento', '>=', $hace3)
             ->where('fecha_vencimiento', '<=', $en7)
             ->orderBy('fecha_vencimiento')
             ->get()
@@ -119,7 +121,7 @@ class AlertasController extends Controller
         // ── 4. Servicios Web activos (hosting/dominios) ──────────────────────
         $servicios = \App\Models\ServicioWeb::where('estado', 'activo')
             ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '>=', $hace7)
+            ->where('fecha_vencimiento', '>=', $hace3)
             ->where('fecha_vencimiento', '<=', $en30)
             ->orderBy('fecha_vencimiento')
             ->get()
