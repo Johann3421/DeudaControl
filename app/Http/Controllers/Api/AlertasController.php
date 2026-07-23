@@ -23,15 +23,17 @@ class AlertasController extends Controller
         }
 
         // Zona horaria de Perú explícitamente (America/Lima)
-        $tz    = 'America/Lima';
-        $hoy   = Carbon::today($tz);
-        $hace3 = Carbon::today($tz)->subDays(3)->startOfDay(); // Hasta 3 días de atraso
-        $en7   = Carbon::today($tz)->addDays(7)->endOfDay();   // Incluye TODO el 7mo día (23:59:59)
-        $en30  = Carbon::today($tz)->addDays(30)->endOfDay();  // Incluye 30 días para servicios web
+        $tz          = 'America/Lima';
+        $hoy         = Carbon::today($tz);
+        $hace3       = Carbon::today($tz)->subDays(3)->startOfDay(); // Hasta 3 días de atraso
+        $diasQuery   = (int) $request->query('dias', 7);
+        $diasFuturos = max(7, $diasQuery);
+        $en7         = Carbon::today($tz)->addDays($diasFuturos)->endOfDay(); // Incluye todo el límite de días (23:59:59)
+        $en30        = Carbon::today($tz)->addDays(30)->endOfDay();          // Incluye 30 días para servicios web
 
         // ── 1. Deudas de Clientes / Particulares ─────────────────────────────
-        // (Excluye explícitamente cualquier registro que pertenezca a DeudaEntidad para NO duplicar)
-        $deudas = Deuda::whereNotIn('estado', ['pagada', 'cancelada'])
+        // (Excluye registros de DeudaEntidad para no duplicar)
+        $deudas = Deuda::whereNotIn('estado', ['pagada', 'Pagada', 'PAGADA', 'cancelada', 'Cancelada', 'CANCELADA'])
             ->where('tipo_deuda', '!=', 'entidad')
             ->doesntHave('deudaEntidad')
             ->whereNotNull('fecha_vencimiento')
@@ -57,29 +59,41 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── 2. Órdenes de Entidad (Deudas institucionales/licitaciones) ──────
-        $ordenes = DeudaEntidad::where('cerrado', false)
+        // ── 2. Órdenes de Entidad (Deudas institucionales/licitaciones/SIAF) ──
+        $ordenes = DeudaEntidad::where(function ($q) {
+                $q->where('cerrado', false)->orWhereNull('cerrado');
+            })
             ->where(function ($query) {
                 $query->whereNotIn('estado_seguimiento', [
                     'pagado', 'Pagado', 'PAGADO'
                 ])->orWhereNull('estado_seguimiento');
             })
-            ->whereNotNull('fecha_limite_pago')
-            ->where('fecha_limite_pago', '>=', $hace3)
-            ->where('fecha_limite_pago', '<=', $en7)
-            ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada']))
+            ->where(function ($query) use ($hace3, $en7) {
+                $query->where(function ($q2) use ($hace3, $en7) {
+                    $q2->whereNotNull('fecha_limite_pago')
+                       ->where('fecha_limite_pago', '>=', $hace3)
+                       ->where('fecha_limite_pago', '<=', $en7);
+                })->orWhereHas('deuda', function ($q3) use ($hace3, $en7) {
+                    $q3->whereNotNull('fecha_vencimiento')
+                       ->where('fecha_vencimiento', '>=', $hace3)
+                       ->where('fecha_vencimiento', '<=', $en7);
+                });
+            })
+            ->where(function ($query) {
+                $query->doesntHave('deuda')->orWhereHas('deuda', function ($q) {
+                    $q->whereNotIn('estado', ['pagada', 'Pagada', 'PAGADA', 'cancelada', 'Cancelada', 'CANCELADA']);
+                });
+            })
             ->with(['deuda.user', 'entidad'])
             ->orderBy('fecha_limite_pago')
             ->get()
             ->map(function ($oe) use ($hoy, $tz) {
-                $venc = Carbon::parse($oe->fecha_limite_pago, $tz)->startOfDay();
-                $dias = (int) $hoy->diffInDays($venc, false);
-                $monto = 0;
-                $sym   = 'S/';
-                if ($oe->deuda) {
-                    $sym   = ($oe->deuda->currency_code ?? 'PEN') === 'USD' ? '$' : 'S/';
-                    $monto = $oe->deuda->monto_pendiente;
-                }
+                $fechaStr = $oe->fecha_limite_pago ?: ($oe->deuda ? $oe->deuda->fecha_vencimiento : null);
+                $venc     = $fechaStr ? Carbon::parse($fechaStr, $tz)->startOfDay() : $hoy;
+                $dias     = (int) $hoy->diffInDays($venc, false);
+                $monto    = $oe->deuda ? $oe->deuda->monto_pendiente : 0;
+                $sym      = ($oe->deuda && ($oe->deuda->currency_code ?? 'PEN') === 'USD') ? '$' : 'S/';
+
                 return [
                     'id'                 => $oe->id,
                     'orden_compra'       => $oe->orden_compra ?? 'Sin N°',
