@@ -22,49 +22,13 @@ class AlertasController extends Controller
             ], 401);
         }
 
-        // Modo diagnóstico si se pasa ?debug=1
-        if ($request->query('debug')) {
-            $rawOrdenes = DeudaEntidad::with(['deuda', 'entidad'])->get()->map(function ($oe) {
-                return [
-                    'id'                 => $oe->id,
-                    'orden_compra'       => $oe->orden_compra,
-                    'fecha_limite_pago'  => $oe->fecha_limite_pago,
-                    'cerrado'            => $oe->cerrado,
-                    'estado_seguimiento' => $oe->estado_seguimiento,
-                    'deuda'              => $oe->deuda ? [
-                        'id'                => $oe->deuda->id,
-                        'estado'            => $oe->deuda->estado,
-                        'fecha_vencimiento' => $oe->deuda->fecha_vencimiento,
-                        'monto_pendiente'   => $oe->deuda->monto_pendiente,
-                    ] : null,
-                ];
-            });
-
-            $rawDeudas = Deuda::get()->map(function ($d) {
-                return [
-                    'id'               => $d->id,
-                    'descripcion'      => $d->descripcion,
-                    'tipo_deuda'       => $d->tipo_deuda,
-                    'estado'           => $d->estado,
-                    'fecha_vencimiento'=> $d->fecha_vencimiento,
-                    'monto_pendiente'  => $d->monto_pendiente,
-                ];
-            });
-
-            return response()->json([
-                'debug'       => true,
-                'raw_ordenes' => $rawOrdenes,
-                'raw_deudas'  => $rawDeudas,
-            ]);
-        }
-
         // Zona horaria de Perú explícitamente (America/Lima)
         $tz          = 'America/Lima';
         $hoy         = Carbon::today($tz);
         $hace3       = Carbon::today($tz)->subDays(3)->startOfDay(); // Hasta 3 días de atraso
-        $diasQuery   = (int) $request->query('dias', 7);
-        $diasFuturos = max(7, $diasQuery);
-        $en7         = Carbon::today($tz)->addDays($diasFuturos)->endOfDay(); // Incluye todo el límite de días (23:59:59)
+        $diasQuery   = (int) $request->query('dias', 8);
+        $diasFuturos = max(8, $diasQuery + 1);                       // Dar margen de +1 día (hasta 8-9 días) para incluir items en el límite
+        $en7         = Carbon::today($tz)->addDays($diasFuturos)->endOfDay(); // Incluye todo el límite (23:59:59)
         $en30        = Carbon::today($tz)->addDays(30)->endOfDay();          // Incluye 30 días para servicios web
 
         // ── 1. Deudas de Clientes / Particulares ─────────────────────────────
