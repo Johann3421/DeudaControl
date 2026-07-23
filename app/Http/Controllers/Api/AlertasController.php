@@ -26,15 +26,15 @@ class AlertasController extends Controller
         $tz          = 'America/Lima';
         $hoy         = Carbon::today($tz);
         $hace3       = Carbon::today($tz)->subDays(3)->startOfDay(); // Hasta 3 días de atraso
-        $diasQuery   = (int) $request->query('dias', 8);
-        $diasFuturos = max(8, $diasQuery + 1);                       // Dar margen de +1 día (hasta 8-9 días) para incluir items en el límite
-        $en7         = Carbon::today($tz)->addDays($diasFuturos)->endOfDay(); // Incluye todo el límite (23:59:59)
-        $en30        = Carbon::today($tz)->addDays(30)->endOfDay();          // Incluye 30 días para servicios web
+        $diasQuery   = (int) $request->query('dias', 7);
+        $diasFuturos = max(7, $diasQuery) + 2;                        // Margen de +2 días (cubre hasta 9 días para no perder items del límite de semana)
+        $en7         = Carbon::today($tz)->addDays($diasFuturos)->endOfDay();
+        $en30        = Carbon::today($tz)->addDays(30)->endOfDay();
 
-        // ── 1. Deudas de Clientes / Particulares ─────────────────────────────
-        // (Excluye registros de DeudaEntidad para no duplicar)
+        // ── 1. Deudas Generales / Clientes ───────────────────────────────────
+        // Regla anti-duplicados: Cualquier deuda que NO tenga un registro en deudas_entidades.
+        // Si no tiene registro hijo en deudas_entidades, se lista aquí (aunque tipo_deuda sea 'entidad').
         $deudas = Deuda::whereNotIn('estado', ['pagada', 'Pagada', 'PAGADA', 'cancelada', 'Cancelada', 'CANCELADA'])
-            ->where('tipo_deuda', '!=', 'entidad')
             ->doesntHave('deudaEntidad')
             ->whereNotNull('fecha_vencimiento')
             ->where('fecha_vencimiento', '>=', $hace3)
@@ -59,7 +59,8 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── 2. Órdenes de Entidad (Deudas institucionales/licitaciones/SIAF) ──
+        // ── 2. Órdenes de Entidad ───────────────────────────────────────────
+        // Notifica todas las deudas institucionales que SÍ tienen registro en deudas_entidades
         $ordenes = DeudaEntidad::where(function ($q) {
                 $q->where('cerrado', false)->orWhereNull('cerrado');
             })
