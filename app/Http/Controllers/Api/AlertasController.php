@@ -22,6 +22,42 @@ class AlertasController extends Controller
             ], 401);
         }
 
+        // Modo diagnóstico si se pasa ?debug=1
+        if ($request->query('debug')) {
+            $rawOrdenes = DeudaEntidad::with(['deuda', 'entidad'])->get()->map(function ($oe) {
+                return [
+                    'id'                 => $oe->id,
+                    'orden_compra'       => $oe->orden_compra,
+                    'fecha_limite_pago'  => $oe->fecha_limite_pago,
+                    'cerrado'            => $oe->cerrado,
+                    'estado_seguimiento' => $oe->estado_seguimiento,
+                    'deuda'              => $oe->deuda ? [
+                        'id'                => $oe->deuda->id,
+                        'estado'            => $oe->deuda->estado,
+                        'fecha_vencimiento' => $oe->deuda->fecha_vencimiento,
+                        'monto_pendiente'   => $oe->deuda->monto_pendiente,
+                    ] : null,
+                ];
+            });
+
+            $rawDeudas = Deuda::get()->map(function ($d) {
+                return [
+                    'id'               => $d->id,
+                    'descripcion'      => $d->descripcion,
+                    'tipo_deuda'       => $d->tipo_deuda,
+                    'estado'           => $d->estado,
+                    'fecha_vencimiento'=> $d->fecha_vencimiento,
+                    'monto_pendiente'  => $d->monto_pendiente,
+                ];
+            });
+
+            return response()->json([
+                'debug'       => true,
+                'raw_ordenes' => $rawOrdenes,
+                'raw_deudas'  => $rawDeudas,
+            ]);
+        }
+
         // Zona horaria de Perú explícitamente (America/Lima)
         $tz          = 'America/Lima';
         $hoy         = Carbon::today($tz);
