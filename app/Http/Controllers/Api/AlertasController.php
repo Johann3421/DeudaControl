@@ -22,20 +22,21 @@ class AlertasController extends Controller
             ], 401);
         }
 
-        $hoy  = Carbon::today();
-        $en7  = Carbon::today()->addDays(7);
-        $ayer = Carbon::yesterday(); // Incluye vencidos de ayer
+        // Usar zona horaria de Perú explícitamente (America/Lima)
+        $tz   = 'America/Lima';
+        $hoy  = Carbon::today($tz);
+        $en7  = Carbon::today($tz)->addDays(7);
+        $en30 = Carbon::today($tz)->addDays(30);
 
-        // ── Deudas activas próximas a vencer ─────────────────────────────────
-        $deudas = Deuda::where('estado', 'activa')
+        // ── Deudas activas / vencidas próximas a vencer o ya vencidas ───────
+        $deudas = Deuda::whereNotIn('estado', ['pagada', 'cancelada'])
             ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '>=', $ayer)
             ->where('fecha_vencimiento', '<=', $en7)
             ->with(['cliente', 'user'])
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function ($d) use ($hoy) {
-                $venc = Carbon::parse($d->fecha_vencimiento);
+            ->map(function ($d) use ($hoy, $tz) {
+                $venc = Carbon::parse($d->fecha_vencimiento, $tz)->startOfDay();
                 $dias = (int) $hoy->diffInDays($venc, false);
                 $sym  = ($d->currency_code ?? 'PEN') === 'USD' ? '$' : 'S/';
                 return [
@@ -51,24 +52,21 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Órdenes de entidad no cerradas próximas al límite de pago ────────
+        // ── Órdenes de entidad no cerradas ni pagadas ───────────────────────
         $ordenes = DeudaEntidad::where('cerrado', false)
             ->where(function ($query) {
                 $query->whereNotIn('estado_seguimiento', [
-                    'entregado', 'Entregado', 'ENTREGADO',
-                    'facturado', 'Facturado', 'FACTURADO',
                     'pagado', 'Pagado', 'PAGADO'
                 ])->orWhereNull('estado_seguimiento');
             })
             ->whereNotNull('fecha_limite_pago')
-            ->where('fecha_limite_pago', '>=', $ayer)
             ->where('fecha_limite_pago', '<=', $en7)
             ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada']))
             ->with(['deuda.user', 'entidad'])
             ->orderBy('fecha_limite_pago')
             ->get()
-            ->map(function ($oe) use ($hoy) {
-                $venc = Carbon::parse($oe->fecha_limite_pago);
+            ->map(function ($oe) use ($hoy, $tz) {
+                $venc = Carbon::parse($oe->fecha_limite_pago, $tz)->startOfDay();
                 $dias = (int) $hoy->diffInDays($venc, false);
                 $monto = 0;
                 $sym   = 'S/';
@@ -92,15 +90,14 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Recibos de Luz y Agua próximos a vencer ──────────────────────────
+        // ── Recibos de Luz y Agua pendientes ────────────────────────────────
         $recibos = \App\Models\ReciboLuzAgua::where('estado', 'pendiente')
             ->whereNotNull('fecha_vencimiento')
-            ->where('fecha_vencimiento', '>=', $ayer)
             ->where('fecha_vencimiento', '<=', $en7)
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function ($r) use ($hoy) {
-                $venc = Carbon::parse($r->fecha_vencimiento);
+            ->map(function ($r) use ($hoy, $tz) {
+                $venc = Carbon::parse($r->fecha_vencimiento, $tz)->startOfDay();
                 $dias = (int) $hoy->diffInDays($venc, false);
                 return [
                     'id'                => $r->id,
@@ -113,15 +110,14 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Servicios Web próximos a vencer ─────────────────────────────────
-        $en30 = Carbon::today()->addDays(30); // Usar 30 días para servicios web (más tiempo de anticipación)
+        // ── Servicios Web activos próximos a vencer o vencidos ──────────────
         $servicios = \App\Models\ServicioWeb::where('estado', 'activo')
-            ->where('fecha_vencimiento', '>=', $ayer)
+            ->whereNotNull('fecha_vencimiento')
             ->where('fecha_vencimiento', '<=', $en30)
             ->orderBy('fecha_vencimiento')
             ->get()
-            ->map(function ($s) use ($hoy) {
-                $venc = Carbon::parse($s->fecha_vencimiento);
+            ->map(function ($s) use ($hoy, $tz) {
+                $venc = Carbon::parse($s->fecha_vencimiento, $tz)->startOfDay();
                 $dias = (int) $hoy->diffInDays($venc, false);
                 $sym  = $s->moneda === 'USD' ? '$' : 'S/';
                 return [
@@ -137,14 +133,12 @@ class AlertasController extends Controller
             });
 
         return response()->json([
-            'generado'      => now()->format('d/m/Y H:i'),
+            'generado'      => now($tz)->format('d/m/Y H:i'),
             'deudas'        => $deudas,
             'ordenes'       => $ordenes,
             'recibos'       => $recibos,
             'servicios'     => $servicios,
             'total_alertas' => count($deudas) + count($ordenes) + count($recibos) + count($servicios),
         ]);
-
-
     }
 }
