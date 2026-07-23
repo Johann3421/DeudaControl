@@ -22,15 +22,19 @@ class AlertasController extends Controller
             ], 401);
         }
 
-        // Usar zona horaria de Perú explícitamente (America/Lima)
-        $tz   = 'America/Lima';
-        $hoy  = Carbon::today($tz);
-        $en7  = Carbon::today($tz)->addDays(7);
-        $en30 = Carbon::today($tz)->addDays(30);
+        // Zona horaria de Perú explícitamente (America/Lima)
+        $tz    = 'America/Lima';
+        $hoy   = Carbon::today($tz);
+        $hace7 = Carbon::today($tz)->subDays(7); // Máximo 7 días de atraso
+        $en7   = Carbon::today($tz)->addDays(7); // Próximos 7 días a vencer
+        $en30  = Carbon::today($tz)->addDays(30);
 
-        // ── Deudas activas / vencidas próximas a vencer o ya vencidas ───────
+        // ── 1. Deudas de Clientes / Particulares (Excluyendo 'entidad' para evitar duplicados) ──
         $deudas = Deuda::whereNotIn('estado', ['pagada', 'cancelada'])
+            ->where('tipo_deuda', '!=', 'entidad')
+            ->where('monto_pendiente', '>', 0)
             ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento', '>=', $hace7)
             ->where('fecha_vencimiento', '<=', $en7)
             ->with(['cliente', 'user'])
             ->orderBy('fecha_vencimiento')
@@ -52,7 +56,7 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Órdenes de entidad no cerradas ni pagadas ───────────────────────
+        // ── 2. Órdenes de Entidad (Deudas institucionales/licitaciones) ──────
         $ordenes = DeudaEntidad::where('cerrado', false)
             ->where(function ($query) {
                 $query->whereNotIn('estado_seguimiento', [
@@ -60,8 +64,9 @@ class AlertasController extends Controller
                 ])->orWhereNull('estado_seguimiento');
             })
             ->whereNotNull('fecha_limite_pago')
+            ->where('fecha_limite_pago', '>=', $hace7)
             ->where('fecha_limite_pago', '<=', $en7)
-            ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada']))
+            ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada'])->where('monto_pendiente', '>', 0))
             ->with(['deuda.user', 'entidad'])
             ->orderBy('fecha_limite_pago')
             ->get()
@@ -90,9 +95,10 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Recibos de Luz y Agua pendientes ────────────────────────────────
+        // ── 3. Recibos de Luz y Agua pendientes ──────────────────────────────
         $recibos = \App\Models\ReciboLuzAgua::where('estado', 'pendiente')
             ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento', '>=', $hace7)
             ->where('fecha_vencimiento', '<=', $en7)
             ->orderBy('fecha_vencimiento')
             ->get()
@@ -110,9 +116,10 @@ class AlertasController extends Controller
                 ];
             });
 
-        // ── Servicios Web activos próximos a vencer o vencidos ──────────────
+        // ── 4. Servicios Web activos (hosting/dominios) ──────────────────────
         $servicios = \App\Models\ServicioWeb::where('estado', 'activo')
             ->whereNotNull('fecha_vencimiento')
+            ->where('fecha_vencimiento', '>=', $hace7)
             ->where('fecha_vencimiento', '<=', $en30)
             ->orderBy('fecha_vencimiento')
             ->get()
