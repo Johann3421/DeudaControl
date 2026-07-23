@@ -25,16 +25,15 @@ class AlertasController extends Controller
         // Zona horaria de Perú explícitamente (America/Lima)
         $tz    = 'America/Lima';
         $hoy   = Carbon::today($tz);
-        $hace3 = Carbon::today($tz)->subDays(3); // Máximo 3 días de atraso
-        $en7   = Carbon::today($tz)->addDays(7); // Próximos 7 días a vencer
-        $en30  = Carbon::today($tz)->addDays(30);
+        $hace3 = Carbon::today($tz)->subDays(3)->startOfDay(); // Hasta 3 días de atraso
+        $en7   = Carbon::today($tz)->addDays(7)->endOfDay();   // Incluye TODO el 7mo día (23:59:59)
+        $en30  = Carbon::today($tz)->addDays(30)->endOfDay();  // Incluye 30 días para servicios web
 
         // ── 1. Deudas de Clientes / Particulares ─────────────────────────────
         // (Excluye explícitamente cualquier registro que pertenezca a DeudaEntidad para NO duplicar)
         $deudas = Deuda::whereNotIn('estado', ['pagada', 'cancelada'])
             ->where('tipo_deuda', '!=', 'entidad')
             ->doesntHave('deudaEntidad')
-            ->where('monto_pendiente', '>', 0)
             ->whereNotNull('fecha_vencimiento')
             ->where('fecha_vencimiento', '>=', $hace3)
             ->where('fecha_vencimiento', '<=', $en7)
@@ -68,7 +67,7 @@ class AlertasController extends Controller
             ->whereNotNull('fecha_limite_pago')
             ->where('fecha_limite_pago', '>=', $hace3)
             ->where('fecha_limite_pago', '<=', $en7)
-            ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada'])->where('monto_pendiente', '>', 0))
+            ->whereHas('deuda', fn($q) => $q->whereNotIn('estado', ['pagada', 'cancelada']))
             ->with(['deuda.user', 'entidad'])
             ->orderBy('fecha_limite_pago')
             ->get()
